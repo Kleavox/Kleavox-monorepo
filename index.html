@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap">
+</head>
+
+<body>
+    <nav class="navbar">
+      <div class="logo">
+        <img src="assets/logo.svg" alt="CAP Teknik Logo" class="logo-image">
+      </div>
+      <p class="menuBtn">☰</p>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+    <section class="profiler" id="top">
+      <div class="intro">
+        <h1>HI I'M<br> HAFIDH MUSYAFA</h1>
+        <h2>Engineering student and tech enthusiast.</h2>
+        <p>Deeply passionate about exploring and building technological solutions. My interests include hardware
+          programming, embedded systems, and software development.</p>
+        <a class="scroll" href="#about"><img src="assets/down-arrow.png">
+          <p>Scroll To Continue</p>
+        </a>
+      </div>
+
+      <div class="profile">
+        <a class="img-container" href="#about"><img src="images/profile.jpg" alt="Profile Image"></a>
+        <div class="social-links">
+          <a href="https://github.com/J58C" target="_blank"><i class="fab fa-github"></i></a>
+          <a href="https://www.linkedin.com/in/hmus122/" target="_blank"><i class="fab fa-linkedin"></i></a>
+          <a href="https://www.kaggle.com/hafidhmusyafa" target="_blank"><i class="fa-brands fa-kaggle"></i></a>
+        </div>
+      </div>
+    </section>
+
+
+
+    <section class="about-section" id="about">
+      <div class="about">
+        <div class="about-n">
+          <h1>01.</h1>
+          <h2>Driven by a passion for engineering and technology, I am always learning and building solutions to
+            real-world challenges.</h2>
+        </div>
+        <p>Currently pursuing a degree in Computer Engineering, I focus on software development, embedded systems,
+          and exploring the latest advancements in tech. From programming microcontrollers to developing applications,
+          I’m fascinated by how technology can be harnessed to solve problems effectively.</p>
+      </div>
+    </section>
+
+
+    <section class="project-section" id="project">
+      <div class="project">
+
+        <div class="project-n">
+          <h1>02.</h1>
+          <div class="project-n-sub"><h2>Recent project</h2><a href="gallery.html">More</a></div>
+        </div>
+
+        <div class="slider">
+          <h3 class="next">></h3>
+          <h3 class="prev"><</h3>
+          <div class="page kicad">
+            <img src="images/kicad.jpg" alt="Project Image">
+            <div class="page-sub">
+              <h1>ESP32-S3 Monitor</h1>
+              <h2>This PCB design combines ESP32-S3, MPU6050, and MAX30102 for real-time motion and heart rate monitoring. Powered by the ESP32-S3 platform, it offers a compact solution for biometric and health applications.</h2>
+            </div>
+          </div>
+
+          <div class="page pcb">
+            <img src="images/pcb.jpg" alt="Project Image">
+            <div class="page-sub">
+            <h1>Pulsating Current</h1>
+            <h2>This circuit ensures a steady power supply from a power bank, 
+              even under low current loads from a microcontroller. 
+              Using the NE555 IC, it stabilizes fluctuating or pulsating current, preventing the power bank from turning off unexpectedly.</h2>
+          
+            </div>
+
+          </div>
+
+          <div class="page ml">
+            <img src="images/ml.png" alt="Project Image">
+            <div class="page-sub">
+            <h1>RNN LSTM Model</h1>
+            <h2>This image displays the architecture of an RNN LSTM model designed for Human Activity Recognition (HAR). The model consists of two LSTM layers to capture sequential patterns in the data, complemented by dropout layers to prevent overfitting. Dense layers are used to produce a 4-class classification output. The model has a total of 461,124 trainable parameters.</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="details-section" id="details">
+      <div class="details">
+      <div class="details-n">
+        <h1>03.</h1>
+        <h2>What I am awesome at</h2>
+      </div>
+
+      <div class="details-t">
+        <h3>I approach projects with a strong foundation in technology and engineering principles, focusing on
+          innovative and efficient solutions. My passion for technology drives me to explore and improve various
+          engineering and design aspects.</h3>
+      </div>
+
+      <div class="details-p">
+        <div class="card">
+          <h2>Embedded Systems</h2>
+          <p>Designing and implementing embedded systems, particularly with microcontrollers like the ESP32 and
+            Raspberry Pi. I work on integrating sensors, communication modules, and custom firmware to create
+            efficient,
+            reliable hardware solutions.</p>
+        </div>
+        <div class="card">
+          <h2>Data Analysis</h2>
+          <p>Proficient in analyzing structured and unstructured data to extract actionable insights. Skilled in using
+            tools like Excel, SPSS, and Python, along with data visualization libraries such as Matplotlib and
+            Seaborn,
+            to communicate findings effectively and drive data-informed decisions in various projects.</p>
+        </div>
+        <div class="card">
+          <h2>Circuit and PCB Design</h2>
+          <p>Experienced in using KiCad and other tools for circuit design and PCB layout. I focus on creating
+            compact,
+            efficient designs that support the requirements of various projects, from prototyping to implementation.
+          </p>
+        </div>
+        <div class="card">
+          <h2>Machine Learning</h2>
+          <p>Experienced in building and deploying machine learning models for predictive analytics and classification
+            tasks. Skilled in using tools like TensorFlow, Scikit-learn, and Edge Impulse, particularly in projects
+            involving IoT and Human Activity Recognition.</p>
+        </div>
+      </div>
+
+    </section>
+  </header>
+
+  </header>
+
+  <footer class="footer">
+    <p>
+      <a href="https://github.com/J58C" target="_blank"><i class="fab fa-github"></i></a>
+      <a href="https://www.linkedin.com/in/hmus122/" target="_blank"><i class="fab fa-linkedin"></i></a>
+      <a href="https://www.kaggle.com/hafidhmusyafa" target="_blank"><i class="fa-brands fa-kaggle"></i></a>
+      <small>&copy; 2024 Teknik Komputer, All Rights Reserved</small>
+    </p>
+  </footer>
+  <script src="scripts.js"></script>
+</body>
+
+</html>

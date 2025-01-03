@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap">
+</head>
+
+<body>
+  <header class="header">
+    <nav class="navbar">
+      <div class="logo">
+        <img src="assets/logo.svg" alt="CAP Teknik Logo" class="logo-image">
+      </div>
+      <p class="menuBtn">☰</p>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+
+    <main class="main">
+
+      <section class="projects-entry">
+        <div class="quote">
+          <h1>Creating Valuable Projects</h1>
+        </div>
+      </section>
+      <section class="pro-container">
+      <section class="pro">
+        <div class="pro-1">
+          <h1>ESP32-S3 Monitor</h1>
+          <img src="images/kicad.jpg" alt="Project Image">
+          <h2>This PCB design combines ESP32-S3, MPU6050, and MAX30102 for real-time motion and heart rate monitoring.
+            Powered by the ESP32-S3 platform, it offers a compact solution for biometric and health applications.</h2>
+        </div>
+      </section>
+
+      <section class="pro">
+        <div class="pro-2">
+          <h1>Pulsating Current</h1>
+          <img src="images/pcb.jpg" alt="Project Image" width="500px">
+          <h2>This circuit ensures a steady power supply from a power bank, even under low current loads from a
+            microcontroller. Using the NE555 IC, it stabilizes fluctuating or pulsating current, preventing the power
+            bank from turning off unexpectedly.</h2>
+        </div>
+      </section>
+
+      <section class="pro">
+        <div class="pro-3">
+          <h1>RNN LSTM Model</h1>
+          <img src="images/ml.png" alt="Project Image" width="500px">
+          <h2>This image displays the architecture of an RNN LSTM model designed for Human Activity Recognition (HAR).
+            The model consists of two LSTM layers to capture sequential patterns in the data, complemented by dropout
+            layers to prevent overfitting. Dense layers are used to produce a 4-class classification output. The model
+            has a total of 461,124 trainable parameters.</h2>
+        </div>
+      </section>
+    </section>
+
+      <section class="contact-section">
+        <h1>Want to work together?</h1>
+        <a href="mailto:hello@capteknik.my.id" class="email">hello@capteknik.my.id</a>
+      </section>
+
+    </main>
+  </header>
+
+  <footer class="footer">
+    <p>
+      <a href="https://github.com/J58C" target="_blank"><i class="fab fa-github"></i></a>
+      <a href="https://www.linkedin.com/in/hmus122/" target="_blank"><i class="fab fa-linkedin"></i></a>
+      <a href="https://www.kaggle.com/hafidhmusyafa" target="_blank"><i class="fa-brands fa-kaggle"></i></a>
+      <small>&copy; 2024 Teknik Komputer, All Rights Reserved</small>
+    </p>
+  </footer>
+  <script src="scripts.js"></script>
+</body>
+
+</html>

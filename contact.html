@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap">
+</head>
+<body>
+  <header class="header">
+    <nav class="navbar">
+      <div class="logo">
+        <img src="assets/logo.svg" alt="CAP Teknik Logo" class="logo-image">
+      </div>
+      <p class="menuBtn">☰</p>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+    
+    <div class="section">
+        <section class="contacts-section">
+            <h1>Send me a message</h1>
+            <a href="mailto:hello@capteknik.my.id" class="email">hello@capteknik.my.id</a>
+            <h2>Or connect with me on socials</h2>
+            <div class="links">
+                <a href="https://github.com/J58C" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+                <a href="https://www.linkedin.com/in/hmus122/" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a>
+                <a href="https://www.kaggle.com/hafidhmusyafa" target="_blank"><i class="fa-brands fa-kaggle"></i>Kaggle</a>
+              </div>
+        </section>
+        <section class="form-section">
+          <h1>Let's discuss your brand and business goals and objectives</h1>
+          <form action="send-email.php" method="post">
+              <input type="text" name="full_name" placeholder="Full name *" required>
+              <input type="email" name="email" placeholder="Email address*" required>
+              <textarea name="message" placeholder="Your message*" rows="5" required></textarea>
+              <button type="submit">Submit</button>
+          </form>
+      </section>      
+
+    </div>
+
+  </header>
+  <footer class="footer">
+    <p>
+        <a href="https://github.com/J58C" target="_blank"><i class="fab fa-github"></i></a>
+        <a href="https://www.linkedin.com/in/hmus122/" target="_blank"><i class="fab fa-linkedin"></i></a>
+        <a href="https://www.kaggle.com/hafidhmusyafa" target="_blank"><i class="fa-brands fa-kaggle"></i></a>
+        <small>&copy; 2024 Teknik Komputer, All Rights Reserved</small>
+    </p>
+  </footer>
+  <script src="scripts.js"></script>
+</body>
+</html>
