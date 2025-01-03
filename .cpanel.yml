@@ -3,4 +3,3 @@ deployment:
   tasks:
     - export DEPLOYPATH=/home/captekni/public_html/
     - /bin/cp -R * $DEPLOYPATH
-    - /bin/cp -R .[^.]* $DEPLOYPATH
