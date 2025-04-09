@@ -1,4 +1,4 @@
-name: Auto Deploy to cPanel via SSH
+name: Auto Deploy
 
 on:
   push:
