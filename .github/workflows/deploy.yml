@@ -1,0 +1,22 @@
+name: Auto Deploy to cPanel via SSH
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Auto deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: capteknik.my.id
+          username: captekni
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd public_html
+            git pull origin main
