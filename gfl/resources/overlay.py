@@ -6,21 +6,21 @@ from PIL import Image
 OUTPUT_SIZE = (220, 440)
 OVERLAY_SIZE = (750, 750)
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-assets_dir = os.path.join(base_dir, "assets")
-background_dir = os.path.join(assets_dir, "background")
-output_dir = os.path.join(base_dir, "char_images")
-char_dir = os.path.join(assets_dir, "char")
-char_zip_path = os.path.join(assets_dir, "char.zip")
+root = os.path.dirname(os.path.abspath(__file__))
+assets = os.path.join(root, "assets")
+background = os.path.join(assets, "background")
+output = os.path.join(root, "char_images")
+char_dir = os.path.join(assets, "char")
+char_zip = os.path.join(assets, "char.zip")
 
-os.makedirs(output_dir, exist_ok=True)
+os.makedirs(output, exist_ok=True)
 
 def process_images():
-    print("Memproses gambar...")
+    print("Processing images")
     backgrounds = {}
     for i in range(2, 7):
         for ext in (".png", ".jpg", ".jpeg"):
-            bg_path = os.path.join(background_dir, f"{i}BANNER{ext}")
+            bg_path = os.path.join(background, f"{i}BANNER{ext}")
             if os.path.exists(bg_path):
                 backgrounds[str(i)] = bg_path
                 break
@@ -68,7 +68,9 @@ def process_images():
 
             ov_name = os.path.splitext(os.path.basename(ov_path))[0].replace(" ", "_")
             out_name = f"{ov_name}[{key}].png"
-            final_img.save(os.path.join(output_dir, out_name))
+            output_path = os.path.join(output, out_name)
+            final_img.save(output_path)
+            print(f"{out_name}")
 
             os.remove(ov_path)
 
@@ -78,14 +80,12 @@ def process_images():
 
     if os.path.isdir(char_dir) and not os.listdir(char_dir):
         shutil.rmtree(char_dir)
-        print("Folder char selesai diproses dan dihapus.")
+        print("Cleen up")
 
-print("Menunggu file char.zip atau folder char...")
-
-if os.path.exists(char_zip_path):
-    with zipfile.ZipFile(char_zip_path, 'r') as zip_ref:
-        zip_ref.extractall(assets_dir)
-    os.remove(char_zip_path)
+if os.path.exists(char_zip):
+    with zipfile.ZipFile(char_zip, 'r') as zip_ref:
+        zip_ref.extractall(assets)
+    os.remove(char_zip)
 
 if os.path.exists(char_dir):
     process_images()
