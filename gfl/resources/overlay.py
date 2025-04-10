@@ -2,6 +2,7 @@ import os
 import shutil
 import zipfile
 from PIL import Image
+from datetime import datetime
 
 OUTPUT_SIZE = (220, 440)
 OVERLAY_SIZE = (750, 750)
@@ -12,11 +13,19 @@ background = os.path.join(assets, "background")
 output = os.path.join(root, "char_images")
 char_dir = os.path.join(assets, "char")
 char_zip = os.path.join(assets, "char.zip")
+root = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.join(root, "logs", "overlay.log")
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
-os.makedirs(output, exist_ok=True)
+def log(msg):
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    message = f"{timestamp}\t{msg}"
+    print(message)
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(message + "\n")
 
 def process_images():
-    print("Processing images")
+    log("Processing images")
     backgrounds = {}
     for i in range(2, 7):
         for ext in (".png", ".jpg", ".jpeg"):
@@ -70,7 +79,7 @@ def process_images():
             out_name = f"{ov_name}[{key}].png"
             output_path = os.path.join(output, out_name)
             final_img.save(output_path)
-            print(f"{out_name}")
+            log(f"Saved: {out_name}")
 
             os.remove(ov_path)
 
@@ -80,7 +89,7 @@ def process_images():
 
     if os.path.isdir(char_dir) and not os.listdir(char_dir):
         shutil.rmtree(char_dir)
-        print("Clean up")
+        log("Clean up")
 
 if os.path.exists(char_zip):
     with zipfile.ZipFile(char_zip, 'r') as zip_ref:
