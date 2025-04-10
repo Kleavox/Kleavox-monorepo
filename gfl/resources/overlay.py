@@ -80,7 +80,7 @@ def process_images():
 
     if os.path.isdir(char_dir) and not os.listdir(char_dir):
         shutil.rmtree(char_dir)
-        print("Cleen up")
+        print("Clean up")
 
 if os.path.exists(char_zip):
     with zipfile.ZipFile(char_zip, 'r') as zip_ref:
