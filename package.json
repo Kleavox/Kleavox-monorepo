@@ -1,0 +1,26 @@
+{
+  "name": "capteknik",
+  "version": "1.0.0",
+  "description": "",
+  "main": "scripts.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/J58C/CapTeknik.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/J58C/CapTeknik/issues"
+  },
+  "homepage": "https://github.com/J58C/CapTeknik#readme",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "sharp": "^0.34.1",
+    "unzipper": "^0.12.3"
+  }
+}
