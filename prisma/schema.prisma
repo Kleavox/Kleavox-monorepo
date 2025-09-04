@@ -9,12 +9,12 @@ datasource db {
 
 model UptimeCheck {
   id           String       @id @default(cuid())
-  name         String
-  targetUrl    String
-  intervalSec  Int           @default(60)
-  enabled      Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  name         String       @unique
+  targetUrl    String       @unique
+  intervalSec  Int          @default(60)
+  enabled      Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   logs         UptimeLog[]
 
@@ -39,7 +39,7 @@ model UptimeLog {
 model ShortLink {
   id         String   @id @default(cuid())
   slug       String   @unique
-  targetUrl  String
+  targetUrl  String   @unique
   enabled    Boolean  @default(true)
   hits       Int      @default(0)
   createdAt  DateTime @default(now())

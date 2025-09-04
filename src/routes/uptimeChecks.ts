@@ -1,33 +1,48 @@
 import { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { z } from "zod";
-import { createCheckSchema } from "../schemas/uptime.js";
-
-const updateCheckSchema = createCheckSchema.partial();
+import { createCheckSchema, updateCheckSchema } from "../schemas/uptime.js";
 
 export default async function uptimeRoutes(app: FastifyInstance) {
-  app.post("/checks", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
-    const parsed = createCheckSchema.parse(req.body);
-    const created = await prisma.uptimeCheck.create({ data: parsed });
-    return reply.code(201).send(created);
+  app.post("/checks", async (req, reply) => {
+    try {
+      const parsed = createCheckSchema.parse(req.body);
+      const created = await prisma.uptimeCheck.create({ data: parsed });
+      return reply.code(201).send(created);
+    } catch (e: any) {
+      if (e?.code === "P2002") {
+        return reply.code(409).send({ error: "Duplicate value", fields: e.meta?.target });
+      }
+      if (e instanceof z.ZodError) {
+        return reply.code(400).send({ error: "Invalid input", issues: e.issues });
+      }
+      throw e;
+    }
   });
 
-  app.get("/checks", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async () => {
+  app.get("/checks", async () => {
     return prisma.uptimeCheck.findMany({ orderBy: { createdAt: "desc" } });
   });
 
-  app.get("/checks/:id", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
+  app.get("/checks/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
     const check = await prisma.uptimeCheck.findUnique({ where: { id } });
     if (!check) return reply.code(404).send({ error: "Not found" });
     return check;
   });
 
-  app.patch("/checks/:id", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
+  app.patch("/checks/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const data = updateCheckSchema.parse(req.body);
-    const updated = await prisma.uptimeCheck.update({ where: { id }, data });
-    return reply.send(updated);
+    try {
+      const data = updateCheckSchema.parse(req.body ?? {});
+      const updated = await prisma.uptimeCheck.update({ where: { id }, data });
+      return reply.send(updated);
+    } catch (e: any) {
+      if (e?.code === "P2025") return reply.code(404).send({ error: "Not found" });
+      if (e?.code === "P2002") return reply.code(409).send({ error: "Duplicate value", fields: e.meta?.target });
+      if (e instanceof z.ZodError) return reply.code(400).send({ error: "Invalid input", issues: e.issues });
+      throw e;
+    }
   });
 
   app.post("/checks/:id/logs", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
