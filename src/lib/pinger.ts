@@ -6,7 +6,7 @@ type Logger = { info: Function; warn: Function; error: Function };
 
 let lastCleanup = 0;
 const CLEANUP_EVERY_MS = 60 * 60 * 1000;
-const RETAIN_DAYS = Number(process.env.UPTIME_RETAIN_DAYS ?? 30);
+const RETAIN_DAYS = Number(process.env.UPTIME_RETAIN_DAYS ?? 31);
 
 const CONCURRENCY = Number(process.env.PING_CONCURRENCY ?? 5);
 const TIMEOUT_MS = Number(process.env.PING_TIMEOUT_MS ?? 10_000);

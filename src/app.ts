@@ -1,8 +1,11 @@
-import Fastify, { FastifyReply, FastifyRequest } from "fastify";
+import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import uptimeRoutes from "./routes/uptimeChecks.js";
 import shortlinkRoutes from "./routes/shortlinks.js";
+import recapRoutes from "./routes/recap.js";
+import importRoutes from "./routes/import.js";
 import { prisma } from "./lib/prisma.js";
 
 const API_KEY = (process.env.API_KEY ?? "").trim();
@@ -12,6 +15,8 @@ export function buildApp() {
     logger: { level: process.env.LOG_LEVEL ?? "info" },
     trustProxy: true,
   });
+
+  app.register(multipart);
 
   app.register(cors, {
     origin: (origin, cb) => {
@@ -68,6 +73,8 @@ export function buildApp() {
 
   app.register(uptimeRoutes, { prefix: "/api/uptime" });
   app.register(shortlinkRoutes, { prefix: "/api/shortlinks" });
+  app.register(recapRoutes, { prefix: "/api/recap" });
+  app.register(importRoutes, { prefix: "/api/import" });
 
   app.get(
     "/:slug",
