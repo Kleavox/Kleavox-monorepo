@@ -45,7 +45,7 @@ export default async function uptimeRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/checks/:id/logs", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
+  app.post("/checks/:id/logs", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = z.object({
       status: z.number().int().nullable().optional(),
@@ -59,7 +59,7 @@ export default async function uptimeRoutes(app: FastifyInstance) {
     return reply.code(201).send(created);
   });
 
-  app.get("/checks/:id/logs", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req) => {
+  app.get("/checks/:id/logs", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (req) => {
     const { id } = req.params as { id: string };
     return prisma.uptimeLog.findMany({
       where: { checkId: id },
