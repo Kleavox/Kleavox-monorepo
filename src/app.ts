@@ -9,6 +9,7 @@ import importRoutes from "./routes/import.js";
 import { prisma } from "./lib/prisma.js";
 
 const API_KEY = (process.env.API_KEY ?? "").trim();
+const DASHBOARD_URL = process.env.DASHBOARD_URL ?? "http://localhost:3000";
 
 export function buildApp() {
   const app = Fastify({
@@ -81,7 +82,7 @@ export function buildApp() {
     { config: { rateLimit: false } },
     async (req, reply) => {
       const { slug } = req.params as { slug: string };
-      if (slug === "api") return reply.callNotFound();
+      if (slug === "api" || !slug) return reply.callNotFound();
 
       const link = await prisma.shortLink.findUnique({ where: { slug } });
       if (!link || !link.enabled) {
@@ -91,9 +92,10 @@ export function buildApp() {
       prisma.shortLink.update({
         where: { id: link.id },
         data: { hits: { increment: 1 } },
-      }).catch(() => {});
+      }).catch((e) => app.log.error(e, "Failed to increment shortlink hits"));
 
-      return reply.redirect(link.targetUrl, 302);
+      const interstitialUrl = new URL(`/link/${slug}`, DASHBOARD_URL);
+      return reply.redirect(interstitialUrl.toString(), 302);
     }
   );
 
