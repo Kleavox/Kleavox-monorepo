@@ -1,7 +1,9 @@
-// app/api/files/route.ts
+//app/api/files/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { cos, BUCKET, REGION } from "@/lib/cos";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,61 +11,82 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { key, name, type, size, expiresAt } = body;
 
-    if (!key || !name || !size) {
-      return NextResponse.json({ error: "Missing file data" }, { status: 400 });
+    if (session) {
+      const userCheck = await prisma.user.findUnique({ where: { id: session.id } });
+      if (!userCheck) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
     }
 
     const file = await prisma.file.create({
       data: {
-        key,
-        name,
-        type,
+        key, name, type,
         size: BigInt(size),
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         userId: session ? session.id : null, 
       },
     });
 
-    const serializedFile = {
-      ...file,
-      size: file.size.toString(),
-    };
-
-    return NextResponse.json(serializedFile, { status: 201 });
-
+    return NextResponse.json({ ...file, size: file.size.toString() }, { status: 201 });
   } catch (error) {
-    console.error("Save File Error:", error);
-    return NextResponse.json({ error: "Failed to save file data" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to save data" }, { status: 500 });
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
+    let where = {};
     
-    let whereCondition = {};
-    
-    if (session?.role === "ADMIN") {
-      whereCondition = {}; // Semua file
-    } else if (session?.role === "USER") {
-      whereCondition = { userId: session.id };
-    } else {
-      whereCondition = { userId: null };
-    }
+    if (session?.role === "USER") where = { userId: session.id };
+    else if (!session || session.role !== "ADMIN") return NextResponse.json([], { status: 401 });
 
     const files = await prisma.file.findMany({
-      where: whereCondition,
+      where,
       orderBy: { createdAt: "desc" },
+      include: { user: { select: { email: true, name: true } } }
     });
 
-    const serializedFiles = files.map(f => ({
+    const serialized = files.map(f => ({
       ...f,
       size: f.size.toString(),
+      uploadedBy: f.user?.email || "Guest"
     }));
 
-    return NextResponse.json(serializedFiles);
+    return NextResponse.json(serialized);
   } catch (error) {
-    console.error("Fetch Files Error:", error);
-    return NextResponse.json({ error: "Failed to fetch files" }, { status: 500 });
+    return NextResponse.json({ error: "Fetch error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  const key = searchParams.get("key");
+
+  if (!id || !key) return NextResponse.json({ error: "Missing ID/Key" }, { status: 400 });
+
+  const file = await prisma.file.findUnique({ where: { id } });
+  if (!file) return NextResponse.json({ error: "File not found" }, { status: 404 });
+
+  if (session.role !== "ADMIN" && file.userId !== session.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      cos.deleteObject({ Bucket: BUCKET, Region: REGION, Key: key }, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await prisma.file.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }

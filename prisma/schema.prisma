@@ -24,6 +24,15 @@ model User {
   files     File[]
 }
 
+model PendingInvite {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  token     String   @unique
+  role      Role     @default(USER)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
 model File {
   id        String    @id @default(cuid())
   key       String    @unique
@@ -33,7 +42,6 @@ model File {
   downloads Int       @default(0)
   
   expiresAt DateTime?
-  
   userId    String?
   user      User?     @relation(fields: [userId], references: [id])
 

@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
         email === process.env.ADMIN_EMAIL && 
         password === process.env.ADMIN_PASSWORD) {
       
+      console.log("⚡ Creating Super Admin from ENV credentials...");
+      
       const hashedPassword = await bcrypt.hash(password, 10);
       user = await prisma.user.create({
         data: {

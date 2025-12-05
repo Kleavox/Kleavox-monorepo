@@ -21,20 +21,21 @@ export async function POST(req: NextRequest) {
 
     if (!session) {
       if (fileSize > 1 * GB) {
-        return NextResponse.json({ error: "Public limit: Max 1GB" }, { status: 403 });
+        return NextResponse.json({ error: "Guest limit: Max 1GB" }, { status: 403 });
       }
       expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
-    } else if (session.role === "USER") {
+    } 
+    else if (session.role === "USER") {
       if (fileSize > 5 * GB) {
         return NextResponse.json({ error: "User limit: Max 5GB" }, { status: 403 });
       }
       expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    } else if (session.role === "ADMIN") {
-      expiresAt = null; 
-    }
+    } 
 
     const ext = name.split(".").pop();
-    const fileKey = `${session ? session.role.toLowerCase() : 'public'}/${new Date().toISOString().split('T')[0]}/${uuidv4()}.${ext}`;
+    const folder = session ? session.role.toLowerCase() : 'guest';
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileKey = `${folder}/${dateStr}/${uuidv4()}.${ext}`;
 
     const url = await new Promise<string>((resolve, reject) => {
       cos.getObjectUrl(
