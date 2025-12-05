@@ -1,10 +1,11 @@
-// app/page.tsx
+//app/login/page.tsx
 
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Lock, HardDrive } from "lucide-react";
+import { Loader2, Lock, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -31,8 +32,8 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      router.push("/dash");
-      router.refresh(); 
+      router.push("/");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -41,23 +42,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-950">
       <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl p-8">
         
         <div className="text-center mb-8">
           <div className="inline-flex p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400 mb-4">
             <Lock className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight">DeauVault</h1>
-          <p className="text-sm text-gray-500 font-medium mt-2">Secure Object Storage</p>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white">Admin Access</h1>
+          <p className="text-sm text-gray-500 mt-2">Login to manage files & settings</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email Address</label>
+            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email</label>
             <input
               type="email"
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium transition-all"
+              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
               placeholder="admin@deauport.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -69,7 +70,7 @@ export default function LoginPage() {
             <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Password</label>
             <input
               type="password"
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium transition-all"
+              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -78,7 +79,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-bold rounded-lg text-center border border-red-200 dark:border-red-800">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-bold rounded-lg text-center">
               {error}
             </div>
           )}
@@ -86,11 +87,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "AUTHENTICATE"}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In"}
           </button>
         </form>
+
+        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
+          <Link href="/" className="text-sm text-gray-500 hover:text-indigo-600 font-medium flex items-center justify-center gap-1">
+            <ArrowLeft className="w-4 h-4" /> Back to Public Vault
+          </Link>
+        </div>
       </div>
     </div>
   );
