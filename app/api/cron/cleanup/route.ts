@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       deletedCount: result.count,
-      message: `Berhasil menghapus ${result.count} link kadaluarsa.`,
+      message: `Successfully deleted ${result.count} expired link(s).`,
     });
 
   } catch (error) {

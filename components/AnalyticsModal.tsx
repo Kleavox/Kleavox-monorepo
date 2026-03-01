@@ -94,9 +94,10 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
               </ResponsiveContainer>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 { title: "TOP BROWSERS", list: data.topBrowsers },
+                { title: "TOP OS", list: data.topOS },
                 { title: "TOP LOCATIONS", list: data.topCountries },
                 { title: "TOP REFERRERS", list: data.topReferrers }
               ].map((section, idx) => (

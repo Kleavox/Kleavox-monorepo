@@ -9,21 +9,21 @@ export async function POST(req: NextRequest) {
     const { email, otp } = await req.json();
 
     if (!email || !otp) {
-      return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 });
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
     if (user.otpSecret !== otp) {
-      return NextResponse.json({ error: "Kode verifikasi salah" }, { status: 401 });
+      return NextResponse.json({ error: "Incorrect verification code." }, { status: 401 });
     }
 
     if (user.otpExpiresAt && new Date() > user.otpExpiresAt) {
-      return NextResponse.json({ error: "Kode verifikasi sudah kadaluarsa, silakan minta ulang" }, { status: 400 });
+      return NextResponse.json({ error: "Verification code has expired. Please request a new one." }, { status: 400 });
     }
 
     await prisma.user.update({
@@ -38,11 +38,11 @@ export async function POST(req: NextRequest) {
             await sendWelcomeEmail(user.email, user.name || "User");
         }
     } catch (e) {
-        console.error("Gagal kirim welcome email:", e);
+        console.error("Failed to send welcome email:", e);
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return NextResponse.json({ error: "Gagal verifikasi" }, { status: 500 });
+    return NextResponse.json({ error: "Verification failed." }, { status: 500 });
   }
 }

@@ -56,7 +56,7 @@ function ShortlinkRow({
     const now = new Date();
     const expiry = new Date(link.expiresAt);
     const isExpired = now > expiry;
-    const dateStr = expiry.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' });
+    const dateStr = expiry.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
 
     if (isExpired) {
       return (

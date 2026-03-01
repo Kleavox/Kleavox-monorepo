@@ -2,15 +2,31 @@
 
 "use client";
 
-import { Copy, X, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Copy, X, CheckCircle2, Check } from "lucide-react";
 import type { ShortlinkResult } from "@/types";
 
 interface ShortlinkResultModalProps { result: ShortlinkResult; onClose: () => void; }
 
 export default function ShortlinkResultModal({ result, onClose }: ShortlinkResultModalProps) {
+  const [copied, setCopied] = useState(false);
+
   async function copyShortUrl() {
     if (!result?.shortUrl) return;
-    try { await navigator.clipboard.writeText(result.shortUrl); } catch { alert("Failed to copy"); }
+    try {
+      await navigator.clipboard.writeText(result.shortUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select text for manual copy
+      const el = document.querySelector("[data-shorturl]") as HTMLElement | null;
+      if (el) {
+        const range = document.createRange();
+        range.selectNode(el);
+        window.getSelection()?.removeAllRanges();
+        window.getSelection()?.addRange(range);
+      }
+    }
   }
 
   return (
@@ -24,12 +40,19 @@ export default function ShortlinkResultModal({ result, onClose }: ShortlinkResul
         </div>
 
         <div className="bg-[var(--db-bg)] border-2 border-[var(--db-border)] p-4">
-            <p className="font-mono text-sm break-all font-bold text-[var(--db-text)] text-center">{result.shortUrl}</p>
+            <p data-shorturl className="font-mono text-sm break-all font-bold text-[var(--db-text)] text-center">{result.shortUrl}</p>
         </div>
 
         <div className="flex gap-3">
-            <button onClick={copyShortUrl} className="flex-1 py-3 font-black border-2 border-[var(--db-border)] bg-[var(--db-accent)] text-black hover:shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
-                <Copy className="h-4 w-4"/> COPY
+            <button
+              onClick={copyShortUrl}
+              className={`flex-1 py-3 font-black border-2 border-[var(--db-border)] hover:shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${
+                copied
+                  ? "bg-[var(--db-success)] text-white"
+                  : "bg-[var(--db-accent)] text-black"
+              }`}
+            >
+              {copied ? <><Check className="h-4 w-4"/> COPIED!</> : <><Copy className="h-4 w-4"/> COPY</>}
             </button>
             <a href={result.shortUrl} target="_blank" rel="noreferrer" className="flex-1 py-3 font-black border-2 border-[var(--db-border)] bg-[var(--db-text)] text-[var(--db-bg)] hover:shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all text-center">
                 OPEN LINK

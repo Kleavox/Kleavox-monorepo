@@ -15,13 +15,13 @@ export async function POST(req: NextRequest) {
     if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { password, otp } = await req.json();
-    if (!password) return NextResponse.json({ error: "Password wajib diisi" }, { status: 400 });
+    if (!password) return NextResponse.json({ error: "Password is required." }, { status: 400 });
 
     const user = await prisma.user.findUnique({ where: { id: payload.id } });
-    if (!user) return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 });
+    if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
     const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) return NextResponse.json({ error: "Password salah" }, { status: 401 });
+    if (!isValid) return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
 
     if (user.role === 'ADMIN') {
         
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         } 
         else {
             if (user.otpSecret !== otp) {
-                return NextResponse.json({ error: "Kode konfirmasi salah!" }, { status: 400 });
+                return NextResponse.json({ error: "Incorrect confirmation code." }, { status: 400 });
             }
 
             await prisma.user.delete({ where: { id: user.id } });
@@ -58,6 +58,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("Delete account error:", error);
-    return NextResponse.json({ error: "Gagal menghapus akun" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete account." }, { status: 500 });
   }
 }

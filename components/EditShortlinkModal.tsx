@@ -38,7 +38,7 @@ export default function EditShortlinkModal({ link, onClose, onUpdate }: EditShor
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal update");
+      if (!res.ok) throw new Error(data.error || "Failed to update link.");
 
       onUpdate();
       onClose();

@@ -9,25 +9,25 @@ export async function POST(req: NextRequest) {
     const { email, token, newPassword } = await req.json();
 
     if (!email || !token || !newPassword) {
-      return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
     if (newPassword.length < 8) {
-      return NextResponse.json({ error: "Password minimal 8 karakter" }, { status: 400 });
+      return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return NextResponse.json({ error: "Request tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     }
 
     if (!user.resetToken || user.resetToken !== token) {
-      return NextResponse.json({ error: "Token tidak valid atau sudah dipakai" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid or already used token." }, { status: 400 });
     }
 
     if (!user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
-      return NextResponse.json({ error: "Token sudah kadaluarsa" }, { status: 400 });
+      return NextResponse.json({ error: "Reset token has expired." }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ message: "Password berhasil diubah" });
+    return NextResponse.json({ message: "Password updated successfully." });
 
   } catch (error) {
     return NextResponse.json({ error: "Server Error" }, { status: 500 });

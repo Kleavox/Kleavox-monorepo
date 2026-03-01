@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
                 <p className="text-sm font-bold text-[var(--db-text-muted)] mb-8">
                     If an account exists for {email}, we have sent password reset instructions.
                 </p>
-                <Link href="/login" className="block w-full bg-[var(--db-text)] text-[var(--db-bg)] py-4 font-black uppercase border-2 border-[var(--db-border)] hover:shadow-[6px_6px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all">
+                <Link href="/" className="block w-full bg-[var(--db-text)] text-[var(--db-bg)] py-4 font-black uppercase border-2 border-[var(--db-border)] hover:shadow-[6px_6px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all">
                     BACK TO LOGIN
                 </Link>
              </div>
@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
                     ref={turnstileRef}
                     siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
                     onSuccess={(token) => setTurnstileToken(token)}
-                    options={{ size: 'normal', theme: 'light' }}
+                     options={{ size: 'normal', theme: 'auto' }}
                  />
             </div>
 
@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <div className="mt-6 text-center">
-            <Link href="/login" className="inline-flex items-center gap-2 text-xs font-bold text-[var(--db-text-muted)] hover:text-[var(--db-text)] transition-colors">
+            <Link href="/" className="inline-flex items-center gap-2 text-xs font-bold text-[var(--db-text-muted)] hover:text-[var(--db-text)] transition-colors">
                 <ArrowLeft className="h-3 w-3" /> Back to Login
             </Link>
         </div>

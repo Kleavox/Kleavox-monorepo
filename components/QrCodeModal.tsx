@@ -10,6 +10,7 @@ interface QrCodeModalProps { slug: string; shortUrl: string; onClose: () => void
 export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProps) {
   const [downloading, setDownloading] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [downloadError, setDownloadError] = useState(false);
   
   const previewQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=5&data=${encodeURIComponent(shortUrl)}`;
 
@@ -17,6 +18,7 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
 
   const handleDownload = async () => {
     setDownloading(true);
+    setDownloadError(false);
     try {
       const response = await fetch(downloadApiUrl);
       const blob = await response.blob();
@@ -31,7 +33,7 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
       document.body.removeChild(link); 
       window.URL.revokeObjectURL(url);
     } catch { 
-      alert("Gagal mengunduh QR Code."); 
+      setDownloadError(true);
     } finally { 
       setDownloading(false); 
     }
@@ -69,6 +71,12 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
           />
         </div>
         
+        {downloadError && (
+          <div className="bg-[var(--db-danger)] text-white text-xs font-bold p-2 border-2 border-[var(--db-border)] text-center">
+            DOWNLOAD FAILED. TRY AGAIN.
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 font-bold border-2 border-[var(--db-border)] hover:bg-[var(--db-bg)] text-[var(--db-text)]">CLOSE</button>
           

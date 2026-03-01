@@ -9,6 +9,7 @@ import { Loader2, ShieldCheck, CheckCircle2, RefreshCw, AlertCircle } from "luci
 function VerifyContent() {
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -22,7 +23,10 @@ function VerifyContent() {
 
   useEffect(() => {
     const emailParam = searchParams.get("email");
-    if (emailParam) setEmail(emailParam);
+    if (emailParam) {
+      setEmail(emailParam);
+      setEmailConfirmed(true);
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -87,7 +91,7 @@ function VerifyContent() {
   if (success) {
     return (
       <div className="bg-[var(--db-surface)] border-4 border-[var(--db-border)] p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center animate-in zoom-in-95 duration-300 w-full max-w-md">
-         <div className="inline-flex p-4 bg-[var(--db-success)] border-4 border-[var(--db-border)] rounded-full mb-6 shadow-[4px_4px_0px_0px_var(--db-border)] animate-bounce">
+         <div className="inline-flex p-4 bg-[var(--db-success)] border-4 border-[var(--db-border)] rounded-full mb-6 shadow-[4px_4px_0px_0px_var(--db-border)] animate-in zoom-in-50 duration-300">
              <CheckCircle2 className="h-12 w-12 text-white" />
          </div>
          <h2 className="text-3xl font-black uppercase text-[var(--db-text)] mb-2">ACCOUNT VERIFIED!</h2>
@@ -101,6 +105,42 @@ function VerifyContent() {
          >
             GO TO LOGIN
          </button>
+      </div>
+    );
+  }
+
+  if (!emailConfirmed) {
+    return (
+      <div className="bg-[var(--db-surface)] border-4 border-[var(--db-border)] p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center w-full max-w-md">
+        <div className="inline-block p-3 bg-[var(--db-accent)] border-2 border-[var(--db-border)] rounded-full mb-4">
+          <ShieldCheck className="h-8 w-8 text-[var(--db-accent-fg)]" />
+        </div>
+        <h2 className="text-2xl font-black uppercase text-[var(--db-text)] mb-1">VERIFY EMAIL</h2>
+        <p className="text-xs font-bold text-[var(--db-text-muted)] mb-6">Enter your email address to receive a verification code.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (email) setEmailConfirmed(true);
+          }}
+          className="space-y-4"
+        >
+          <input
+            type="email"
+            required
+            className="w-full bg-[var(--db-bg)] border-4 border-[var(--db-border)] px-4 py-3 text-base font-bold text-[var(--db-text)] placeholder:font-normal placeholder:text-[var(--db-text-muted)] focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--db-border)] transition-all"
+            placeholder="user@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoFocus
+          />
+          <button
+            type="submit"
+            disabled={!email}
+            className="w-full bg-[var(--db-primary)] text-[var(--db-primary-fg)] py-3 font-black uppercase border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            CONTINUE
+          </button>
+        </form>
       </div>
     );
   }

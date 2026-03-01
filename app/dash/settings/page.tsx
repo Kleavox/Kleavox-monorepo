@@ -34,6 +34,7 @@ export default function SettingsPage() {
 
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/session").then(r => r.json()).then(data => {
@@ -60,11 +61,11 @@ export default function SettingsPage() {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal update");
+      if (!res.ok) throw new Error(data.error || "Update failed");
       
       setProfileMessage("NAME UPDATED");
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : "Gagal");
+      setProfileError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setLoadingProfile(false);
     }
@@ -75,13 +76,13 @@ export default function SettingsPage() {
     setLoadingSecurity(true); setSecurityMessage(""); setSecurityError("");
 
     if (!newPassword || !oldPassword) {
-        setSecurityError("Mohon isi semua kolom password.");
+        setSecurityError("Please fill in all password fields.");
         setLoadingSecurity(false);
         return;
     }
 
     if (newPassword !== confirmNewPassword) {
-        setSecurityError("Password baru tidak cocok.");
+        setSecurityError("New passwords do not match.");
         setLoadingSecurity(false);
         return;
     }
@@ -94,12 +95,12 @@ export default function SettingsPage() {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal update");
+      if (!res.ok) throw new Error(data.error || "Update failed");
       
       setSecurityMessage("PASSWORD UPDATED");
       setOldPassword(""); setNewPassword(""); setConfirmNewPassword("");
     } catch (err) {
-      setSecurityError(err instanceof Error ? err.message : "Gagal");
+      setSecurityError(err instanceof Error ? err.message : "Failed to update password");
     } finally {
       setLoadingSecurity(false);
     }
@@ -121,7 +122,7 @@ export default function SettingsPage() {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "Gagal menghapus akun");
+      if (!res.ok) throw new Error(data.error || "Failed to delete account");
 
       if (data.requireOtp) {
           setShowOtpInput(true);
@@ -140,13 +141,14 @@ export default function SettingsPage() {
   async function handleResendDeleteCode() {
     if (resendCooldown > 0) return;
     setResendLoading(true);
+    setResendMessage("");
     try {
         const res = await fetch("/api/auth/resend-delete-code", { method: "POST" });
         if(!res.ok) throw new Error("Failed");
         setResendCooldown(60);
-        alert("Verification code sent to email.");
+        setResendMessage("Code sent to your email.");
     } catch {
-        alert("Failed to resend code.");
+        setDeleteError("Failed to resend verification code.");
     } finally {
         setResendLoading(false);
     }
@@ -380,21 +382,24 @@ export default function SettingsPage() {
                             required
                          />
                          
-                         <div className="text-center">
-                            <button 
-                                type="button" 
-                                onClick={handleResendDeleteCode}
-                                disabled={resendCooldown > 0 || resendLoading}
-                                className="text-[10px] font-bold text-[var(--db-text-muted)] hover:text-red-500 flex items-center justify-center gap-1 mx-auto disabled:opacity-50 transition-colors"
-                            >
-                                {resendLoading ? (
-                                    <Loader2 className="h-3 w-3 animate-spin"/>
-                                ) : (
-                                    <RefreshCw className={`h-3 w-3 ${resendCooldown === 0 ? "hover:rotate-180 transition-transform" : ""}`}/>
-                                )}
-                                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend Code"}
-                            </button>
-                         </div>
+                          <div className="text-center">
+                             <button 
+                                 type="button" 
+                                 onClick={handleResendDeleteCode}
+                                 disabled={resendCooldown > 0 || resendLoading}
+                                 className="text-[10px] font-bold text-[var(--db-text-muted)] hover:text-red-500 flex items-center justify-center gap-1 mx-auto disabled:opacity-50 transition-colors"
+                             >
+                                 {resendLoading ? (
+                                     <Loader2 className="h-3 w-3 animate-spin"/>
+                                 ) : (
+                                     <RefreshCw className={`h-3 w-3 ${resendCooldown === 0 ? "hover:rotate-180 transition-transform" : ""}`}/>
+                                 )}
+                                 {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend Code"}
+                             </button>
+                             {resendMessage && (
+                                 <p className="text-[10px] font-bold text-[var(--db-success)] mt-1">{resendMessage}</p>
+                             )}
+                          </div>
                      </div>
                  )}
 
@@ -417,7 +422,7 @@ export default function SettingsPage() {
                        disabled={deleteLoading}
                        className="flex-1 py-3 font-black bg-[var(--db-danger)] text-white border-4 border-[var(--db-border)] hover:shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all uppercase flex justify-center items-center gap-2 text-xs"
                     >
-                       {deleteLoading ? <Loader2 className="animate-spin h-4 w-4"/> : (showOtpInput ? "NUKE DATABASE" : "CONFIRM DELETE")}
+                       {deleteLoading ? <Loader2 className="animate-spin h-4 w-4"/> : (showOtpInput ? "CONFIRM DELETION" : "CONFIRM DELETE")}
                     </button>
                  </div>
               </form>

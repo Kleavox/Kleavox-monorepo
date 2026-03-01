@@ -95,7 +95,7 @@ export default function PublicShortlinkForm() {
                          <Turnstile 
                             siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
                             onSuccess={(token) => setTurnstileToken(token)}
-                            options={{ size: 'flexible', theme: 'light' }}
+                            options={{ size: 'flexible', theme: 'auto' }}
                          />
                     </div>
 

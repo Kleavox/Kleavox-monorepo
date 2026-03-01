@@ -16,6 +16,7 @@ export default function LoginForm({ nextPath = "/dash" }: LoginFormProps) {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [unverified, setUnverified] = useState(false);
     const [loading, setLoading] = useState(false);
     const [cooldown, setCooldown] = useState<number | null>(null);
 
@@ -30,7 +31,7 @@ export default function LoginForm({ nextPath = "/dash" }: LoginFormProps) {
         e.preventDefault();
         if (cooldown !== null && cooldown > 0) return;
         
-        setLoading(true); setError(null);
+        setLoading(true); setError(null); setUnverified(false);
 
         try {
             const res = await fetch("/api/login", {
@@ -47,6 +48,11 @@ export default function LoginForm({ nextPath = "/dash" }: LoginFormProps) {
                 const retry = typeof data.retryAfter === "number" ? data.retryAfter : 60;
                 setCooldown(retry);
                 setError(`Too many attempts. Wait ${retry}s.`);
+                return;
+            }
+
+            if (res.status === 403) {
+                setUnverified(true);
                 return;
             }
             
@@ -143,9 +149,21 @@ export default function LoginForm({ nextPath = "/dash" }: LoginFormProps) {
                         </button>
                     </div>
                     
-                     {error && (
+                    {error && (
                         <div className="bg-[var(--db-danger)] text-white font-bold p-3 border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)] flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <span>❌</span> {error}
+                        </div>
+                    )}
+
+                    {unverified && (
+                        <div className="bg-[var(--db-accent)] text-[var(--db-accent-fg)] font-bold p-3 border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)] animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <p className="text-sm mb-2">Account not verified. Check your email for the confirmation code.</p>
+                            <Link
+                                href={`/verify?email=${encodeURIComponent(email)}`}
+                                className="inline-block text-xs font-black uppercase tracking-wider bg-[var(--db-accent-fg)] text-[var(--db-accent)] px-3 py-1.5 border-2 border-[var(--db-border)] shadow-[2px_2px_0px_0px_var(--db-border)] hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_var(--db-border)] transition-all"
+                            >
+                                Verify your email →
+                            </Link>
                         </div>
                     )}
 

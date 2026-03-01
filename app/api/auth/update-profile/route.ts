@@ -26,11 +26,11 @@ export async function POST(req: NextRequest) {
 
     if (newPassword) {
         if (!oldPassword) {
-            return NextResponse.json({ error: "Password lama wajib diisi untuk mengubah password" }, { status: 400 });
+            return NextResponse.json({ error: "Current password is required to change your password." }, { status: 400 });
         }
         const isValid = await bcrypt.compare(oldPassword, user.password);
         if (!isValid) {
-            return NextResponse.json({ error: "Password lama salah" }, { status: 400 });
+            return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
         }
         updateData.password = await bcrypt.hash(newPassword, 10);
     }

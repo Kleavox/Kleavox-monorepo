@@ -76,8 +76,8 @@ export default function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="fixed right-4 bottom-4 z-50 p-3 bg-white border-2 border-black shadow-[4px_4px_0px_0px_black]">
-         <Loader2 className="h-6 w-6 animate-spin text-black" />
+      <div className="fixed right-4 bottom-4 z-50 p-3 bg-[var(--db-surface)] border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)]">
+         <Loader2 className="h-6 w-6 animate-spin text-[var(--db-text)]" />
       </div>
     );
   }
@@ -93,19 +93,19 @@ export default function ThemeToggle() {
         fixed right-4 bottom-4 z-50 
         flex items-center justify-center
         p-3
-        bg-white border-2 border-black 
-        shadow-[4px_4px_0px_0px_black] 
-        hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_black] 
-        active:translate-y-0 active:shadow-[2px_2px_0px_0px_black]
+        bg-[var(--db-surface)] border-2 border-[var(--db-border)]
+        shadow-[4px_4px_0px_0px_var(--db-border)] 
+        hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--db-border)] 
+        active:translate-y-0 active:shadow-[2px_2px_0px_0px_var(--db-border)]
         transition-all 
         cursor-pointer
       `}
     >
-      <div className="text-black">
+      <div className="text-[var(--db-text)]">
         {isDark ? (
             <Moon className="h-6 w-6 fill-current" />
         ) : (
-            <SunMedium className="h-6 w-6 fill-yellow-400 text-black" />
+            <SunMedium className="h-6 w-6 fill-yellow-400" />
         )}
       </div>
     </button>

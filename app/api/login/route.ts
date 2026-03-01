@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { signUserJWT, SESSION_COOKIE_NAME, SESSION_MAX_AGE } from "@/lib/auth";
 import { isLoginBlocked, registerFailedLogin } from "@/lib/loginRateLimit";
+import { storeSession } from "@/lib/session";
 import { createHmac } from "crypto";
 
 const TURNSTILE_COOKIE_NAME = "db-cv";
@@ -71,12 +72,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Account not verified. Please check your email." }, { status: 403 });
     }
 
-    const token = signUserJWT({
+    const { token, jti } = signUserJWT({
       id: user.id,
       email: user.email,
       name: user.name || "",
       role: user.role
     });
+
+    // Store session in Redis (no-op in dev when REDIS_URL is not set)
+    await storeSession(jti, SESSION_MAX_AGE);
 
     const res = NextResponse.json({ ok: true });
 

@@ -65,7 +65,7 @@ function ResetContent() {
   if (status === "success") {
     return (
       <div className="text-center space-y-4">
-        <div className="inline-flex p-4 bg-[var(--db-success)] border-4 border-[var(--db-border)] rounded-full shadow-[4px_4px_0px_0px_var(--db-border)] animate-bounce">
+        <div className="inline-flex p-4 bg-[var(--db-success)] border-4 border-[var(--db-border)] rounded-full shadow-[4px_4px_0px_0px_var(--db-border)] animate-in zoom-in-50 duration-300">
            <CheckCircle2 className="h-10 w-10 text-white" />
         </div>
         <h3 className="text-2xl font-black uppercase text-[var(--db-text)]">Password Updated!</h3>

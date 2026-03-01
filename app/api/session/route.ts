@@ -7,6 +7,7 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE,
 } from "@/lib/auth";
+import { validateSession, deleteSession, storeSession } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
@@ -22,12 +23,27 @@ export async function GET(req: NextRequest) {
     return res;
   }
 
-  const newToken = signUserJWT({
+  // Validate session in Redis (no-op / returns true in dev)
+  if (payload.jti) {
+    const valid = await validateSession(payload.jti);
+    if (!valid) {
+      const res = NextResponse.json({ authenticated: false }, { status: 200 });
+      res.cookies.delete(SESSION_COOKIE_NAME);
+      return res;
+    }
+    // Rotate: delete old JTI, issue new one
+    await deleteSession(payload.jti);
+  }
+
+  // Issue a new JWT with a fresh JTI (rolling window)
+  const { token: newToken, jti: newJti } = signUserJWT({
     id: payload.id,
     email: payload.email,
     name: payload.name,
-    role: payload.role 
+    role: payload.role,
   });
+
+  await storeSession(newJti, SESSION_MAX_AGE);
 
   const res = NextResponse.json({
     authenticated: true,
@@ -35,7 +51,7 @@ export async function GET(req: NextRequest) {
       id: payload.id,
       email: payload.email,
       name: payload.name,
-      role: payload.role
+      role: payload.role,
     },
   });
 

@@ -38,6 +38,7 @@ export default function DashboardPage() {
 
   const [pendingDeleteSlugs, setPendingDeleteSlugs] = useState<string[]>([]);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/session").then(r => r.json()).then(data => {
@@ -99,6 +100,7 @@ export default function DashboardPage() {
   async function confirmDelete() {
     if (pendingDeleteSlugs.length === 0) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
         const deletePromises = pendingDeleteSlugs.map(slug => 
             fetch(`/api/links/${slug}`, { method: "DELETE" })
@@ -107,7 +109,7 @@ export default function DashboardPage() {
         setPendingDeleteSlugs([]);
         fetchLinks(currentPage); 
     } catch (e) {
-        alert("Gagal.");
+        setDeleteError("Failed to delete. Please try again.");
     } finally {
         setDeleteLoading(false);
     }
@@ -209,8 +211,11 @@ export default function DashboardPage() {
                 <h3 className="font-black text-xl uppercase text-[var(--db-text)]">Confirm?</h3>
             </div>
             <p className="font-bold text-[var(--db-text)] mb-6 text-sm">Delete {pendingDeleteSlugs.length} link(s)? This action is permanent.</p>
+            {deleteError && (
+              <div className="mb-4 bg-[var(--db-danger)] text-white text-xs font-bold p-2 border-2 border-[var(--db-border)] text-center">{deleteError}</div>
+            )}
             <div className="flex gap-2">
-                <button onClick={() => setPendingDeleteSlugs([])} className="flex-1 py-3 font-bold border-2 border-[var(--db-border)] text-[var(--db-text)] hover:bg-[var(--db-bg)] text-xs">CANCEL</button>
+                <button onClick={() => { setPendingDeleteSlugs([]); setDeleteError(null); }} className="flex-1 py-3 font-bold border-2 border-[var(--db-border)] text-[var(--db-text)] hover:bg-[var(--db-bg)] text-xs">CANCEL</button>
                 <button onClick={confirmDelete} disabled={deleteLoading} className="flex-1 py-3 font-bold bg-red-600 text-white border-2 border-[var(--db-border)] hover:shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all flex justify-center items-center gap-2 text-xs">
                     {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : "DELETE"}
                 </button>

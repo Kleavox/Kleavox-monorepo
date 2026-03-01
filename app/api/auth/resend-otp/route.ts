@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   if (!limit.ok) {
     return NextResponse.json(
-      { error: `Tunggu ${Math.ceil((limit.retryAfter || 60) / 60)} menit sebelum kirim ulang.` },
+      { error: `Please wait ${Math.ceil((limit.retryAfter || 60) / 60)} minute(s) before requesting again.` },
       { status: 429 }
     );
   }
@@ -22,17 +22,17 @@ export async function POST(req: NextRequest) {
     const { email } = await req.json();
 
     if (!email) {
-      return NextResponse.json({ error: "Email diperlukan" }, { status: 400 });
+      return NextResponse.json({ error: "Email is required." }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 });
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
     if (user.verifiedAt) {
-      return NextResponse.json({ error: "Akun sudah diverifikasi." }, { status: 400 });
+      return NextResponse.json({ error: "Account is already verified." }, { status: 400 });
     }
 
     const newOtp = generateOTP();
@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
         await sendVerificationEmail(email, newOtp);
     }
 
-    return NextResponse.json({ message: "Kode baru telah dikirim." }, { status: 200 });
+    return NextResponse.json({ message: "New code sent." }, { status: 200 });
 
   } catch (error) {
     console.error("Resend OTP Error:", error);
-    return NextResponse.json({ error: "Gagal mengirim ulang." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to resend code." }, { status: 500 });
   }
 }

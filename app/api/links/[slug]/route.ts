@@ -31,14 +31,14 @@ export async function DELETE(
     });
 
     if (!existing) {
-      return NextResponse.json({ error: "Shortlink tidak ditemukan." }, { status: 404 });
+      return NextResponse.json({ error: "Shortlink not found." }, { status: 404 });
     }
 
     const isAdmin = user.role === "ADMIN";
     const isOwner = existing.userId === user.id;
 
     if (!isOwner && !isAdmin) {
-      return NextResponse.json({ error: "Forbidden: Bukan pemilik link." }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: you do not own this link." }, { status: 403 });
     }
 
     await prisma.shortLink.delete({
@@ -51,7 +51,7 @@ export async function DELETE(
 
   } catch (err) {
     console.error("Delete Error:", err);
-    return NextResponse.json({ error: "Gagal menghapus link." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete link." }, { status: 500 });
   }
 }
 

@@ -1,7 +1,7 @@
 //lib/auth.ts
 
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
-import { randomInt } from "crypto";
+import { randomInt, randomUUID } from "crypto";
 import { SESSION_COOKIE_NAME, SESSION_MAX_AGE } from "@/constants";
 
 const rawSecret = process.env.JWT_SECRET;
@@ -17,12 +17,18 @@ export interface UserJwtPayload extends JwtPayload {
   email: string;
   name: string;
   role: string;
+  // jti (JWT ID) is inherited from JwtPayload — used for Redis session tracking
 }
 
-export function signUserJWT(payload: { id: string; email: string; name: string; role: string }): string {
-  return jwt.sign(payload, JWT_SECRET, {
+export function signUserJWT(
+  payload: { id: string; email: string; name: string; role: string },
+  jti?: string
+): { token: string; jti: string } {
+  const sessionId = jti ?? randomUUID();
+  const token = jwt.sign({ ...payload, jti: sessionId }, JWT_SECRET, {
     expiresIn: SESSION_MAX_AGE,
   });
+  return { token, jti: sessionId };
 }
 
 export function verifyUserJWT(token: string): UserJwtPayload | null {
