@@ -41,16 +41,16 @@ jobs:
     - name: Deploy to Kripton
       run: |
         /usr/bin/rsync -av --delete \
-          -e "ssh -i /home/noble/.ssh/radon_deploy -o StrictHostKeyChecking=no" \
+          -e "ssh -i /home/github-runner/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
           .next/standalone/ \
-          noble@100.64.0.3:/var/www/deaubit/
+          deploy@100.76.93.142:/var/www/deaubit/
 
     - name: Restart PM2
       run: |
-        ssh -i /home/noble/.ssh/radon_deploy \
+        ssh -i /home/github-runner/.ssh/id_ed25519 \
           -o StrictHostKeyChecking=no \
-          noble@100.64.0.3 \
-          "cat > /var/www/deaubit/ecosystem.config.js << 'EOF'
+          deploy@100.76.93.142 \
+          "cat > /var/www/deaubit/ecosystem.config.js << 'EOFPM2'
         module.exports = {
           apps: [
             {
@@ -65,5 +65,5 @@ jobs:
             }
           ]
         }
-        EOF
+        EOFPM2
         pm2 reload deaubit || pm2 start /var/www/deaubit/ecosystem.config.js"
