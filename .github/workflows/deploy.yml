@@ -26,16 +26,12 @@ jobs:
     - name: Build
       run: |
         npm run build
-
         mkdir -p .next/standalone/public
         mkdir -p .next/standalone/.next/static
-
         cp .env .next/standalone/
-
         if [ -d "public" ]; then
           cp -r public/* .next/standalone/public/
         fi
-
         cp -r .next/static/* .next/standalone/.next/static/
 
     - name: Deploy to Kripton
@@ -67,3 +63,11 @@ jobs:
         }
         EOFPM2
         pm2 reload deaubit || pm2 start /var/www/deaubit/ecosystem.config.js"
+
+    - name: Cleanup
+      if: always()
+      run: |
+        rm -rf $GITHUB_WORKSPACE/.next
+        rm -rf $GITHUB_WORKSPACE/node_modules
+        rm -f $GITHUB_WORKSPACE/.env
+        echo "Cleanup done!"
