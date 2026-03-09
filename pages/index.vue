@@ -48,17 +48,6 @@
           />
         </div>
 
-        <div class="mt-2 flex flex-wrap gap-1.5">
-          <button
-            v-for="ex in examples"
-            :key="ex"
-            @click="channelInput = ex"
-            class="font-mono text-[10px] text-ghost border border-mist px-2 py-0.5 hover:border-signal hover:text-signal transition-colors"
-          >
-            {{ ex }}
-          </button>
-        </div>
-
         <button
           @click="startWatching"
           :disabled="isLoading || !channelInput.trim()"
@@ -104,8 +93,6 @@ const channelInput = ref('')
 const isLoading = ref(false)
 const error = ref('')
 const lastOpened = ref(null)
-
-const examples = ['@NerdOdyssey', '@AniOneID', '@MrBeast']
 
 async function startWatching() {
   if (!channelInput.value.trim() || isLoading.value) return
