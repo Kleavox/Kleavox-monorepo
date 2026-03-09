@@ -1,6 +1,6 @@
 {
   "name": "deauwait",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "private": true,
   "scripts": {
     "dev": "nuxt dev",
@@ -9,7 +9,7 @@
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "nuxt": "^3.15.0",
+    "nuxt": "3.15.4",
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {
@@ -20,6 +20,8 @@
   },
   "overrides": {
     "glob": "^11.0.0",
-    "@koa/router": "^13.0.0"
+    "@koa/router": "^13.0.0",
+    "serialize-javascript": ">=7.0.3",
+    "nitropack": ">=2.10.0"
   }
 }
