@@ -92,7 +92,7 @@
         <div class="flex items-center gap-3 font-mono text-[10px] text-mist">
           <span class="tracking-widest uppercase">wait.deau.site</span>
           <span class="text-smoke">·</span>
-          <span class="tracking-widest uppercase text-mist">© 2025</span>
+          <span class="tracking-widest uppercase text-mist">© {{ new Date().getFullYear() }}</span>
         </div>
       </div>
     </footer>
