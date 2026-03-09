@@ -78,9 +78,23 @@
       </div>
     </div>
 
-    <footer class="relative z-10 px-4 sm:px-8 py-3 sm:py-4 border-t border-smoke flex items-center justify-between">
-      <span class="font-mono text-[10px] sm:text-xs text-mist">deauwait v2</span>
-      <span class="font-mono text-[10px] sm:text-xs text-mist">poll interval: 2 min</span>
+    <footer class="relative z-10 border-t border-smoke">
+      <div class="h-px w-full bg-gradient-to-r from-transparent via-signal to-transparent opacity-20" />
+      <div class="px-4 sm:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+        <div class="flex items-center gap-3">
+          <span class="font-display text-sm tracking-widest text-snow">DEAU<span class="text-signal">WAIT</span></span>
+          <span class="font-mono text-[10px] text-ghost border border-smoke px-1.5 py-0.5">v2</span>
+        </div>
+        <div class="flex items-center gap-1.5 font-mono text-[10px] text-ghost">
+          <span class="waiting-dot" style="width:6px;height:6px" />
+          <span class="tracking-widest uppercase">poll · 2 min</span>
+        </div>
+        <div class="flex items-center gap-3 font-mono text-[10px] text-mist">
+          <span class="tracking-widest uppercase">wait.deau.site</span>
+          <span class="text-smoke">·</span>
+          <span class="tracking-widest uppercase text-mist">© 2025</span>
+        </div>
+      </div>
     </footer>
 
   </main>

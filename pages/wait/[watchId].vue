@@ -89,12 +89,27 @@
 
     </div>
 
-    <footer class="relative z-10 px-4 sm:px-8 py-3 border-t border-smoke flex items-center justify-between">
-      <span class="font-mono text-[10px] sm:text-xs text-mist">{{ watchId }}</span>
-      <span class="font-mono text-[10px] sm:text-xs"
-        :class="isLive ? 'text-live' : 'text-signal'">
-        {{ isLive ? '● LIVE' : '○ WAITING' }}
-      </span>
+    <footer class="relative z-10 border-t border-smoke">
+      <div class="h-px w-full bg-gradient-to-r from-transparent via-signal to-transparent opacity-20" />
+      <div class="px-4 sm:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+        <!-- Brand -->
+        <div class="flex items-center gap-3">
+          <NuxtLink to="/" class="font-display text-sm tracking-widest text-snow hover:text-signal transition-colors">DEAU<span class="text-signal">WAIT</span></NuxtLink>
+          <span class="font-mono text-[10px] text-ghost border border-smoke px-1.5 py-0.5">v2</span>
+        </div>
+        <!-- Status -->
+        <div class="flex items-center gap-2 font-mono text-[10px]"
+          :class="isLive ? 'text-live' : 'text-ghost'">
+          <span :class="isLive ? 'live-dot' : 'waiting-dot'" style="width:6px;height:6px" />
+          <span class="tracking-widest uppercase">{{ isLive ? 'live' : 'waiting' }}</span>
+          <span class="text-smoke">·</span>
+          <span class="text-mist font-mono truncate max-w-[120px]">{{ watchId }}</span>
+        </div>
+        <!-- Right -->
+        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">
+          wait.deau.site
+        </div>
+      </div>
     </footer>
 
   </main>
