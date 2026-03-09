@@ -7,10 +7,16 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
 
     - name: Install Dependencies
       run: npm ci
@@ -20,15 +26,16 @@ jobs:
 
     - name: Deploy to Kripton
       run: |
+        eval $(ssh-agent -s)
+        echo "${{ secrets.DEPLOY_SSH_KEY }}" | ssh-add -
         /usr/bin/rsync -av --delete \
-          -e "ssh -i /home/github-runner/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+          -e "ssh -o StrictHostKeyChecking=no" \
           .output/ \
           deploy@100.76.93.142:/var/www/deauwait/
 
     - name: Restart PM2
       run: |
-        ssh -i /home/github-runner/.ssh/id_ed25519 \
-          -o StrictHostKeyChecking=no \
+        ssh -o StrictHostKeyChecking=no \
           deploy@100.76.93.142 \
           "cat > /var/www/deauwait/ecosystem.config.js << 'EOFPM2'
         module.exports = {
@@ -45,10 +52,3 @@ jobs:
         }
         EOFPM2
         pm2 reload deauwait || pm2 start /var/www/deauwait/ecosystem.config.js"
-
-    - name: Cleanup
-      if: always()
-      run: |
-        rm -rf $GITHUB_WORKSPACE/.output
-        rm -rf $GITHUB_WORKSPACE/node_modules
-        echo "Cleanup done!"
