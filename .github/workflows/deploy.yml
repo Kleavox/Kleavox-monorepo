@@ -32,6 +32,7 @@ jobs:
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
         ssh-keyscan -H 100.76.93.142 >> ~/.ssh/known_hosts
+        ssh -i ~/.ssh/deploy_key -v deploy@100.76.93.142 "echo connected" 
         rsync -av --delete \
           -e "ssh -i ~/.ssh/deploy_key" \
           .output/ \
