@@ -32,44 +32,41 @@
 
       <!-- Input form -->
       <div class="w-full max-w-lg animate-fade-up" style="animation-delay: 0.15s; opacity: 0;">
-        <div class="relative group">
-          <label class="block font-mono text-[10px] sm:text-xs text-ghost tracking-widest uppercase mb-2 sm:mb-3">
-            Channel YouTube
-          </label>
 
-          <!-- Input -->
-          <div class="relative border border-smoke group-focus-within:border-signal transition-colors duration-300"
-            style="background: rgba(26,26,26,0.8);">
-            <input
-              v-model="channelInput"
-              type="text"
-              placeholder="@handle, URL, atau UC..."
-              class="w-full py-3.5 sm:py-4 px-4 font-mono text-sm text-snow placeholder-mist bg-transparent"
-              :disabled="isLoading"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="off"
-              spellcheck="false"
-              @keydown.enter="startWatching"
-            />
-            <div class="absolute inset-0 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"
-              style="box-shadow: inset 0 0 20px rgba(255,45,45,0.05);" />
-          </div>
+        <label class="block font-mono text-[10px] sm:text-xs text-ghost tracking-widest uppercase mb-2 sm:mb-3">
+          Channel YouTube
+        </label>
 
-          <!-- Quick-fill chips -->
-          <div class="mt-2 flex flex-wrap gap-1.5">
-            <button
-              v-for="ex in examples"
-              :key="ex"
-              @click="channelInput = ex"
-              class="font-mono text-[10px] text-ghost border border-mist px-2 py-0.5 hover:border-signal hover:text-signal transition-colors"
-            >
-              {{ ex }}
-            </button>
-          </div>
+        <!-- Input -->
+        <div class="relative border border-smoke group focus-within:border-signal transition-colors duration-300"
+          style="background: rgba(26,26,26,0.8);">
+          <input
+            v-model="channelInput"
+            type="text"
+            placeholder="@handle, URL, atau UC..."
+            class="w-full py-3.5 sm:py-4 px-4 font-mono text-sm text-snow placeholder-mist bg-transparent"
+            :disabled="isLoading"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            @keydown.enter="startWatching"
+          />
         </div>
 
-        <!-- Submit button -->
+        <!-- Quick-fill chips -->
+        <div class="mt-2 flex flex-wrap gap-1.5">
+          <button
+            v-for="ex in examples"
+            :key="ex"
+            @click="channelInput = ex"
+            class="font-mono text-[10px] text-ghost border border-mist px-2 py-0.5 hover:border-signal hover:text-signal transition-colors"
+          >
+            {{ ex }}
+          </button>
+        </div>
+
+        <!-- Submit -->
         <button
           @click="startWatching"
           :disabled="isLoading || !channelInput.trim()"
@@ -91,28 +88,15 @@
           <span class="font-bold">⚠ ERROR</span><br>
           {{ error }}
         </div>
-      </div>
 
-      <!-- Active watchers -->
-      <div v-if="activeWatchers.length" class="mt-10 sm:mt-16 w-full max-w-lg">
-        <div class="flex items-center gap-3 mb-3 sm:mb-4">
-          <div class="h-px flex-1 bg-smoke" />
-          <span class="font-mono text-[10px] sm:text-xs text-ghost tracking-widest uppercase">
-            Aktif ({{ activeWatchers.length }})
-          </span>
-          <div class="h-px flex-1 bg-smoke" />
+        <!-- Info setelah submit berhasil -->
+        <div v-if="lastOpened" class="mt-3 p-3 border border-smoke font-mono text-xs text-ghost leading-relaxed"
+          style="background: rgba(26,26,26,0.8);">
+          Waiting room dibuka di tab baru.
+          <a :href="lastOpened" target="_blank" class="text-signal hover:underline ml-1">Buka lagi →</a>
         </div>
 
-        <div class="space-y-2">
-          <WatcherCard
-            v-for="w in activeWatchers"
-            :key="w.watchId"
-            :watcher="w"
-            @remove="removeWatcher"
-          />
-        </div>
       </div>
-
     </div>
 
     <!-- Footer -->
@@ -125,36 +109,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 
 const channelInput = ref('')
 const isLoading = ref(false)
 const error = ref('')
-const activeWatchers = ref([])
+const lastOpened = ref(null)
 
-const examples = ['@NerdOdyssey', '@MrBeast', 'youtube.com/@lofi']
-
-onMounted(() => {
-  try {
-    const saved = localStorage.getItem('deau-watchers')
-    if (saved) activeWatchers.value = JSON.parse(saved)
-  } catch {}
-  startPolling()
-})
-
-let pollInterval = null
-
-function startPolling() {
-  pollInterval = setInterval(pollWatchers, 15_000)
-}
-
-onUnmounted(() => {
-  clearInterval(pollInterval)
-})
+const examples = ['@NerdOdyssey', '@AniOneID', '@MrBeast']
 
 async function startWatching() {
   if (!channelInput.value.trim() || isLoading.value) return
   error.value = ''
+  lastOpened.value = null
   isLoading.value = true
 
   try {
@@ -163,55 +130,17 @@ async function startWatching() {
       body: { channel: channelInput.value.trim() }
     })
 
-    const watcher = {
-      watchId: data.watchId,
-      channelInput: channelInput.value.trim(),
-      status: data.status,
-      videoUrl: data.videoUrl,
-      startedAt: Date.now()
-    }
-
-    activeWatchers.value.unshift(watcher)
-    saveWatchers()
+    const waitUrl = `/wait/${data.watchId}`
+    lastOpened.value = waitUrl
     channelInput.value = ''
 
-    if (data.status === 'live' && data.videoUrl) {
-      setTimeout(() => { window.location.href = data.videoUrl }, 2000)
-    }
+    // Buka waiting room di tab baru
+    window.open(waitUrl, '_blank')
+
   } catch (e) {
     error.value = e.data?.message || e.message || 'Gagal memulai watcher'
   } finally {
     isLoading.value = false
   }
-}
-
-async function pollWatchers() {
-  for (const w of activeWatchers.value) {
-    if (w.status === 'live') continue
-    try {
-      const data = await $fetch(`/api/status/${w.watchId}`)
-      w.status = data.status
-      w.videoUrl = data.videoUrl
-      if (data.status === 'live' && data.videoUrl) {
-        saveWatchers()
-        setTimeout(() => { window.location.href = data.videoUrl }, 3000)
-      }
-    } catch {}
-  }
-  saveWatchers()
-}
-
-async function removeWatcher(watchId) {
-  try {
-    await $fetch(`/api/watch/${watchId}`, { method: 'DELETE' })
-  } catch {}
-  activeWatchers.value = activeWatchers.value.filter(w => w.watchId !== watchId)
-  saveWatchers()
-}
-
-function saveWatchers() {
-  try {
-    localStorage.setItem('deau-watchers', JSON.stringify(activeWatchers.value))
-  } catch {}
 }
 </script>
