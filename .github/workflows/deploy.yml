@@ -25,17 +25,26 @@ jobs:
       run: npm run build
 
     - name: Deploy to Kripton
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
       run: |
-        eval $(ssh-agent -s)
-        echo "${{ secrets.DEPLOY_SSH_KEY }}" | ssh-add -
-        /usr/bin/rsync -av --delete \
-          -e "ssh -o StrictHostKeyChecking=no" \
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H 100.76.93.142 >> ~/.ssh/known_hosts
+        rsync -av --delete \
+          -e "ssh -i ~/.ssh/deploy_key" \
           .output/ \
           deploy@100.76.93.142:/var/www/deauwait/
 
     - name: Restart PM2
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
       run: |
-        ssh -o StrictHostKeyChecking=no \
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh -i ~/.ssh/deploy_key \
           deploy@100.76.93.142 \
           "cat > /var/www/deauwait/ecosystem.config.js << 'EOFPM2'
         module.exports = {
