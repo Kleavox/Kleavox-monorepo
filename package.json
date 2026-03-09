@@ -1,12 +1,18 @@
 {
-  "name": "ytwatcher",
+  "name": "deauwait",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "private": true,
   "scripts": {
-    "start": "node src/index.js"
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "nuxt": "^3.13.0",
     "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.0"
   }
 }

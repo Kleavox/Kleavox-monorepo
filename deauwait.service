@@ -1,0 +1,17 @@
+[Unit]
+Description=DeauWait — YouTube Live Watcher (Nuxt)
+After=network.target
+
+[Service]
+Type=simple
+User=noble
+WorkingDirectory=/home/noble/deauwait
+ExecStart=/usr/bin/node .output/server/index.mjs
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3001
+# Environment=YOUTUBE_API_KEY=your_key_here
+
+[Install]
+WantedBy=multi-user.target
