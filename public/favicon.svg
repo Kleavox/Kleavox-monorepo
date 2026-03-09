@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" fill="#080808"/>
+  <!-- Signal dot top-right -->
+  <circle cx="26" cy="6" r="3" fill="#ff2d2d"/>
+  <!-- D letterform -->
+  <rect x="4" y="8" width="3" height="16" fill="#f0f0f0"/>
+  <path d="M7 8 Q18 8 18 16 Q18 24 7 24" stroke="#f0f0f0" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

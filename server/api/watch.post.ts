@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const parsed = parseChannelInput(channel)
   if (!parsed) {
-    throw createError({ statusCode: 400, message: 'Format channel tidak valid. Gunakan @handle, URL YouTube, atau channel ID (UC...)' })
+    throw createError({ statusCode: 400, message: 'Invalid channel format. Use @handle, a YouTube URL, or a channel ID (UC...)' })
   }
 
   let channelId = parsed.value
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     if (!resolved) {
       throw createError({
         statusCode: 404,
-        message: `Channel "@${parsed.value}" tidak ditemukan. Coba gunakan channel ID (UC...) langsung.`
+        message: `Channel "@${parsed.value}" not found. Try using the channel ID (UC...) directly.`
       })
     }
     channelId = resolved
@@ -32,11 +32,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const watchId = Math.random().toString(36).slice(2, 10)
-
-  // Immediate check
   const immediate = await checkLive(channelId)
 
-  // Start polling every 2 minutes
   const intervalId = setInterval(async () => {
     const result = await checkLive(channelId)
     const watcher = watcherStore.get(watchId)
@@ -63,6 +60,5 @@ export default defineEventHandler(async (event) => {
     watchId,
     status: immediate.live ? 'live' : 'waiting',
     videoUrl: immediate.live ? immediate.videoUrl : null,
-    resolvedChannelId: channelId
   }
 })

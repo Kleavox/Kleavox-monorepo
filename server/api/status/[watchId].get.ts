@@ -6,7 +6,7 @@ export default defineEventHandler((event) => {
   if (!watchId) throw createError({ statusCode: 400, message: 'watchId required' })
 
   const watcher = watcherStore.get(watchId)
-  if (!watcher) throw createError({ statusCode: 404, message: 'Watcher tidak ditemukan' })
+  if (!watcher) throw createError({ statusCode: 404, message: 'Watcher not found' })
 
   return {
     status: watcher.status,

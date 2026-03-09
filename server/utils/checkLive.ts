@@ -24,16 +24,14 @@ export function parseChannelInput(input: string) {
   return null
 }
 
-// Extract semua UC... dari HTML, lalu verifikasi mana yang benar-benar
-// milik channel ini dengan cek RSS feed-nya
-async function verifyChannelId(candidateId: string, handle: string): Promise<boolean> {
+async function verifyChannelId(candidateId: string): Promise<boolean> {
   try {
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${candidateId}`
-    const res = await fetch(rssUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+    const res = await fetch(
+      `https://www.youtube.com/feeds/videos.xml?channel_id=${candidateId}`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+    )
     if (!res.ok) return false
     const xml = await res.text()
-    // RSS feed yang valid punya <author> atau <title> yang mengandung nama channel
-    // Minimal, cukup cek feed berhasil di-load (status 200 + ada yt:channelId)
     return xml.includes('<yt:channelId>') || xml.includes('<entry>')
   } catch {
     return false
@@ -43,7 +41,7 @@ async function verifyChannelId(candidateId: string, handle: string): Promise<boo
 export async function resolveChannelId(handle: string): Promise<{ channelId: string | null, debug: string[] }> {
   const debug: string[] = []
 
-  // Strategy 1: forHandle parameter (paling akurat untuk @handle baru)
+  // S1: forHandle parameter
   try {
     debug.push(`[S1] RSS ?forHandle=@${handle}`)
     const res = await fetch(`https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`, {
@@ -51,15 +49,13 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
     })
     const xml = await res.text()
     debug.push(`[S1] status=${res.status}, chars=${xml.length}`)
-    // <id>yt:channel:UCxxxxxx</id>
     const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/)
-    if (m1) { debug.push(`[S1] Found via <id>: ${m1[1]}`); return { channelId: m1[1], debug } }
+    if (m1) { debug.push(`[S1] Found: ${m1[1]}`); return { channelId: m1[1], debug } }
     const m2 = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/)
-    if (m2) { debug.push(`[S1] Found via <yt:channelId>: ${m2[1]}`); return { channelId: m2[1], debug } }
-    debug.push(`[S1] No UC found`)
+    if (m2) { debug.push(`[S1] Found: ${m2[1]}`); return { channelId: m2[1], debug } }
   } catch (e: any) { debug.push(`[S1] Failed: ${e.message}`) }
 
-  // Strategy 2: RSS ?user= lama
+  // S2: ?user= legacy
   try {
     debug.push(`[S2] RSS ?user=${handle}`)
     const res = await fetch(`https://www.youtube.com/feeds/videos.xml?user=${handle}`, {
@@ -68,13 +64,12 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
     const xml = await res.text()
     debug.push(`[S2] status=${res.status}, chars=${xml.length}`)
     const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/)
-    if (m1) { debug.push(`[S2] Found via <id>: ${m1[1]}`); return { channelId: m1[1], debug } }
+    if (m1) { debug.push(`[S2] Found: ${m1[1]}`); return { channelId: m1[1], debug } }
     const m2 = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/)
-    if (m2) { debug.push(`[S2] Found via <yt:channelId>: ${m2[1]}`); return { channelId: m2[1], debug } }
-    debug.push(`[S2] No UC found`)
+    if (m2) { debug.push(`[S2] Found: ${m2[1]}`); return { channelId: m2[1], debug } }
   } catch (e: any) { debug.push(`[S2] Failed: ${e.message}`) }
 
-  // Strategy 3: Scrape halaman @handle — ambil SEMUA UC candidate, verifikasi satu per satu
+  // S3: Scrape + verify
   try {
     debug.push(`[S3] Scraping youtube.com/@${handle}`)
     const res = await fetch(`https://www.youtube.com/@${handle}`, {
@@ -86,44 +81,31 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
     const html = await res.text()
     debug.push(`[S3] status=${res.status}, chars=${html.length}`)
 
-    // Prioritas tinggi: externalId dan browseId — ini hampir pasti milik channel itu sendiri
-    const highPriority: [string, RegExp][] = [
+    for (const [name, pat] of [
       ['externalId', /"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
       ['browseId',   /"browseId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
-    ]
-    for (const [name, pat] of highPriority) {
+    ] as [string, RegExp][]) {
       const m = html.match(pat)
       if (m) {
-        debug.push(`[S3] High-priority "${name}": ${m[1]}, verifying...`)
-        const ok = await verifyChannelId(m[1], handle)
-        debug.push(`[S3] Verify result: ${ok}`)
+        const ok = await verifyChannelId(m[1])
+        debug.push(`[S3] "${name}": ${m[1]}, verify=${ok}`)
         if (ok) return { channelId: m[1], debug }
       }
     }
 
-    // Prioritas rendah: ambil semua UC candidate, verifikasi satu per satu
-    // Prioritaskan yang dekat dengan canonical URL channel di head
-    const canonicalMatch = html.match(/rel="canonical"\s+href="[^"]*\/channel\/(UC[a-zA-Z0-9_-]{22})"/)
-    if (canonicalMatch) {
-      debug.push(`[S3] Canonical tag: ${canonicalMatch[1]}, verifying...`)
-      const ok = await verifyChannelId(canonicalMatch[1], handle)
-      if (ok) { debug.push(`[S3] Verified canonical`); return { channelId: canonicalMatch[1], debug } }
+    const canonical = html.match(/rel="canonical"\s+href="[^"]*\/channel\/(UC[a-zA-Z0-9_-]{22})"/)
+    if (canonical) {
+      const ok = await verifyChannelId(canonical[1])
+      if (ok) { debug.push(`[S3] canonical: ${canonical[1]}`); return { channelId: canonical[1], debug } }
     }
 
-    // Ambil semua unique UC..., coba verifikasi (max 3 kandidat)
     const allUC = [...new Set([...html.matchAll(/(UC[a-zA-Z0-9_-]{22})/g)].map(m => m[1]))]
-    debug.push(`[S3] Found ${allUC.length} unique UC candidates`)
     for (const uc of allUC.slice(0, 5)) {
-      const ok = await verifyChannelId(uc, handle)
-      if (ok) {
-        debug.push(`[S3] Verified: ${uc}`)
-        return { channelId: uc, debug }
-      }
+      const ok = await verifyChannelId(uc)
+      if (ok) { debug.push(`[S3] verified: ${uc}`); return { channelId: uc, debug } }
     }
-    debug.push(`[S3] None verified`)
   } catch (e: any) { debug.push(`[S3] Failed: ${e.message}`) }
 
-  debug.push('All strategies exhausted')
   return { channelId: null, debug }
 }
 
@@ -131,10 +113,12 @@ export async function checkLive(channelId: string) {
   try {
     const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
     const feed = await parser.parseURL(feedUrl)
+
     for (const item of feed.items) {
       if (!item.title || !item.link) continue
       const videoId = item.link.match(/v=([a-zA-Z0-9_-]+)/)?.[1]
       if (!videoId) continue
+
       const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -142,7 +126,18 @@ export async function checkLive(channelId: string) {
         }
       })
       const html = await res.text()
-      if (html.includes('"isLiveBroadcast":true') || html.includes('"isLive":true')) {
+
+      // Must be actively live — exclude premiers and scheduled streams
+      // "isLive":true = currently broadcasting
+      // "isLiveBroadcast":true can be true for premiers too, so check more carefully
+      const isActuallyLive = html.includes('"isLive":true')
+
+      // Double-check: not an upcoming/premier
+      // Premiers have "isLiveContent":true but "isUpcoming":true
+      const isUpcoming = html.includes('"isUpcoming":true')
+      const isPremiere = html.includes('"premiereTimestamp"')
+
+      if (isActuallyLive && !isUpcoming && !isPremiere) {
         return { live: true, videoUrl: item.link, title: item.title }
       }
     }
