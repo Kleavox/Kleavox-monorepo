@@ -2,16 +2,13 @@
 import RSSParser from 'rss-parser'
 
 const parser = new RSSParser({
-  customFields: {
-    feed: ['yt:channelId'],
-  }
+  customFields: { feed: ['yt:channelId'] }
 })
 
 export function parseChannelInput(input: string) {
-  // Strip whitespace dan trailing noise (koma, slash, dll)
   input = input.trim().replace(/[,\/\s]+$/, '')
 
-  // https://www.youtube.com/@Handle atau http://youtube.com/@Handle
+  // https://www.youtube.com/@Handle
   const urlHandleMatch = input.match(/youtube\.com\/@([a-zA-Z0-9_.-]+)/i)
   if (urlHandleMatch) return { type: 'handle', value: urlHandleMatch[1] }
 
@@ -19,14 +16,14 @@ export function parseChannelInput(input: string) {
   const urlChannelMatch = input.match(/youtube\.com\/channel\/(UC[a-zA-Z0-9_-]+)/i)
   if (urlChannelMatch) return { type: 'id', value: urlChannelMatch[1] }
 
-  // Raw channel ID: UC + 22 chars = 24 total
+  // Raw channel ID: UC + exactly 22 chars = 24 total
   if (/^UC[a-zA-Z0-9_-]{22}$/.test(input)) return { type: 'id', value: input }
 
-  // @Handle (tanpa URL)
+  // @Handle tanpa URL
   const bareHandleMatch = input.match(/^@([a-zA-Z0-9_.-]+)$/)
   if (bareHandleMatch) return { type: 'handle', value: bareHandleMatch[1] }
 
-  // Raw handle tanpa @ (last resort)
+  // Raw handle tanpa @
   if (/^[a-zA-Z0-9_.-]{2,}$/.test(input)) return { type: 'handle', value: input }
 
   return null
@@ -35,29 +32,25 @@ export function parseChannelInput(input: string) {
 export async function resolveChannelId(handle: string): Promise<{ channelId: string | null, debug: string[] }> {
   const debug: string[] = []
 
-  // Strategy 1: RSS feed via ?user= (works for old-style usernames)
+  // Strategy 1: RSS ?user= — feed.id formatnya "yt:channel:UCxxxxxxx"
+  // JANGAN pakai yt:channelId langsung karena isinya base64, bukan UC format
   try {
     debug.push(`[S1] Trying RSS ?user=${handle}`)
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?user=${handle}`
     const feed = await parser.parseURL(rssUrl) as any
-    // feed.id contoh: "yt:channel:UCxxxxxx"
-    const idStr = feed.id || ''
+    const idStr: string = feed.id || ''
+    debug.push(`[S1] feed.id = "${idStr}"`)
     const ucMatch = idStr.match(/(UC[a-zA-Z0-9_-]{22})/)
     if (ucMatch) {
-      debug.push(`[S1] Found via feed.id: ${ucMatch[1]}`)
+      debug.push(`[S1] Extracted UC from feed.id: ${ucMatch[1]}`)
       return { channelId: ucMatch[1], debug }
     }
-    // Fallback: cek yt:channelId custom field
-    const ytChanId = (feed as any)['yt:channelId']
-    if (ytChanId) {
-      debug.push(`[S1] Found via yt:channelId: ${ytChanId}`)
-      return { channelId: ytChanId, debug }
-    }
+    debug.push(`[S1] feed.id has no UC format, skipping yt:channelId (base64)`)
   } catch (e: any) {
     debug.push(`[S1] Failed: ${e.message}`)
   }
 
-  // Strategy 2: Scrape halaman @handle dengan browser-like headers
+  // Strategy 2: Scrape youtube.com/@handle — cari UC... dengan beberapa pattern
   try {
     debug.push(`[S2] Scraping youtube.com/@${handle}`)
     const res = await fetch(`https://www.youtube.com/@${handle}`, {
@@ -65,51 +58,82 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept-Language': 'en-US,en;q=0.9',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Cache-Control': 'no-cache',
       }
     })
     const html = await res.text()
-    debug.push(`[S2] Got ${html.length} chars, status ${res.status}`)
+    debug.push(`[S2] status=${res.status}, chars=${html.length}`)
 
-    // Cari semua UC... di halaman, ambil yang pertama
-    const patterns = [
-      /"channelId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/,
-      /"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/,
-      /\/channel\/(UC[a-zA-Z0-9_-]{22})/,
-      /"browseId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/,
-      /"id"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/,
-      /channel_id=(UC[a-zA-Z0-9_-]{22})/,
+    const patterns: [string, RegExp][] = [
+      ['channelId',  /"channelId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
+      ['externalId', /"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
+      ['/channel/',  /\/channel\/(UC[a-zA-Z0-9_-]{22})/],
+      ['browseId',   /"browseId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
+      ['browse_id=', /browse_id=(UC[a-zA-Z0-9_-]{22})/],
+      ['"id"',       /"id"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
     ]
-    for (const [i, pattern] of patterns.entries()) {
-      const m = html.match(pattern)
+    for (const [name, pat] of patterns) {
+      const m = html.match(pat)
       if (m) {
-        debug.push(`[S2] Found via pattern ${i + 1}: ${m[1]}`)
+        debug.push(`[S2] Found via "${name}": ${m[1]}`)
         return { channelId: m[1], debug }
       }
     }
-    debug.push(`[S2] No UC... found in ${html.length} chars`)
+    debug.push(`[S2] No UC... pattern matched`)
   } catch (e: any) {
     debug.push(`[S2] Failed: ${e.message}`)
   }
 
-  // Strategy 3: Coba RSS feed dengan handle langsung (beberapa channel support ini)
+  // Strategy 3: RSS XML raw fetch — parse <yt:channelId> tag from XML
+  // Ini berbeda dari S1: ambil raw XML dan parse <yt:channelId>UCxxxx</yt:channelId>
   try {
-    debug.push(`[S3] Trying RSS raw fetch for @${handle}`)
+    debug.push(`[S3] Raw XML fetch ?user=${handle}`)
     const res = await fetch(`https://www.youtube.com/feeds/videos.xml?user=${handle}`, {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     })
     const xml = await res.text()
-    debug.push(`[S3] XML length: ${xml.length}`)
+    debug.push(`[S3] status=${res.status}, chars=${xml.length}`)
+    // <yt:channelId> di dalam XML atom SELALU berformat UC... (bukan base64)
     const m = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/)
     if (m) {
-      debug.push(`[S3] Found: ${m[1]}`)
+      debug.push(`[S3] Found via <yt:channelId> tag: ${m[1]}`)
       return { channelId: m[1], debug }
     }
+    // Juga coba link rel=alternate yang mengandung channel_id
+    const m2 = xml.match(/channel_id=(UC[a-zA-Z0-9_-]{22})/)
+    if (m2) {
+      debug.push(`[S3] Found via channel_id= in XML: ${m2[1]}`)
+      return { channelId: m2[1], debug }
+    }
+    debug.push(`[S3] No UC... found in XML`)
   } catch (e: any) {
     debug.push(`[S3] Failed: ${e.message}`)
   }
 
-  debug.push('All strategies failed')
+  // Strategy 4: RSS via @handle URL (bukan ?user=)
+  try {
+    debug.push(`[S4] Raw XML fetch feeds?user via @handle path`)
+    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    })
+    const xml = await res.text()
+    debug.push(`[S4] status=${res.status}, chars=${xml.length}`)
+    const m = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/)
+    if (m) {
+      debug.push(`[S4] Found: ${m[1]}`)
+      return { channelId: m[1], debug }
+    }
+    // feed.id dalam XML: <id>yt:channel:UCxxxxxx</id>
+    const m2 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/)
+    if (m2) {
+      debug.push(`[S4] Found via <id> tag: ${m2[1]}`)
+      return { channelId: m2[1], debug }
+    }
+    debug.push(`[S4] No UC... found`)
+  } catch (e: any) {
+    debug.push(`[S4] Failed: ${e.message}`)
+  }
+
+  debug.push('All strategies exhausted')
   return { channelId: null, debug }
 }
 
