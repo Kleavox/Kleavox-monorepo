@@ -1,0 +1,54 @@
+name: Deploy DeauWait
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
+    - name: Deploy to Kripton
+      run: |
+        /usr/bin/rsync -av --delete \
+          -e "ssh -i /home/github-runner/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+          .output/ \
+          deploy@100.76.93.142:/var/www/deauwait/
+
+    - name: Restart PM2
+      run: |
+        ssh -i /home/github-runner/.ssh/id_ed25519 \
+          -o StrictHostKeyChecking=no \
+          deploy@100.76.93.142 \
+          "cat > /var/www/deauwait/ecosystem.config.js << 'EOFPM2'
+        module.exports = {
+          apps: [{
+            name: 'deauwait',
+            script: '/var/www/deauwait/server/index.mjs',
+            cwd: '/var/www/deauwait',
+            env: {
+              NODE_ENV: 'production',
+              PORT: 8080,
+              HOST: '0.0.0.0'
+            }
+          }]
+        }
+        EOFPM2
+        pm2 reload deauwait || pm2 start /var/www/deauwait/ecosystem.config.js"
+
+    - name: Cleanup
+      if: always()
+      run: |
+        rm -rf $GITHUB_WORKSPACE/.output
+        rm -rf $GITHUB_WORKSPACE/node_modules
+        echo "Cleanup done!"
