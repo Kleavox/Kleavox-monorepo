@@ -6,7 +6,6 @@ const parser = new RSSParser({ customFields: { feed: ["yt:channelId"] } });
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
 ] as const;
 
 function randomUA(): string {
@@ -24,54 +23,57 @@ function browserHeaders(): Record<string, string> {
   };
 }
 
-function isActuallyLive(html: string, context: string): boolean {
+function isActuallyLive(html: string, channelId: string, context: string): boolean {
+  // 1. Ownership Check: Video MUST belong to the target channel
+  const isOwner = html.includes(`"channelId":"${channelId}"`) || 
+                  html.includes(`"externalId":"${channelId}"`) || 
+                  html.includes(`"browseId":"${channelId}"`) ||
+                  html.includes(`"/channel/${channelId}"`) ||
+                  html.includes(`"canonicalBaseUrl":"/@`); // Handles are trickier, but UC id is usually in JSON
+
+  if (!isOwner) {
+    // If we can't find the channel ID in the HTML data, it's likely a recommended video
+    return false;
+  }
+
+  // 2. Status Check: Must be currently LIVE
   const indicators = {
     isLiveTrue: html.includes('"isLive":true'),
     styleLive: html.includes('"style":"LIVE"'),
     labelLive: html.includes('"label":"LIVE"'),
-    statusLive: html.includes('"status":"LIVE"'),
     indicatorTag: html.includes('yt-live-label-display-renderer'),
-    badgeLive: html.includes('badge-style-type-live'),
-    hls: html.includes('hlsManifestUrl'),
-    m3u8: html.includes('.m3u8')
+    hls: html.includes('hlsManifestUrl')
   };
   
-  const isUpcoming = html.includes('"isUpcoming":true') || html.includes('"style":"UPCOMING"') || html.includes('"upcomingEventData"');
+  const isUpcoming = html.includes('"isUpcoming":true') || 
+                     html.includes('"style":"UPCOMING"') || 
+                     html.includes('"upcomingEventData"');
   
   const hasLiveIndicator = Object.values(indicators).some(v => v);
   const live = hasLiveIndicator && !isUpcoming;
   
   if (live) {
     const found = Object.entries(indicators).filter(([_, v]) => v).map(([k]) => k).join(', ');
-    console.log(`[checkLive/verify] ${context} - LIVE CONFIRMED via: ${found}`);
-  } else {
-    // Debug if we suspect it might be live but we missed it
-    if (html.includes('videoId')) {
-       console.log(`[checkLive/verify] ${context} - Not live. Indicators: ${JSON.stringify(indicators)}, upcoming: ${isUpcoming}`);
-    }
+    console.log(`[checkLive/verify] ${context} - LIVE CONFIRMED for ${channelId} via: ${found}`);
   }
   
   return live;
 }
 
-function findLiveVideoIdInData(html: string): string | null {
-  // Try to find a videoId that is associated with a LIVE badge in the JSON data
-  const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"[^}]*?"(?:label|text)":"LIVE"/) ||
-                html.match(/"(?:label|text)":"LIVE"[^}]*?"videoId":"([a-zA-Z0-9_-]{11})"/) ||
-                html.match(/"videoId":"([a-zA-Z0-9_-]{11})"[^}]*?badge-style-type-live/);
-  
-  return match ? match[1]! : null;
-}
-
 function extractPrimaryVideoId(html: string): string | null {
+  // Priority 1: Canonical link (present on watch pages)
   const canonical = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/);
   if (canonical) return canonical[1]!;
 
+  // Priority 2: Main player microformat
   const micro = html.match(/"playerMicroformatRenderer"\s*:\s*\{.*?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/);
   if (micro) return micro[1]!;
   
-  const videoId = html.match(/"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/) || html.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
-  return videoId ? videoId[1]! : null;
+  // Priority 3: Video details in initial player response
+  const details = html.match(/"videoDetails"\s*:\s*\{.*?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/);
+  if (details) return details[1]!;
+
+  return null;
 }
 
 function extractTitle(html: string): string {
@@ -80,7 +82,7 @@ function extractTitle(html: string): string {
 }
 
 export async function checkLive(channelId: string) {
-  console.log(`[checkLive/${channelId}] Checking...`);
+  console.log(`[checkLive/${channelId}] Starting check...`);
 
   // Method 1: /live endpoint
   try {
@@ -91,35 +93,36 @@ export async function checkLive(channelId: string) {
     const finalUrl = res.url;
     const html = await res.text();
 
-    console.log(`[checkLive/${channelId}] Method 1 status=${res.status} finalUrl=${finalUrl} htmlLen=${html.length}`);
+    console.log(`[checkLive/${channelId}] Method 1 status=${res.status} finalUrl=${finalUrl}`);
 
-    const videoId = finalUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1] || findLiveVideoIdInData(html) || extractPrimaryVideoId(html);
+    const videoId = finalUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1] || extractPrimaryVideoId(html);
     
-    if (videoId && isActuallyLive(html, `Method 1 (videoId: ${videoId})`)) {
+    if (videoId && isActuallyLive(html, channelId, `Method 1 (${videoId})`)) {
       return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: extractTitle(html) };
     }
   } catch (e: any) {
     console.error(`[checkLive/${channelId}] Method 1 error: ${e.message}`);
   }
 
-  // Method 2: Embed
+  // Method 2: Embed (Often bypasses VPS blocking)
   try {
     const res = await fetch(`https://www.youtube.com/embed/live_stream?channel=${channelId}`, {
       headers: browserHeaders(),
     });
     const html = await res.text();
-    const videoId = findLiveVideoIdInData(html) || extractPrimaryVideoId(html);
+    const videoId = extractPrimaryVideoId(html);
 
-    console.log(`[checkLive/${channelId}] Method 2 status=${res.status} videoId=${videoId}`);
-
-    if (videoId && isActuallyLive(html, `Method 2 (videoId: ${videoId})`)) {
-      return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: "Live Stream" };
+    if (videoId) {
+      console.log(`[checkLive/${channelId}] Method 2 found videoId: ${videoId}`);
+      if (isActuallyLive(html, channelId, `Method 2 (${videoId})`)) {
+        return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: "Live Stream" };
+      }
     }
   } catch (e: any) {
     console.error(`[checkLive/${channelId}] Method 2 error: ${e.message}`);
   }
 
-  // Method 3: RSS
+  // Method 3: RSS (Fallback)
   try {
     const res = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`, {
       headers: { "User-Agent": randomUA() }
@@ -129,22 +132,19 @@ export async function checkLive(channelId: string) {
     
     if (firstMatch) {
       const videoId = firstMatch[1]!;
-      console.log(`[checkLive/${channelId}] Method 3 (RSS) checking latest video: ${videoId}`);
+      console.log(`[checkLive/${channelId}] Method 3 (RSS) checking video: ${videoId}`);
       const vRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, { headers: browserHeaders() });
       const vHtml = await vRes.text();
-      if (isActuallyLive(vHtml, `Method 3 (videoId: ${videoId})`)) {
+      if (isActuallyLive(vHtml, channelId, `Method 3 (${videoId})`)) {
         return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: extractTitle(vHtml) };
       }
     }
-  } catch (e: any) {
-    console.error(`[checkLive/${channelId}] Method 3 error: ${e.message}`);
-  }
+  } catch {}
 
   console.log(`[checkLive/${channelId}] Result: Still waiting...`);
   return { live: false };
 }
 
-// Keep helper functions
 export function parseChannelInput(input: string) {
   input = input.trim();
   const h = input.match(/youtube\.com\/@([a-zA-Z0-9_.-]+)/i) || input.match(/^@([a-zA-Z0-9_.-]+)$/);
