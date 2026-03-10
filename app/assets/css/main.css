@@ -1,9 +1,8 @@
-/* assets/css/main.css */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Other styles ──────────────────────────────────────────────────────── */
 :root {
   --grain-opacity: 0.04;
 }
@@ -25,7 +24,7 @@ body {
 
 /* Film grain overlay */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   z-index: 9999;
@@ -37,7 +36,7 @@ body::before {
 
 /* CRT scanlines */
 body::after {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   z-index: 9998;
@@ -69,17 +68,25 @@ body::after {
 }
 
 /* Input reset */
-input, textarea {
+input,
+textarea {
   outline: none;
   background: transparent;
   color: inherit;
   font-family: inherit;
 }
 
-/* Live indicator dot */
+/* ─── Live / waiting indicator dots ─────────────────────────────────────── */
 @keyframes livePulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
 }
 
 .live-dot {
@@ -102,14 +109,32 @@ input, textarea {
   box-shadow: 0 0 12px rgba(255, 45, 45, 0.6);
 }
 
-/* Glitch text effect */
+/* ─── Glitch text effect ─────────────────────────────────────────────────── */
 @keyframes glitch {
-  0% { clip-path: inset(40% 0 61% 0); transform: translate(-2px, 0); }
-  20% { clip-path: inset(92% 0 1% 0); transform: translate(2px, 0); }
-  40% { clip-path: inset(43% 0 1% 0); transform: translate(0, 0); }
-  60% { clip-path: inset(25% 0 58% 0); transform: translate(2px, 0); }
-  80% { clip-path: inset(54% 0 7% 0); transform: translate(-2px, 0); }
-  100% { clip-path: inset(58% 0 43% 0); transform: translate(0, 0); }
+  0% {
+    clip-path: inset(40% 0 61% 0);
+    transform: translate(-2px, 0);
+  }
+  20% {
+    clip-path: inset(92% 0 1% 0);
+    transform: translate(2px, 0);
+  }
+  40% {
+    clip-path: inset(43% 0 1% 0);
+    transform: translate(0, 0);
+  }
+  60% {
+    clip-path: inset(25% 0 58% 0);
+    transform: translate(2px, 0);
+  }
+  80% {
+    clip-path: inset(54% 0 7% 0);
+    transform: translate(-2px, 0);
+  }
+  100% {
+    clip-path: inset(58% 0 43% 0);
+    transform: translate(0, 0);
+  }
 }
 
 .glitch-active::before,
@@ -118,10 +143,12 @@ input, textarea {
   position: absolute;
   inset: 0;
 }
+
 .glitch-active::before {
   color: #ff2d2d;
   animation: glitch 0.3s infinite linear alternate-reverse;
 }
+
 .glitch-active::after {
   color: #00ff87;
   animation: glitch 0.3s 0.1s infinite linear alternate-reverse;

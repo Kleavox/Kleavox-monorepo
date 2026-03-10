@@ -1,20 +1,12 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  // Nuxt 4: frontend files are under app/
+import type { Config } from 'tailwindcss'
+
+export default {
   content: [
-    './app/components/**/*.{js,vue,ts}',
-    './app/layouts/**/*.vue',
-    './app/pages/**/*.vue',
-    './app/plugins/**/*.{js,ts}',
-    './app/app.vue',
-    './app/error.vue',
+    './app/**/*.{vue,js,ts,jsx,tsx}',
+    './nuxt.config.ts',
   ],
   theme: {
     extend: {
-      fontFamily: {
-        display: ['"Bebas Neue"', 'cursive'],
-        mono: ['"Geist Mono"', '"Courier New"', 'monospace'],
-      },
       colors: {
         void: '#080808',
         carbon: '#111111',
@@ -27,37 +19,39 @@ module.exports = {
         signal: {
           DEFAULT: '#ff2d2d',
           dim: '#8b1a1a',
-          glow: 'rgba(255, 45, 45, 0.15)',
         },
         live: {
           DEFAULT: '#00ff87',
           dim: '#004d29',
-          glow: 'rgba(0, 255, 135, 0.15)',
-        },
+        }
+      },
+      fontFamily: {
+        display: ['"Bebas Neue"', 'cursive'],
+        mono: ['"Geist Mono"', 'monospace'],
       },
       letterSpacing: {
         widest2: '0.3em',
         widest3: '0.5em',
       },
       animation: {
+        'fade-up': 'fade-up 0.6s ease forwards',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'flicker': 'flicker 4s linear infinite',
-        'fade-up': 'fadeUp 0.6s ease forwards',
       },
       keyframes: {
+        'fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
         flicker: {
           '0%, 95%, 100%': { opacity: '1' },
           '96%': { opacity: '0.8' },
           '97%': { opacity: '1' },
           '98%': { opacity: '0.6' },
           '99%': { opacity: '1' },
-        },
-        fadeUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
         }
       }
     },
   },
   plugins: [],
-}
+} satisfies Config
