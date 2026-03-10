@@ -1,4 +1,5 @@
 // server/api/status/[watchId].get.ts
+
 import { watcherStore } from '../../utils/watcherStore'
 
 export default defineEventHandler((event) => {

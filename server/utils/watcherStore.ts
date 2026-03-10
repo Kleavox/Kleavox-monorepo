@@ -1,6 +1,4 @@
 // server/utils/watcherStore.ts
-// Global in-process store for active watchers
-// Nitro runs in a single process, so Map survives between requests
 
 interface Watcher {
   channelId: string;
@@ -20,7 +18,6 @@ declare global {
 const store: Map<string, Watcher> = globalThis.__watcherStore ?? new Map();
 globalThis.__watcherStore = store;
 
-// Auto-cleanup stale watchers older than 12 hours
 if (!globalThis.__watcherCleanup) {
   globalThis.__watcherCleanup = setInterval(
     () => {
