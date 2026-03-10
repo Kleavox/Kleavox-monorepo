@@ -1,6 +1,5 @@
-import type { Config } from 'tailwindcss'
-
-export default {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
     './app/**/*.{vue,js,ts,jsx,tsx}',
     './nuxt.config.ts',
@@ -26,8 +25,8 @@ export default {
         }
       },
       fontFamily: {
-        display: ['"Bebas Neue"', 'cursive'],
-        mono: ['"Geist Mono"', 'monospace'],
+        display: ['"Bebas Neue"', 'Impact', 'sans-serif'],
+        mono: ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       letterSpacing: {
         widest2: '0.3em',
@@ -54,4 +53,4 @@ export default {
     },
   },
   plugins: [],
-} satisfies Config
+}

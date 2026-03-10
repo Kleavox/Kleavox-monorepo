@@ -3,12 +3,10 @@ import RSSParser from "rss-parser";
 
 const parser = new RSSParser({ customFields: { feed: ["yt:channelId"] } });
 
-// Rotate user agents to reduce bot detection on server IPs
 const USER_AGENTS = [
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
 ] as const;
 
 function randomUA(): string {
@@ -20,16 +18,17 @@ function browserHeaders(
 ): Record<string, string> {
   return {
     "User-Agent": randomUA(),
-    Accept:
-      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
     "Cache-Control": "no-cache",
     Pragma: "no-cache",
     "Sec-Fetch-Dest": "document",
     "Sec-Fetch-Mode": "navigate",
     "Sec-Fetch-Site": "none",
     "Upgrade-Insecure-Requests": "1",
+    Referer: "https://www.youtube.com/",
+    // Bypasses some consent pages
+    Cookie: "CONSENT=PENDING+999; YES+",
     ...extra,
   };
 }
@@ -66,9 +65,7 @@ async function verifyChannelId(candidateId: string): Promise<boolean> {
       `https://www.youtube.com/feeds/videos.xml?channel_id=${candidateId}`,
       { headers: { "User-Agent": randomUA() } },
     );
-    if (!res.ok) return false;
-    const xml = await res.text();
-    return xml.includes("<yt:channelId>") || xml.includes("<entry>");
+    return res.ok;
   } catch {
     return false;
   }
@@ -80,222 +77,115 @@ export async function resolveChannelId(
   const debug: string[] = [];
 
   try {
-    debug.push(`[S1] RSS ?forHandle=@${handle}`);
     const res = await fetch(
       `https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`,
       { headers: { "User-Agent": randomUA() } },
     );
     const xml = await res.text();
-    debug.push(`[S1] status=${res.status}, chars=${xml.length}`);
-    const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/);
-    if (m1) {
-      debug.push(`[S1] Found: ${m1[1]!}`);
-      return { channelId: m1[1]!, debug };
-    }
-    const m2 = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/);
-    if (m2) {
-      debug.push(`[S1] Found: ${m2[1]!}`);
-      return { channelId: m2[1]!, debug };
-    }
-  } catch (e: unknown) {
-    debug.push(`[S1] Failed: ${(e as Error).message}`);
+    const m = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/) || 
+              xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/);
+    if (m) return { channelId: m[1]!, debug };
+  } catch (e: any) {
+    debug.push(`RSS handle error: ${e.message}`);
   }
 
   try {
-    debug.push(`[S2] RSS ?user=${handle}`);
-    const res = await fetch(
-      `https://www.youtube.com/feeds/videos.xml?user=${handle}`,
-      { headers: { "User-Agent": randomUA() } },
-    );
-    const xml = await res.text();
-    debug.push(`[S2] status=${res.status}, chars=${xml.length}`);
-    const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/);
-    if (m1) {
-      debug.push(`[S2] Found: ${m1[1]!}`);
-      return { channelId: m1[1]!, debug };
-    }
-    const m2 = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/);
-    if (m2) {
-      debug.push(`[S2] Found: ${m2[1]!}`);
-      return { channelId: m2[1]!, debug };
-    }
-  } catch (e: unknown) {
-    debug.push(`[S2] Failed: ${(e as Error).message}`);
-  }
-
-  try {
-    debug.push(`[S3] Scraping youtube.com/@${handle}`);
     const res = await fetch(`https://www.youtube.com/@${handle}`, {
       headers: browserHeaders(),
     });
     const html = await res.text();
-    debug.push(`[S3] status=${res.status}, chars=${html.length}`);
-
-    for (const [name, pat] of [
-      ["externalId", /"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
-      ["browseId", /"browseId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/],
-    ] as [string, RegExp][]) {
-      const m = html.match(pat);
-      if (m) {
-        const id = m[1]!;
-        const ok = await verifyChannelId(id);
-        debug.push(`[S3] "${name}": ${id}, verify=${ok}`);
-        if (ok) return { channelId: id, debug };
-      }
-    }
-
-    const canonical = html.match(
-      /rel="canonical"\s+href="[^"]*\/channel\/(UC[a-zA-Z0-9_-]{22})"/,
-    );
-    if (canonical) {
-      const id = canonical[1]!;
-      const ok = await verifyChannelId(id);
-      if (ok) {
-        debug.push(`[S3] canonical: ${id}`);
-        return { channelId: id, debug };
-      }
-    }
-
-    const allUC = [
-      ...new Set(
-        [...html.matchAll(/(UC[a-zA-Z0-9_-]{22})/g)].map((m) => m[1]!),
-      ),
-    ];
-    for (const uc of allUC.slice(0, 5)) {
-      const ok = await verifyChannelId(uc);
-      if (ok) {
-        debug.push(`[S3] verified: ${uc}`);
-        return { channelId: uc, debug };
-      }
-    }
-  } catch (e: unknown) {
-    debug.push(`[S3] Failed: ${(e as Error).message}`);
+    const m = html.match(/"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/);
+    if (m) return { channelId: m[1]!, debug };
+  } catch (e: any) {
+    debug.push(`Scraping handle error: ${e.message}`);
   }
 
   return { channelId: null, debug };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Live detection
-// ─────────────────────────────────────────────────────────────────────────────
-
-function extractVideoId(html: string): string | null {
-  for (const p of [
-    /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
-    /watch\?v=([a-zA-Z0-9_-]{11})/,
-    /"identifier"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
-  ]) {
-    const m = html.match(p);
-    if (m) return m[1]!;
-  }
-  return null;
-}
 
 function extractTitle(html: string): string {
   const m = html.match(/<title>([^<]+)<\/title>/);
   return m ? m[1]!.replace(/ - YouTube$/, "").trim() : "Live Stream";
 }
 
-// Verify a specific video ID is actually live right now
 async function verifyVideoLive(videoId: string): Promise<boolean> {
   try {
     const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: browserHeaders(),
     });
+    if (!res.ok) {
+      console.log(`[verify/${videoId}] fetch failed: ${res.status}`);
+      return false;
+    }
     const html = await res.text();
 
-    // Not live if:
-    if (html.includes('"isUpcoming":true')) return false;
-    if (html.includes('"premiereTimestamp"')) return false;
-
-    // Positive: must be actively broadcasting
-    // hlsManifestUrl is the strongest signal — only present during active stream delivery
-    // streamingData present + isLive:true is also reliable
     const isLive = html.includes('"isLive":true');
     const hasHLS = html.includes('"hlsManifestUrl"');
-    const hasStreaming = html.includes('"streamingData"') && isLive;
+    const isUpcoming = html.includes('"isUpcoming":true') || html.includes('"premiereTimestamp"');
 
-    console.log(
-      `[verify/${videoId}] isLive=${isLive} hlsManifest=${hasHLS} streamingData=${html.includes('"streamingData"')}`,
-    );
+    console.log(`[verify/${videoId}] status=${res.status} isLive=${isLive} hls=${hasHLS} upcoming=${isUpcoming}`);
 
-    return hasHLS || hasStreaming;
-  } catch (e: unknown) {
-    console.log(`[verify/${videoId}] failed: ${(e as Error).message}`);
+    return (isLive || hasHLS) && !isUpcoming;
+  } catch (e: any) {
+    console.log(`[verify/${videoId}] error: ${e.message}`);
     return false;
   }
 }
 
 export async function checkLive(channelId: string) {
-  // ── Method 1: /channel/{id}/live redirect ─────────────────────────────────
-  // YouTube redirects this URL to /watch?v=XXX ONLY when the channel is live.
-  // The redirect itself is the primary signal — more reliable than scraping JS.
+  // Method 1: /live redirect
   try {
-    const res = await fetch(
-      `https://www.youtube.com/channel/${channelId}/live`,
-      {
-        headers: browserHeaders(),
-        redirect: "follow",
-      },
-    );
+    const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, {
+      headers: browserHeaders(),
+      redirect: "follow",
+    });
     const finalUrl = res.url;
-    const html = await res.text();
-
-    console.log(
-      `[live/${channelId}] /live → ${finalUrl} (${html.length} chars)`,
-    );
-
-    // If YouTube redirected to a /watch?v= URL, there's likely a live stream
     const watchMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+
+    console.log(`[checkLive/${channelId}] /live status=${res.status} url=${finalUrl}`);
+
     if (watchMatch) {
       const videoId = watchMatch[1]!;
-      console.log(
-        `[live/${channelId}] Redirect to watch page detected, verifying video ${videoId}...`,
-      );
       const confirmed = await verifyVideoLive(videoId);
       if (confirmed) {
-        console.log(`[live/${channelId}] ✓ CONFIRMED LIVE: ${finalUrl}`);
+        const html = await res.text();
         return { live: true, videoUrl: finalUrl, title: extractTitle(html) };
       }
-      console.log(
-        `[live/${channelId}] Redirect to watch page but video not confirmed live (ended/upcoming)`,
-      );
     }
-
-    // Fallback: no redirect but page itself might have live data
-    // (some channels serve the live page without redirecting)
-    if (html.includes('"isLive":true') && html.includes('"hlsManifestUrl"')) {
-      const videoId = extractVideoId(html);
-      if (videoId) {
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-        console.log(`[live/${channelId}] ✓ LIVE via page signals: ${videoUrl}`);
-        return { live: true, videoUrl, title: extractTitle(html) };
-      }
-    }
-  } catch (e: unknown) {
-    console.log(
-      `[live/${channelId}] /live endpoint error: ${(e as Error).message}`,
-    );
+  } catch (e: any) {
+    console.log(`[checkLive/${channelId}] /live error: ${e.message}`);
   }
 
-  // ── Method 2: RSS feed ────────────────────────────────────────────────────
-  // Check recent videos — live streams appear here when active
+  // Method 2: Embed check (often bypasses some bot detection)
   try {
-    const feed = await parser.parseURL(
-      `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
-    );
-    for (const item of feed.items) {
-      if (!item.title || !item.link) continue;
-      const videoId = item.link.match(/v=([a-zA-Z0-9_-]+)/)?.[1];
-      if (!videoId) continue;
-      const confirmed = await verifyVideoLive(videoId);
-      if (confirmed) {
-        console.log(`[live/${channelId}] ✓ LIVE via RSS: ${item.link}`);
-        return { live: true, videoUrl: item.link, title: item.title };
+    const res = await fetch(`https://www.youtube.com/embed/live_stream?channel=${channelId}`, {
+      headers: browserHeaders(),
+      redirect: "follow",
+    });
+    console.log(`[checkLive/${channelId}] embed status=${res.status} url=${res.url}`);
+    if (res.url.includes("watch?v=")) {
+      const videoId = res.url.match(/v=([a-zA-Z0-9_-]{11})/)?.[1];
+      if (videoId && await verifyVideoLive(videoId)) {
+        return { live: true, videoUrl: res.url, title: "Live Stream" };
       }
     }
-  } catch (e: unknown) {
-    console.log(`[live/${channelId}] RSS error: ${(e as Error).message}`);
+  } catch (e: any) {
+    console.log(`[checkLive/${channelId}] embed error: ${e.message}`);
+  }
+
+  // Method 3: RSS Fallback
+  try {
+    const feed = await parser.parseURL(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
+    for (const item of feed.items.slice(0, 3)) {
+      const videoId = item.link?.match(/v=([a-zA-Z0-9_-]+)/)?.[1];
+      if (videoId && await verifyVideoLive(videoId)) {
+        return { live: true, videoUrl: item.link!, title: item.title ?? "Live" };
+      }
+    }
+  } catch (e: any) {
+    console.log(`[checkLive/${channelId}] RSS error: ${e.message}`);
   }
 
   return { live: false };
