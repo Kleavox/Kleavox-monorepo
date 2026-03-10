@@ -22,6 +22,7 @@
   "overrides": {
     "glob": "^13.0.6",
     "@koa/router": "^15.3.1",
-    "serialize-javascript": ">=7.0.3"
+    "serialize-javascript": ">=7.0.3",
+    "unplugin-vue-router": "0.19.2"
   }
 }

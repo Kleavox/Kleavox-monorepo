@@ -102,13 +102,45 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
   return { channelId: null, debug }
 }
 
-function isActuallyLive(html: string): boolean {
-  // Must have isLive:true — this means broadcasting NOW
-  if (!html.includes('"isLive":true')) return false
-  // Exclude premiers (have a countdown timestamp)
-  if (html.includes('"premiereTimestamp"')) return false
-  // Exclude upcoming/scheduled
-  if (html.includes('"isUpcoming":true')) return false
+function isActuallyLive(html: string, debug = false): boolean {
+  // ── Hard requirements ────────────────────────────────────────────────────
+  // "isLive":true must be present
+  if (!html.includes('"isLive":true')) {
+    if (debug) console.log('[isLive] FAIL: no "isLive":true')
+    return false
+  }
+
+  // ── Hard exclusions ──────────────────────────────────────────────────────
+  // Upcoming / waiting room (stream scheduled but not started)
+  if (html.includes('"isUpcoming":true')) {
+    if (debug) console.log('[isLive] FAIL: isUpcoming:true')
+    return false
+  }
+  // Premier (scheduled video reveal, not a live broadcast)
+  if (html.includes('"premiereTimestamp"')) {
+    if (debug) console.log('[isLive] FAIL: premiereTimestamp found')
+    return false
+  }
+  // Ended stream — YouTube keeps the page up but marks it
+  if (html.includes('"isLiveContent":true') && html.includes('"streamingData"') === false) {
+    // streamingData is absent on ended streams
+    if (debug) console.log('[isLive] FAIL: no streamingData (ended stream)')
+    return false
+  }
+
+  // ── Positive confirmation ─────────────────────────────────────────────────
+  // hlsManifestUrl or dashManifestUrl only appear when YouTube is actively
+  // delivering stream segments — this is the strongest signal of a live stream.
+  const hasHLS  = html.includes('"hlsManifestUrl"')
+  const hasDASH = html.includes('"dashManifestUrl"')
+  const hasStreamingData = html.includes('"streamingData"')
+
+  if (!hasHLS && !hasDASH && !hasStreamingData) {
+    if (debug) console.log('[isLive] FAIL: no hlsManifestUrl / dashManifestUrl / streamingData')
+    return false
+  }
+
+  if (debug) console.log('[isLive] PASS: stream is active')
   return true
 }
 
@@ -134,25 +166,26 @@ function extractTitle(html: string): string {
 
 export async function checkLive(channelId: string) {
   // ── Primary method: /channel/{id}/live ──────────────────────────────────
-  // This URL is specifically designed for live streams. If the channel is live
-  // it serves the stream page directly. Much more reliable than RSS polling.
   try {
     const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, { headers: HEADERS })
     const html = await res.text()
-    const finalUrl = res.url // may have redirected to /watch?v=...
+    const finalUrl = res.url
 
-    if (isActuallyLive(html)) {
+    console.log(`[live/${channelId}] /live page: ${html.length} chars, finalUrl=${finalUrl}`)
+    console.log(`[live/${channelId}] signals: isLive=${html.includes('"isLive":true')}, isUpcoming=${html.includes('"isUpcoming":true')}, premiere=${html.includes('"premiereTimestamp"')}, hls=${html.includes('"hlsManifestUrl"')}, dash=${html.includes('"dashManifestUrl"')}, streamingData=${html.includes('"streamingData"')}`)
+
+    if (isActuallyLive(html, true)) {
       const videoId = extractVideoId(html)
       const videoUrl = videoId
         ? `https://www.youtube.com/watch?v=${videoId}`
         : finalUrl.includes('watch?v=') ? finalUrl : null
       if (videoUrl) {
-        console.log(`[live] Detected via /live endpoint: ${videoUrl}`)
+        console.log(`[live/${channelId}] ✓ LIVE: ${videoUrl}`)
         return { live: true, videoUrl, title: extractTitle(html) }
       }
     }
   } catch (e: any) {
-    console.log(`[live] /live endpoint failed: ${e.message}`)
+    console.log(`[live/${channelId}] /live endpoint failed: ${e.message}`)
   }
 
   // ── Fallback: RSS feed ───────────────────────────────────────────────────
