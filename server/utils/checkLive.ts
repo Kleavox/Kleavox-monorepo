@@ -3,11 +3,35 @@ import RSSParser from 'rss-parser'
 
 const parser = new RSSParser({ customFields: { feed: ['yt:channelId'] } })
 
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+// Rotate user agents to reduce bot detection on server IPs
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+]
+
+function randomUA(): string {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)]
 }
+
+function browserHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    'User-Agent': randomUA(),
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Upgrade-Insecure-Requests': '1',
+    ...extra,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function parseChannelInput(input: string) {
   input = input.trim().replace(/[,\/\s]+$/, '')
@@ -32,7 +56,7 @@ async function verifyChannelId(candidateId: string): Promise<boolean> {
   try {
     const res = await fetch(
       `https://www.youtube.com/feeds/videos.xml?channel_id=${candidateId}`,
-      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      { headers: { 'User-Agent': randomUA() } }
     )
     if (!res.ok) return false
     const xml = await res.text()
@@ -43,10 +67,9 @@ async function verifyChannelId(candidateId: string): Promise<boolean> {
 export async function resolveChannelId(handle: string): Promise<{ channelId: string | null, debug: string[] }> {
   const debug: string[] = []
 
-  // S1: forHandle parameter
   try {
     debug.push(`[S1] RSS ?forHandle=@${handle}`)
-    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`, { headers: { 'User-Agent': randomUA() } })
     const xml = await res.text()
     debug.push(`[S1] status=${res.status}, chars=${xml.length}`)
     const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/)
@@ -55,10 +78,9 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
     if (m2) { debug.push(`[S1] Found: ${m2[1]}`); return { channelId: m2[1], debug } }
   } catch (e: any) { debug.push(`[S1] Failed: ${e.message}`) }
 
-  // S2: ?user= legacy
   try {
     debug.push(`[S2] RSS ?user=${handle}`)
-    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?user=${handle}`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?user=${handle}`, { headers: { 'User-Agent': randomUA() } })
     const xml = await res.text()
     debug.push(`[S2] status=${res.status}, chars=${xml.length}`)
     const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/)
@@ -67,10 +89,9 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
     if (m2) { debug.push(`[S2] Found: ${m2[1]}`); return { channelId: m2[1], debug } }
   } catch (e: any) { debug.push(`[S2] Failed: ${e.message}`) }
 
-  // S3: Scrape + verify
   try {
     debug.push(`[S3] Scraping youtube.com/@${handle}`)
-    const res = await fetch(`https://www.youtube.com/@${handle}`, { headers: HEADERS })
+    const res = await fetch(`https://www.youtube.com/@${handle}`, { headers: browserHeaders() })
     const html = await res.text()
     debug.push(`[S3] status=${res.status}, chars=${html.length}`)
 
@@ -102,56 +123,16 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
   return { channelId: null, debug }
 }
 
-function isActuallyLive(html: string, debug = false): boolean {
-  // ── Hard requirements ────────────────────────────────────────────────────
-  // "isLive":true must be present
-  if (!html.includes('"isLive":true')) {
-    if (debug) console.log('[isLive] FAIL: no "isLive":true')
-    return false
-  }
-
-  // ── Hard exclusions ──────────────────────────────────────────────────────
-  // Upcoming / waiting room (stream scheduled but not started)
-  if (html.includes('"isUpcoming":true')) {
-    if (debug) console.log('[isLive] FAIL: isUpcoming:true')
-    return false
-  }
-  // Premier (scheduled video reveal, not a live broadcast)
-  if (html.includes('"premiereTimestamp"')) {
-    if (debug) console.log('[isLive] FAIL: premiereTimestamp found')
-    return false
-  }
-  // Ended stream — YouTube keeps the page up but marks it
-  if (html.includes('"isLiveContent":true') && html.includes('"streamingData"') === false) {
-    // streamingData is absent on ended streams
-    if (debug) console.log('[isLive] FAIL: no streamingData (ended stream)')
-    return false
-  }
-
-  // ── Positive confirmation ─────────────────────────────────────────────────
-  // hlsManifestUrl or dashManifestUrl only appear when YouTube is actively
-  // delivering stream segments — this is the strongest signal of a live stream.
-  const hasHLS  = html.includes('"hlsManifestUrl"')
-  const hasDASH = html.includes('"dashManifestUrl"')
-  const hasStreamingData = html.includes('"streamingData"')
-
-  if (!hasHLS && !hasDASH && !hasStreamingData) {
-    if (debug) console.log('[isLive] FAIL: no hlsManifestUrl / dashManifestUrl / streamingData')
-    return false
-  }
-
-  if (debug) console.log('[isLive] PASS: stream is active')
-  return true
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Live detection
+// ─────────────────────────────────────────────────────────────────────────────
 
 function extractVideoId(html: string): string | null {
-  // Try multiple patterns for video ID in page HTML
-  const patterns = [
+  for (const p of [
     /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
     /watch\?v=([a-zA-Z0-9_-]{11})/,
     /"identifier"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
-  ]
-  for (const p of patterns) {
+  ]) {
     const m = html.match(p)
     if (m) return m[1]
   }
@@ -160,52 +141,96 @@ function extractVideoId(html: string): string | null {
 
 function extractTitle(html: string): string {
   const m = html.match(/<title>([^<]+)<\/title>/)
-  // YouTube title format: "Video Title - YouTube"
   return m ? m[1].replace(/ - YouTube$/, '').trim() : 'Live Stream'
 }
 
-export async function checkLive(channelId: string) {
-  // ── Primary method: /channel/{id}/live ──────────────────────────────────
+// Verify a specific video ID is actually live right now
+async function verifyVideoLive(videoId: string): Promise<boolean> {
   try {
-    const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, { headers: HEADERS })
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: browserHeaders()
+    })
     const html = await res.text()
+
+    // Not live if:
+    if (html.includes('"isUpcoming":true')) return false
+    if (html.includes('"premiereTimestamp"')) return false
+
+    // Positive: must be actively broadcasting
+    // hlsManifestUrl is the strongest signal — only present during active stream delivery
+    // streamingData present + isLive:true is also reliable
+    const isLive = html.includes('"isLive":true')
+    const hasHLS = html.includes('"hlsManifestUrl"')
+    const hasStreaming = html.includes('"streamingData"') && isLive
+
+    console.log(`[verify/${videoId}] isLive=${isLive} hlsManifest=${hasHLS} streamingData=${html.includes('"streamingData"')}`)
+
+    return hasHLS || hasStreaming
+  } catch (e: any) {
+    console.log(`[verify/${videoId}] failed: ${e.message}`)
+    return false
+  }
+}
+
+export async function checkLive(channelId: string) {
+  // ── Method 1: /channel/{id}/live redirect ─────────────────────────────────
+  // YouTube redirects this URL to /watch?v=XXX ONLY when the channel is live.
+  // The redirect itself is the primary signal — more reliable than scraping JS.
+  try {
+    const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, {
+      headers: browserHeaders(),
+      redirect: 'follow',
+    })
     const finalUrl = res.url
+    const html = await res.text()
 
-    console.log(`[live/${channelId}] /live page: ${html.length} chars, finalUrl=${finalUrl}`)
-    console.log(`[live/${channelId}] signals: isLive=${html.includes('"isLive":true')}, isUpcoming=${html.includes('"isUpcoming":true')}, premiere=${html.includes('"premiereTimestamp"')}, hls=${html.includes('"hlsManifestUrl"')}, dash=${html.includes('"dashManifestUrl"')}, streamingData=${html.includes('"streamingData"')}`)
+    console.log(`[live/${channelId}] /live → ${finalUrl} (${html.length} chars)`)
 
-    if (isActuallyLive(html, true)) {
+    // If YouTube redirected to a /watch?v= URL, there's likely a live stream
+    const watchMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/)
+    if (watchMatch) {
+      const videoId = watchMatch[1]
+      console.log(`[live/${channelId}] Redirect to watch page detected, verifying video ${videoId}...`)
+      const confirmed = await verifyVideoLive(videoId)
+      if (confirmed) {
+        console.log(`[live/${channelId}] ✓ CONFIRMED LIVE: ${finalUrl}`)
+        return { live: true, videoUrl: finalUrl, title: extractTitle(html) }
+      }
+      console.log(`[live/${channelId}] Redirect to watch page but video not confirmed live (ended/upcoming)`)
+    }
+
+    // Fallback: no redirect but page itself might have live data
+    // (some channels serve the live page without redirecting)
+    if (html.includes('"isLive":true') && html.includes('"hlsManifestUrl"')) {
       const videoId = extractVideoId(html)
-      const videoUrl = videoId
-        ? `https://www.youtube.com/watch?v=${videoId}`
-        : finalUrl.includes('watch?v=') ? finalUrl : null
-      if (videoUrl) {
-        console.log(`[live/${channelId}] ✓ LIVE: ${videoUrl}`)
+      if (videoId) {
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`
+        console.log(`[live/${channelId}] ✓ LIVE via page signals: ${videoUrl}`)
         return { live: true, videoUrl, title: extractTitle(html) }
       }
     }
   } catch (e: any) {
-    console.log(`[live/${channelId}] /live endpoint failed: ${e.message}`)
+    console.log(`[live/${channelId}] /live endpoint error: ${e.message}`)
   }
 
-  // ── Fallback: RSS feed ───────────────────────────────────────────────────
-  // The RSS feed only shows recent uploads — live streams may not appear here
-  // immediately, so this is a secondary check only.
+  // ── Method 2: RSS feed ────────────────────────────────────────────────────
+  // Check recent videos — live streams appear here when active
   try {
-    const feed = await parser.parseURL(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`)
+    const feed = await parser.parseURL(
+      `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
+    )
     for (const item of feed.items) {
       if (!item.title || !item.link) continue
       const videoId = item.link.match(/v=([a-zA-Z0-9_-]+)/)?.[1]
       if (!videoId) continue
-      const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, { headers: HEADERS })
-      const html = await res.text()
-      if (isActuallyLive(html)) {
-        console.log(`[live] Detected via RSS: ${item.link}`)
+      const confirmed = await verifyVideoLive(videoId)
+      if (confirmed) {
+        console.log(`[live/${channelId}] ✓ LIVE via RSS: ${item.link}`)
         return { live: true, videoUrl: item.link, title: item.title }
       }
     }
   } catch (e: any) {
-    console.log(`[live] RSS check failed: ${e.message}`)
+    console.log(`[live/${channelId}] RSS error: ${e.message}`)
   }
 
   return { live: false }
