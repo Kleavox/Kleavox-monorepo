@@ -25,24 +25,42 @@ function browserHeaders(): Record<string, string> {
 }
 
 function isActuallyLive(html: string, context: string): boolean {
-  const hasIsLiveTrue = html.includes('"isLive":true');
-  const hasLiveStyle = html.includes('"style":"LIVE"');
-  const hasLiveLabel = html.includes('"label":"LIVE"');
-  const hasLiveIndicator = html.includes('yt-live-label-display-renderer');
-  const isUpcoming = html.includes('"isUpcoming":true') || html.includes('"style":"UPCOMING"');
+  const indicators = {
+    isLiveTrue: html.includes('"isLive":true'),
+    styleLive: html.includes('"style":"LIVE"'),
+    labelLive: html.includes('"label":"LIVE"'),
+    statusLive: html.includes('"status":"LIVE"'),
+    indicatorTag: html.includes('yt-live-label-display-renderer'),
+    badgeLive: html.includes('badge-style-type-live'),
+    hls: html.includes('hlsManifestUrl'),
+    m3u8: html.includes('.m3u8')
+  };
   
-  const live = (hasIsLiveTrue || hasLiveStyle || hasLiveLabel || hasLiveIndicator) && !isUpcoming;
+  const isUpcoming = html.includes('"isUpcoming":true') || html.includes('"style":"UPCOMING"') || html.includes('"upcomingEventData"');
+  
+  const hasLiveIndicator = Object.values(indicators).some(v => v);
+  const live = hasLiveIndicator && !isUpcoming;
   
   if (live) {
-    console.log(`[checkLive/verify] ${context} - LIVE detected (isLive:${hasIsLiveTrue}, style:${hasLiveStyle}, label:${hasLiveLabel}, indicator:${hasLiveIndicator})`);
+    const found = Object.entries(indicators).filter(([_, v]) => v).map(([k]) => k).join(', ');
+    console.log(`[checkLive/verify] ${context} - LIVE CONFIRMED via: ${found}`);
   } else {
-    // Occasional debug log for missed live
+    // Debug if we suspect it might be live but we missed it
     if (html.includes('videoId')) {
-       console.log(`[checkLive/verify] ${context} - Not live. Found videoId but live markers missing or upcoming (upcoming:${isUpcoming})`);
+       console.log(`[checkLive/verify] ${context} - Not live. Indicators: ${JSON.stringify(indicators)}, upcoming: ${isUpcoming}`);
     }
   }
   
   return live;
+}
+
+function findLiveVideoIdInData(html: string): string | null {
+  // Try to find a videoId that is associated with a LIVE badge in the JSON data
+  const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"[^}]*?"(?:label|text)":"LIVE"/) ||
+                html.match(/"(?:label|text)":"LIVE"[^}]*?"videoId":"([a-zA-Z0-9_-]{11})"/) ||
+                html.match(/"videoId":"([a-zA-Z0-9_-]{11})"[^}]*?badge-style-type-live/);
+  
+  return match ? match[1]! : null;
 }
 
 function extractPrimaryVideoId(html: string): string | null {
@@ -52,10 +70,8 @@ function extractPrimaryVideoId(html: string): string | null {
   const micro = html.match(/"playerMicroformatRenderer"\s*:\s*\{.*?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/);
   if (micro) return micro[1]!;
   
-  const ogUrl = html.match(/property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/);
-  if (ogUrl) return ogUrl[1]!;
-
-  return null;
+  const videoId = html.match(/"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/) || html.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+  return videoId ? videoId[1]! : null;
 }
 
 function extractTitle(html: string): string {
@@ -66,7 +82,7 @@ function extractTitle(html: string): string {
 export async function checkLive(channelId: string) {
   console.log(`[checkLive/${channelId}] Checking...`);
 
-  // Method 1: /live redirect
+  // Method 1: /live endpoint
   try {
     const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, {
       headers: browserHeaders(),
@@ -75,17 +91,11 @@ export async function checkLive(channelId: string) {
     const finalUrl = res.url;
     const html = await res.text();
 
-    console.log(`[checkLive/${channelId}] Method 1 (/live) status=${res.status} finalUrl=${finalUrl} htmlLen=${html.length}`);
+    console.log(`[checkLive/${channelId}] Method 1 status=${res.status} finalUrl=${finalUrl} htmlLen=${html.length}`);
 
-    if (finalUrl.includes("watch?v=")) {
-      const videoId = finalUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1];
-      if (videoId && isActuallyLive(html, `Method 1 (videoId: ${videoId})`)) {
-        return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: extractTitle(html) };
-      }
-    }
+    const videoId = finalUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1] || findLiveVideoIdInData(html) || extractPrimaryVideoId(html);
     
-    const videoId = extractPrimaryVideoId(html);
-    if (videoId && isActuallyLive(html, `Method 1 Scrape (videoId: ${videoId})`)) {
+    if (videoId && isActuallyLive(html, `Method 1 (videoId: ${videoId})`)) {
       return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: extractTitle(html) };
     }
   } catch (e: any) {
@@ -98,10 +108,9 @@ export async function checkLive(channelId: string) {
       headers: browserHeaders(),
     });
     const html = await res.text();
-    const videoIdMatch = html.match(/"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+    const videoId = findLiveVideoIdInData(html) || extractPrimaryVideoId(html);
 
-    console.log(`[checkLive/${channelId}] Method 2 (embed) status=${res.status} videoId=${videoId}`);
+    console.log(`[checkLive/${channelId}] Method 2 status=${res.status} videoId=${videoId}`);
 
     if (videoId && isActuallyLive(html, `Method 2 (videoId: ${videoId})`)) {
       return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: "Live Stream" };
@@ -120,7 +129,7 @@ export async function checkLive(channelId: string) {
     
     if (firstMatch) {
       const videoId = firstMatch[1]!;
-      console.log(`[checkLive/${channelId}] Method 3 (RSS) found latest video: ${videoId}, verifying...`);
+      console.log(`[checkLive/${channelId}] Method 3 (RSS) checking latest video: ${videoId}`);
       const vRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, { headers: browserHeaders() });
       const vHtml = await vRes.text();
       if (isActuallyLive(vHtml, `Method 3 (videoId: ${videoId})`)) {
