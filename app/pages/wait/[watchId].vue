@@ -1,3 +1,4 @@
+// app/pages/wait/[watchId].vue
 <template>
   <main class="min-h-screen bg-void text-snow flex flex-col">
 
@@ -44,7 +45,7 @@
               :style="`animation: dotPulse 1.5s ease-in-out ${(i-1)*0.3}s infinite`" />
           </div>
           <p class="mt-3 font-mono text-xs text-ghost">
-            checking every 2 minutes
+            checking periodically
           </p>
         </template>
 
@@ -54,7 +55,7 @@
             ERROR
           </div>
           <p class="mt-4 font-mono text-xs text-ghost max-w-xs mx-auto">
-            Watcher not found.<br>It may have expired (12h limit).
+            Watcher not found or expired.
           </p>
         </template>
       </div>
@@ -76,7 +77,7 @@
 
       <div v-if="!isLive && !isError" class="mt-8 sm:mt-12 font-mono text-xs text-mist animate-fade-up" style="animation-delay:0.4s;opacity:0">
         <p>waiting for {{ elapsedStr }}</p>
-        <p class="mt-1">this tab will auto-redirect when a live stream is detected</p>
+        <p class="mt-1">auto-redirect when detected</p>
       </div>
 
       <NuxtLink
@@ -84,7 +85,7 @@
         to="/"
         class="mt-6 font-mono text-xs text-ghost hover:text-snow transition-colors underline underline-offset-4"
       >
-        ← watch another channel
+        ← watch another
       </NuxtLink>
 
     </div>
@@ -92,12 +93,10 @@
     <footer class="relative z-10 border-t border-smoke">
       <div class="h-px w-full bg-gradient-to-r from-transparent via-signal to-transparent opacity-20" />
       <div class="px-4 sm:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-        <!-- Brand -->
         <div class="flex items-center gap-3">
           <NuxtLink to="/" class="font-display text-sm tracking-widest text-snow hover:text-signal transition-colors">DEAU<span class="text-signal">WAIT</span></NuxtLink>
           <span class="font-mono text-[10px] text-ghost border border-smoke px-1.5 py-0.5">v2</span>
         </div>
-        <!-- Status -->
         <div class="flex items-center gap-2 font-mono text-[10px]"
           :class="isLive ? 'text-live' : 'text-ghost'">
           <span :class="isLive ? 'live-dot' : 'waiting-dot'" style="width:6px;height:6px" />
@@ -105,7 +104,6 @@
           <span class="text-smoke">·</span>
           <span class="text-mist font-mono truncate max-w-[120px]">{{ watchId }}</span>
         </div>
-        <!-- Right -->
         <div class="font-mono text-[10px] text-mist tracking-widest uppercase">
           wait.deau.site
         </div>

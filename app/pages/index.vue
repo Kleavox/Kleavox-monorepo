@@ -1,3 +1,4 @@
+// app/pages/index.vue
 <template>
   <main class="min-h-screen bg-void text-snow flex flex-col">
 
@@ -48,7 +49,6 @@
           />
         </div>
 
-        <!-- Recent channels -->
         <div v-if="recentChannels.length" class="mt-3">
           <p class="font-mono text-[9px] text-mist tracking-widest uppercase mb-1.5">Recent</p>
           <div class="flex flex-wrap gap-1.5">
@@ -98,7 +98,7 @@
 
         <div v-if="lastOpened" class="mt-3 p-3 border border-smoke font-mono text-xs text-ghost"
           style="background: rgba(26,26,26,0.8);">
-          Waiting room opened in a new tab.
+          Waiting room opened.
           <a :href="lastOpened" target="_blank" class="text-signal hover:underline ml-1">Open again →</a>
         </div>
 
@@ -179,7 +179,7 @@ async function startWatching() {
     window.open(waitUrl, '_blank')
 
   } catch (e) {
-    error.value = e.data?.message || e.message || 'Failed to start watcher'
+    error.value = e.data?.message || e.message || 'Failed to start'
   } finally {
     isLoading.value = false
   }

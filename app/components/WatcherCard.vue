@@ -1,3 +1,4 @@
+// app/components/WatcherCard.vue
 <template>
   <div
     class="relative border transition-all duration-500 p-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4"

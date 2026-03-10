@@ -1,8 +1,8 @@
+/* app/assets/css/main.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Other styles ──────────────────────────────────────────────────────── */
 :root {
   --grain-opacity: 0.04;
 }
@@ -22,7 +22,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Film grain overlay */
 body::before {
   content: "";
   position: fixed;
@@ -34,7 +33,6 @@ body::before {
   mix-blend-mode: overlay;
 }
 
-/* CRT scanlines */
 body::after {
   content: "";
   position: fixed;
@@ -50,13 +48,11 @@ body::after {
   );
 }
 
-/* Selection */
 ::selection {
   background: rgba(255, 45, 45, 0.3);
   color: #f0f0f0;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 2px;
 }
@@ -67,7 +63,6 @@ body::after {
   background: #3a3a3a;
 }
 
-/* Input reset */
 input,
 textarea {
   outline: none;
@@ -76,7 +71,6 @@ textarea {
   font-family: inherit;
 }
 
-/* ─── Live / waiting indicator dots ─────────────────────────────────────── */
 @keyframes livePulse {
   0%,
   100% {
@@ -109,7 +103,6 @@ textarea {
   box-shadow: 0 0 12px rgba(255, 45, 45, 0.6);
 }
 
-/* ─── Glitch text effect ─────────────────────────────────────────────────── */
 @keyframes glitch {
   0% {
     clip-path: inset(40% 0 61% 0);

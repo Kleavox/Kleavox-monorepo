@@ -1,5 +1,4 @@
 // server/api/watch.post.ts
-
 import {
   parseChannelInput,
   resolveChannelId,
@@ -27,9 +26,7 @@ export default defineEventHandler(async (event) => {
   let channelId = parsed.value;
 
   if (parsed.type === "handle") {
-    console.log(`[watch] Resolving handle: ${parsed.value}`);
-    const { channelId: resolved, debug } = await resolveChannelId(parsed.value);
-    console.log(`[watch] Debug:`, debug.join(" | "));
+    const { channelId: resolved } = await resolveChannelId(parsed.value);
     if (!resolved) {
       throw createError({
         statusCode: 404,
@@ -37,7 +34,6 @@ export default defineEventHandler(async (event) => {
       });
     }
     channelId = resolved;
-    console.log(`[watch] Resolved ${parsed.value} → ${channelId}`);
   }
 
   const watchId = Math.random().toString(36).slice(2, 10);
