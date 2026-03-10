@@ -1,9 +1,13 @@
 // server/utils/checkLive.ts
 import RSSParser from 'rss-parser'
 
-const parser = new RSSParser({
-  customFields: { feed: ['yt:channelId'] }
-})
+const parser = new RSSParser({ customFields: { feed: ['yt:channelId'] } })
+
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+}
 
 export function parseChannelInput(input: string) {
   input = input.trim().replace(/[,\/\s]+$/, '')
@@ -33,9 +37,7 @@ async function verifyChannelId(candidateId: string): Promise<boolean> {
     if (!res.ok) return false
     const xml = await res.text()
     return xml.includes('<yt:channelId>') || xml.includes('<entry>')
-  } catch {
-    return false
-  }
+  } catch { return false }
 }
 
 export async function resolveChannelId(handle: string): Promise<{ channelId: string | null, debug: string[] }> {
@@ -44,9 +46,7 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
   // S1: forHandle parameter
   try {
     debug.push(`[S1] RSS ?forHandle=@${handle}`)
-    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    })
+    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
     const xml = await res.text()
     debug.push(`[S1] status=${res.status}, chars=${xml.length}`)
     const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/)
@@ -58,9 +58,7 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
   // S2: ?user= legacy
   try {
     debug.push(`[S2] RSS ?user=${handle}`)
-    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?user=${handle}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    })
+    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?user=${handle}`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
     const xml = await res.text()
     debug.push(`[S2] status=${res.status}, chars=${xml.length}`)
     const m1 = xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/)
@@ -72,12 +70,7 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
   // S3: Scrape + verify
   try {
     debug.push(`[S3] Scraping youtube.com/@${handle}`)
-    const res = await fetch(`https://www.youtube.com/@${handle}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
-    })
+    const res = await fetch(`https://www.youtube.com/@${handle}`, { headers: HEADERS })
     const html = await res.text()
     debug.push(`[S3] status=${res.status}, chars=${html.length}`)
 
@@ -109,40 +102,78 @@ export async function resolveChannelId(handle: string): Promise<{ channelId: str
   return { channelId: null, debug }
 }
 
-export async function checkLive(channelId: string) {
-  try {
-    const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
-    const feed = await parser.parseURL(feedUrl)
+function isActuallyLive(html: string): boolean {
+  // Must have isLive:true — this means broadcasting NOW
+  if (!html.includes('"isLive":true')) return false
+  // Exclude premiers (have a countdown timestamp)
+  if (html.includes('"premiereTimestamp"')) return false
+  // Exclude upcoming/scheduled
+  if (html.includes('"isUpcoming":true')) return false
+  return true
+}
 
+function extractVideoId(html: string): string | null {
+  // Try multiple patterns for video ID in page HTML
+  const patterns = [
+    /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
+    /watch\?v=([a-zA-Z0-9_-]{11})/,
+    /"identifier"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
+  ]
+  for (const p of patterns) {
+    const m = html.match(p)
+    if (m) return m[1]
+  }
+  return null
+}
+
+function extractTitle(html: string): string {
+  const m = html.match(/<title>([^<]+)<\/title>/)
+  // YouTube title format: "Video Title - YouTube"
+  return m ? m[1].replace(/ - YouTube$/, '').trim() : 'Live Stream'
+}
+
+export async function checkLive(channelId: string) {
+  // ── Primary method: /channel/{id}/live ──────────────────────────────────
+  // This URL is specifically designed for live streams. If the channel is live
+  // it serves the stream page directly. Much more reliable than RSS polling.
+  try {
+    const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, { headers: HEADERS })
+    const html = await res.text()
+    const finalUrl = res.url // may have redirected to /watch?v=...
+
+    if (isActuallyLive(html)) {
+      const videoId = extractVideoId(html)
+      const videoUrl = videoId
+        ? `https://www.youtube.com/watch?v=${videoId}`
+        : finalUrl.includes('watch?v=') ? finalUrl : null
+      if (videoUrl) {
+        console.log(`[live] Detected via /live endpoint: ${videoUrl}`)
+        return { live: true, videoUrl, title: extractTitle(html) }
+      }
+    }
+  } catch (e: any) {
+    console.log(`[live] /live endpoint failed: ${e.message}`)
+  }
+
+  // ── Fallback: RSS feed ───────────────────────────────────────────────────
+  // The RSS feed only shows recent uploads — live streams may not appear here
+  // immediately, so this is a secondary check only.
+  try {
+    const feed = await parser.parseURL(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`)
     for (const item of feed.items) {
       if (!item.title || !item.link) continue
       const videoId = item.link.match(/v=([a-zA-Z0-9_-]+)/)?.[1]
       if (!videoId) continue
-
-      const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        }
-      })
+      const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, { headers: HEADERS })
       const html = await res.text()
-
-      // Must be actively live — exclude premiers and scheduled streams
-      // "isLive":true = currently broadcasting
-      // "isLiveBroadcast":true can be true for premiers too, so check more carefully
-      const isActuallyLive = html.includes('"isLive":true')
-
-      // Double-check: not an upcoming/premier
-      // Premiers have "isLiveContent":true but "isUpcoming":true
-      const isUpcoming = html.includes('"isUpcoming":true')
-      const isPremiere = html.includes('"premiereTimestamp"')
-
-      if (isActuallyLive && !isUpcoming && !isPremiere) {
+      if (isActuallyLive(html)) {
+        console.log(`[live] Detected via RSS: ${item.link}`)
         return { live: true, videoUrl: item.link, title: item.title }
       }
     }
-    return { live: false }
-  } catch (err: any) {
-    return { live: false, error: err.message }
+  } catch (e: any) {
+    console.log(`[live] RSS check failed: ${e.message}`)
   }
+
+  return { live: false }
 }

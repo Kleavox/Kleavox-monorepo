@@ -48,10 +48,37 @@
           />
         </div>
 
+        <!-- Recent channels -->
+        <div v-if="recentChannels.length" class="mt-3">
+          <p class="font-mono text-[9px] text-mist tracking-widest uppercase mb-1.5">Recent</p>
+          <div class="flex flex-wrap gap-1.5">
+            <div
+              v-for="ch in recentChannels"
+              :key="ch"
+              class="flex items-center gap-0 border border-smoke hover:border-signal transition-colors group"
+              style="background: rgba(26,26,26,0.6);"
+            >
+              <button
+                @click="channelInput = ch"
+                class="font-mono text-[10px] text-ghost group-hover:text-signal transition-colors px-2 py-1"
+              >
+                {{ ch }}
+              </button>
+              <button
+                @click.stop="removeRecent(ch)"
+                class="font-mono text-[10px] text-mist hover:text-signal transition-colors px-1.5 py-1 border-l border-smoke hover:border-signal"
+                title="Remove"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+
         <button
           @click="startWatching"
           :disabled="isLoading || !channelInput.trim()"
-          class="mt-4 sm:mt-6 w-full py-3.5 sm:py-4 font-display text-lg sm:text-xl tracking-widest2 uppercase transition-all duration-300"
+          class="mt-4 sm:mt-5 w-full py-3.5 sm:py-4 font-display text-lg sm:text-xl tracking-widest2 uppercase transition-all duration-300"
           :class="isLoading || !channelInput.trim()
             ? 'bg-smoke text-ghost cursor-not-allowed'
             : 'bg-signal text-void hover:bg-snow cursor-pointer active:scale-[0.98]'"
@@ -101,12 +128,37 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const channelInput = ref('')
 const isLoading = ref(false)
 const error = ref('')
 const lastOpened = ref(null)
+const recentChannels = ref([])
+
+const MAX_RECENT = 6
+
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem('deau-recent')
+    if (saved) recentChannels.value = JSON.parse(saved)
+  } catch {}
+})
+
+function addRecent(channel) {
+  const filtered = recentChannels.value.filter(c => c !== channel)
+  recentChannels.value = [channel, ...filtered].slice(0, MAX_RECENT)
+  try {
+    localStorage.setItem('deau-recent', JSON.stringify(recentChannels.value))
+  } catch {}
+}
+
+function removeRecent(channel) {
+  recentChannels.value = recentChannels.value.filter(c => c !== channel)
+  try {
+    localStorage.setItem('deau-recent', JSON.stringify(recentChannels.value))
+  } catch {}
+}
 
 async function startWatching() {
   if (!channelInput.value.trim() || isLoading.value) return
@@ -121,6 +173,7 @@ async function startWatching() {
     })
 
     const waitUrl = `/wait/${data.watchId}`
+    addRecent(channelInput.value.trim())
     lastOpened.value = waitUrl
     channelInput.value = ''
     window.open(waitUrl, '_blank')

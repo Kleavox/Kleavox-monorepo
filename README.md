@@ -1,110 +1,84 @@
-# DeauWait v2 — YouTube Live Watcher
-> Tunggu channel YouTube live, auto-redirect saat terdeteksi.
+# DeauWait v3 — YouTube Live Watcher
+> Wait for a YouTube channel to go live. Auto-redirects when stream detected.
 
-Stack: **Nuxt 3** + **Nitro** server + **Tailwind CSS**
+**Stack:** Nuxt 4 · Vue Router 5 · Nitro · Tailwind CSS
 
 ---
 
 ## Setup
 
 ```bash
-# Clone / copy ke server
 cd /home/noble/deauwait
-
-# Install dependencies
 npm install
-
-# Development
-npm run dev
-
-# Production build
-npm run build
-
-# Preview build
-npm run preview
+npm run dev        # http://localhost:3000
 ```
 
-## Deploy ke Xenon
+## Production
 
-### 1. Build
 ```bash
 npm run build
+npm run start      # or use systemd service
 ```
 
-### 2. Install systemd service
+## Deploy (Xenon)
+
 ```bash
+# 1. Install systemd service
 sudo cp deauwait.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable deauwait
-sudo systemctl start deauwait
-```
+sudo systemctl enable --now deauwait
 
-### 3. Nginx config
-```nginx
-server {
-    listen 80;
-    server_name wait.deau.site;
-    return 301 https://$host$request_uri;
-}
-
+# 2. Nginx
 server {
     listen 443 ssl;
     server_name wait.deau.site;
-
-    ssl_certificate /etc/letsencrypt/live/wait.deau.site/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/wait.deau.site/privkey.pem;
-
     location / {
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
     }
 }
 ```
 
-### 4. SSL
-```bash
-sudo certbot --nginx -d wait.deau.site
-```
-
----
-
-## Struktur Project
+## Structure (Nuxt 4)
 
 ```
 deauwait/
-├── pages/
-│   └── index.vue          # Main UI
-├── components/
-│   └── WatcherCard.vue    # Watcher status card
-├── server/
+├── app/                        ← srcDir (Nuxt 4 default)
+│   ├── app.vue
+│   ├── pages/
+│   │   ├── index.vue           ← main input page
+│   │   └── wait/[watchId].vue  ← waiting room
+│   ├── components/
+│   │   └── WatcherCard.vue
+│   └── assets/css/main.css
+├── server/                     ← Nitro server (unchanged)
 │   ├── api/
-│   │   ├── watch.post.ts          # POST /api/watch
-│   │   ├── status/[watchId].get.ts # GET /api/status/:id
-│   │   └── watch/[watchId].delete.ts # DELETE /api/watch/:id
+│   │   ├── watch.post.ts
+│   │   ├── status/[watchId].get.ts
+│   │   └── watch/[watchId].delete.ts
 │   └── utils/
-│       ├── checkLive.ts   # RSS + scraping logic
-│       └── watcherStore.ts # In-memory watcher store
-├── assets/css/main.css    # Global styles + grain effect
+│       ├── checkLive.ts        ← /channel/{id}/live detection
+│       └── watcherStore.ts
+├── public/
+│   └── favicon.svg
 ├── nuxt.config.ts
 ├── tailwind.config.js
-└── deauwait.service       # Systemd service
+└── package.json
 ```
 
-## API Endpoints
+## Live Detection Strategy
 
-| Method | Endpoint | Fungsi |
-|--------|----------|--------|
-| POST | `/api/watch` | Mulai watch channel |
-| GET | `/api/status/:watchId` | Poll status |
+1. **Primary:** `youtube.com/channel/{id}/live` — YouTube's canonical live URL
+2. **Fallback:** RSS feed polling every 2 minutes
+3. **Exclusions:** Premiers and scheduled streams are filtered out
+
+## API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/watch` | Start watching a channel |
+| GET | `/api/status/:watchId` | Poll watcher status |
 | DELETE | `/api/watch/:watchId` | Stop watching |
-
-## Upgrade Plan
-
-- [ ] YouTube Data API v3 untuk deteksi lebih reliable
-- [ ] Rate limiting (misalnya `h3-rate-limiter`)
-- [ ] Basic auth / token sederhana
-- [ ] Notifikasi push / webhook saat live

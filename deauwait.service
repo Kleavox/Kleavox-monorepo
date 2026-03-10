@@ -6,12 +6,11 @@ After=network.target
 Type=simple
 User=noble
 WorkingDirectory=/home/noble/deauwait
-ExecStart=/usr/bin/node .output/server/index.mjs
+# Node 20.6+ supports --env-file natively, no dotenv package needed
+ExecStart=/usr/bin/node --env-file=.env .output/server/index.mjs
 Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
-Environment=PORT=3001
-# Environment=YOUTUBE_API_KEY=your_key_here
 
 [Install]
 WantedBy=multi-user.target

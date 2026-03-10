@@ -1,7 +1,16 @@
 export default defineNuxtConfig({
+  // Nuxt 4 — srcDir defaults to app/
+  compatibilityDate: '2025-01-01',
+
   devtools: { enabled: true },
 
   modules: ['@nuxtjs/tailwindcss'],
+
+  // tailwind config location (stays at root)
+  tailwindcss: {
+    configPath: 'tailwind.config.js',
+    cssPath: '~/assets/css/main.css',
+  },
 
   app: {
     head: {
@@ -18,13 +27,9 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap'
+          href: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist+Mono:wght@300;400;500&display=block'
         }
       ]
     }
   },
-
-  nitro: {},
-
-  compatibilityDate: '2024-11-01'
 })

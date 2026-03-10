@@ -1,21 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Nuxt 4: frontend files are under app/
   content: [
-    './components/**/*.{js,vue,ts}',
-    './layouts/**/*.vue',
-    './pages/**/*.vue',
-    './plugins/**/*.{js,ts}',
-    './app.vue',
-    './error.vue',
+    './app/components/**/*.{js,vue,ts}',
+    './app/layouts/**/*.vue',
+    './app/pages/**/*.vue',
+    './app/plugins/**/*.{js,ts}',
+    './app/app.vue',
+    './app/error.vue',
   ],
   theme: {
     extend: {
       fontFamily: {
         display: ['"Bebas Neue"', 'cursive'],
-        mono: ['"DM Mono"', 'monospace'],
+        mono: ['"Geist Mono"', '"Courier New"', 'monospace'],
       },
       colors: {
-        // Dark cinematic palette
         void: '#080808',
         carbon: '#111111',
         ash: '#1a1a1a',
@@ -24,7 +24,6 @@ module.exports = {
         ghost: '#6b6b6b',
         silver: '#a0a0a0',
         snow: '#f0f0f0',
-        // Accent — cold electric red
         signal: {
           DEFAULT: '#ff2d2d',
           dim: '#8b1a1a',
@@ -43,7 +42,6 @@ module.exports = {
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'flicker': 'flicker 4s linear infinite',
-        'scan': 'scan 8s linear infinite',
         'fade-up': 'fadeUp 0.6s ease forwards',
       },
       keyframes: {
@@ -53,10 +51,6 @@ module.exports = {
           '97%': { opacity: '1' },
           '98%': { opacity: '0.6' },
           '99%': { opacity: '1' },
-        },
-        scan: {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(100vh)' },
         },
         fadeUp: {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
