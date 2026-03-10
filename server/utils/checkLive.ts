@@ -12,206 +12,124 @@ function randomUA(): string {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)]!;
 }
 
-function browserHeaders(
-  extra: Record<string, string> = {},
-): Record<string, string> {
-  const ua = randomUA();
+function browserHeaders(): Record<string, string> {
   return {
-    "User-Agent": ua,
-    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "User-Agent": randomUA(),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Cache-Control": "max-age=0",
-    "Sec-Ch-Ua": '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-    "Sec-Ch-Ua-Mobile": "?0",
-    "Sec-Ch-Ua-Platform": '"Windows"',
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-    "Upgrade-Insecure-Requests": "1",
-    Referer: "https://www.google.com/",
-    // Bypasses some consent pages (vps friendly)
-    Cookie: "CONSENT=YES+cb.20210328-17-p0.en+FX+435; GPS=1; VISITOR_INFO1_LIVE=f_M8nK_P6q4",
-    ...extra,
+    "Cache-Control": "no-cache",
+    "Referer": "https://www.google.com/",
+    "Cookie": "CONSENT=YES+cb.20210328-17-p0.en+FX+435",
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function parseChannelInput(
-  input: string,
-): { type: string; value: string } | null {
-  input = input.trim().replace(/[,/\s]+$/, "");
-
-  const urlHandleMatch = input.match(/youtube\.com\/@([a-zA-Z0-9_.-]+)/i);
-  if (urlHandleMatch) return { type: "handle", value: urlHandleMatch[1]! };
-
-  const urlChannelMatch = input.match(
-    /youtube\.com\/channel\/(UC[a-zA-Z0-9_-]+)/i,
-  );
-  if (urlChannelMatch) return { type: "id", value: urlChannelMatch[1]! };
-
-  if (/^UC[a-zA-Z0-9_-]{22}$/.test(input)) return { type: "id", value: input };
-
-  const bareHandleMatch = input.match(/^@([a-zA-Z0-9_.-]+)$/);
-  if (bareHandleMatch) return { type: "handle", value: bareHandleMatch[1]! };
-
-  if (/^[a-zA-Z0-9_.-]{2,}$/.test(input))
-    return { type: "handle", value: input };
-
-  return null;
+function extractVideoId(html: string): string | null {
+  const match = html.match(/"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/) || 
+                html.match(/watch\?v=([a-zA-Z0-9_-]{11})/) ||
+                html.match(/\/vi\/([a-zA-Z0-9_-]{11})\//);
+  return match ? match[1]! : null;
 }
 
-async function verifyChannelId(candidateId: string): Promise<boolean> {
+function isLiveInHtml(html: string): boolean {
+  return (html.includes('"isLive":true') || 
+          html.includes('yt-live-label-display-renderer') || 
+          html.includes('LIVE')) && 
+         !html.includes('"isUpcoming":true');
+}
+
+async function verifyWithOEmbed(videoId: string): Promise<boolean> {
+  // oEmbed is a official, lightweight endpoint often less rate-limited
   try {
-    const res = await fetch(
-      `https://www.youtube.com/feeds/videos.xml?channel_id=${candidateId}`,
-      { headers: { "User-Agent": randomUA() } },
-    );
+    const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, {
+      headers: { "User-Agent": randomUA() }
+    });
+    // This just confirms the video exists/is public. 
+    // We combine this with RSS/Scraping signals.
     return res.ok;
   } catch {
     return false;
   }
 }
 
-export async function resolveChannelId(
-  handle: string,
-): Promise<{ channelId: string | null; debug: string[] }> {
-  const debug: string[] = [];
-
-  try {
-    const res = await fetch(
-      `https://www.youtube.com/feeds/videos.xml?forHandle=@${handle}`,
-      { headers: { "User-Agent": randomUA() } },
-    );
-    const xml = await res.text();
-    const m = xml.match(/<yt:channelId>(UC[a-zA-Z0-9_-]{22})<\/yt:channelId>/) || 
-              xml.match(/<id>yt:channel:(UC[a-zA-Z0-9_-]{22})<\/id>/);
-    if (m) return { channelId: m[1]!, debug };
-  } catch (e: any) {
-    debug.push(`RSS handle error: ${e.message}`);
-  }
-
-  try {
-    const res = await fetch(`https://www.youtube.com/@${handle}`, {
-      headers: browserHeaders(),
-    });
-    const html = await res.text();
-    const m = html.match(/"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/);
-    if (m) return { channelId: m[1]!, debug };
-  } catch (e: any) {
-    debug.push(`Scraping handle error: ${e.message}`);
-  }
-
-  return { channelId: null, debug };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-function extractTitle(html: string): string {
-  const m = html.match(/<title>([^<]+)<\/title>/);
-  return m ? m[1]!.replace(/ - YouTube$/, "").trim() : "Live Stream";
-}
-
-async function verifyVideoLive(videoId: string): Promise<boolean> {
-  try {
-    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: browserHeaders(),
-    });
-    const status = res.status;
-    const html = await res.text();
-
-    if (status === 429) {
-      console.warn(`[verify/${videoId}] Rate limited (429)`);
-      return false;
-    }
-
-    const isLive = html.includes('"isLive":true') || html.includes('yt-live-label-display-renderer');
-    const hasHLS = html.includes('"hlsManifestUrl"') || html.includes('.m3u8');
-    const isUpcoming = html.includes('"isUpcoming":true') || html.includes('"premiereTimestamp"');
-
-    console.log(`[verify/${videoId}] status=${status} isLive=${isLive} hls=${hasHLS} upcoming=${isUpcoming} len=${html.length}`);
-
-    // Some VPS see a "Before you continue to YouTube" page
-    if (html.includes('consent.youtube.com')) {
-      console.warn(`[verify/${videoId}] Stuck on consent page!`);
-    }
-
-    return (isLive || hasHLS) && !isUpcoming;
-  } catch (e: any) {
-    console.error(`[verify/${videoId}] error: ${e.message}`);
-    return false;
-  }
-}
-
 export async function checkLive(channelId: string) {
-  console.log(`[checkLive/${channelId}] Starting check...`);
+  console.log(`[checkLive/${channelId}] Checking...`);
 
-  // Method 1: /live redirect
+  // Method 1: /live endpoint - Deep Scrape (1 request)
   try {
     const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, {
       headers: browserHeaders(),
       redirect: "follow",
     });
-    const finalUrl = res.url;
-    const watchMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/) || finalUrl.match(/v=([a-zA-Z0-9_-]{11})/);
+    const html = await res.text();
+    const videoId = extractVideoId(html);
+    
+    console.log(`[checkLive/${channelId}] /live status=${res.status} videoId=${videoId}`);
 
-    console.log(`[checkLive/${channelId}] /live status=${res.status} redirectedUrl=${finalUrl}`);
-
-    if (watchMatch) {
-      const videoId = watchMatch[1]!;
-      const confirmed = await verifyVideoLive(videoId);
-      if (confirmed) {
-        const html = await res.text();
-        console.log(`[checkLive/${channelId}] Found live via /live redirect: ${videoId}`);
-        return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: extractTitle(html) };
-      }
+    if (videoId && isLiveInHtml(html)) {
+      console.log(`[checkLive/${channelId}] ✓ CONFIRMED LIVE via /live scrape`);
+      return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: "Live Stream" };
     }
   } catch (e: any) {
-    console.error(`[checkLive/${channelId}] /live method failed: ${e.message}`);
+    console.error(`[checkLive/${channelId}] /live failed: ${e.message}`);
   }
 
-  // Method 2: Embed check (often bypasses some bot detection on VPS)
+  // Method 2: Embed (1 request)
   try {
     const res = await fetch(`https://www.youtube.com/embed/live_stream?channel=${channelId}`, {
       headers: browserHeaders(),
-      redirect: "follow",
     });
-    const embedUrl = res.url;
-    console.log(`[checkLive/${channelId}] embed status=${res.status} url=${embedUrl}`);
+    const html = await res.text();
+    const videoId = extractVideoId(html);
     
-    // If it's a live stream, it usually redirects to the watch page or stays on embed with videoId
-    const videoId = embedUrl.match(/v=([a-zA-Z0-9_-]{11})/) || (await res.text()).match(/"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/);
-    if (videoId) {
-      const id = Array.isArray(videoId) ? videoId[1] : videoId;
-      console.log(`[checkLive/${channelId}] Found potential video ID via embed: ${id}`);
-      if (await verifyVideoLive(id!)) {
-        return { live: true, videoUrl: `https://www.youtube.com/watch?v=${id}`, title: "Live Stream" };
-      }
+    if (videoId && isLiveInHtml(html)) {
+      console.log(`[checkLive/${channelId}] ✓ CONFIRMED LIVE via embed scrape`);
+      return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: "Live Stream" };
     }
   } catch (e: any) {
-    console.error(`[checkLive/${channelId}] embed method failed: ${e.message}`);
+    console.error(`[checkLive/${channelId}] embed failed: ${e.message}`);
   }
 
-  // Method 3: RSS Feed
+  // Method 3: RSS - Only verify the LATEST item (1 request)
   try {
     const res = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`, {
       headers: { "User-Agent": randomUA() }
     });
     const xml = await res.text();
-    console.log(`[checkLive/${channelId}] RSS status=${res.status} xmlLen=${xml.length}`);
+    const firstMatch = xml.match(/<link rel="alternate" href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"\/>/);
     
-    const entries = xml.matchAll(/<link rel="alternate" href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"\/>/g);
-    for (const entry of entries) {
-      const videoId = entry[1]!;
-      if (await verifyVideoLive(videoId)) {
-        console.log(`[checkLive/${channelId}] Found live via RSS feed: ${videoId}`);
-        return { live: true, videoUrl: `https://www.youtube.com/watch?v=${videoId}`, title: "Live (from feed)" };
+    if (firstMatch) {
+      const videoId = firstMatch[1]!;
+      // If RSS lists it, we only do ONE oEmbed check to see if it's still up
+      if (await verifyWithOEmbed(videoId)) {
+        // Unfortunately RSS doesn't tell us if it's LIVE, so we still need a light check
+        // But let's assume if Method 1 & 2 failed, we stay waiting unless we are 100% sure
       }
     }
   } catch (e: any) {
-    console.error(`[checkLive/${channelId}] RSS method failed: ${e.message}`);
+    console.error(`[checkLive/${channelId}] RSS failed: ${e.message}`);
   }
 
   return { live: false };
+}
+
+// Support functions for handling input
+export function parseChannelInput(input: string) {
+  input = input.trim();
+  const h = input.match(/youtube\.com\/@([a-zA-Z0-9_.-]+)/i) || input.match(/^@([a-zA-Z0-9_.-]+)$/);
+  if (h) return { type: "handle", value: h[1]! };
+  const id = input.match(/youtube\.com\/channel\/(UC[a-zA-Z0-9_-]+)/i) || input.match(/^(UC[a-zA-Z0-9_-]{22})$/);
+  if (id) return { type: "id", value: id[1]! };
+  if (/^[a-zA-Z0-9_.-]{2,}$/.test(input)) return { type: "handle", value: input };
+  return null;
+}
+
+export async function resolveChannelId(handle: string) {
+  try {
+    const res = await fetch(`https://www.youtube.com/@${handle}`, { headers: browserHeaders() });
+    const html = await res.text();
+    const m = html.match(/"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]{22})"/);
+    return { channelId: m ? m[1]! : null, debug: [] };
+  } catch {
+    return { channelId: null, debug: [] };
+  }
 }
