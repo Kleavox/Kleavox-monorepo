@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 :root {
-  --grain-opacity: 0.04;
+  --grain-opacity: 0.05;
 }
 
 * {
@@ -12,7 +12,7 @@
 }
 
 html {
-  background: #080808;
+  background: #000000;
   color: #f0f0f0;
   scroll-behavior: smooth;
 }
@@ -20,6 +20,64 @@ html {
 body {
   min-height: 100vh;
   overflow-x: hidden;
+  position: relative;
+}
+
+.amoled-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #000000;
+  overflow: hidden;
+}
+
+.amoled-glow {
+  position: absolute;
+  width: 140vmax;
+  height: 140vmax;
+  top: -20%;
+  left: -20%;
+  background: radial-gradient(circle at center, rgba(255, 45, 45, 0.04) 0%, transparent 60%);
+  animation: drift 50s linear infinite;
+}
+
+.amoled-glow-2 {
+  position: absolute;
+  width: 100vmax;
+  height: 100vmax;
+  bottom: -10%;
+  right: -10%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+  animation: drift 70s linear infinite reverse;
+}
+
+@keyframes drift {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  to { transform: rotate(360deg) scale(1); }
+}
+
+.particle-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #ff2d2d;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 45, 45, 0.8);
+}
+
+@keyframes float-particle {
+  0% { transform: translate(0, 0) scale(0); opacity: 0; }
+  20% { transform: translate(calc(var(--x) * 0.2), calc(var(--y) * 0.2)) scale(1); opacity: 0.6; }
+  80% { transform: translate(calc(var(--x) * 0.8), calc(var(--y) * 0.8)) scale(1); opacity: 0.6; }
+  100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
 }
 
 body::before {
@@ -43,8 +101,8 @@ body::after {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
+    rgba(255, 255, 255, 0.015) 2px,
+    rgba(255, 255, 255, 0.015) 4px
   );
 }
 
@@ -53,34 +111,9 @@ body::after {
   color: #f0f0f0;
 }
 
-::-webkit-scrollbar {
-  width: 2px;
-}
-::-webkit-scrollbar-track {
-  background: #111111;
-}
-::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
-}
-
-input,
-textarea {
-  outline: none;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-}
-
 @keyframes livePulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.8);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 .live-dot {
@@ -103,47 +136,13 @@ textarea {
   box-shadow: 0 0 12px rgba(255, 45, 45, 0.6);
 }
 
-@keyframes glitch {
-  0% {
-    clip-path: inset(40% 0 61% 0);
-    transform: translate(-2px, 0);
-  }
-  20% {
-    clip-path: inset(92% 0 1% 0);
-    transform: translate(2px, 0);
-  }
-  40% {
-    clip-path: inset(43% 0 1% 0);
-    transform: translate(0, 0);
-  }
-  60% {
-    clip-path: inset(25% 0 58% 0);
-    transform: translate(2px, 0);
-  }
-  80% {
-    clip-path: inset(54% 0 7% 0);
-    transform: translate(-2px, 0);
-  }
-  100% {
-    clip-path: inset(58% 0 43% 0);
-    transform: translate(0, 0);
-  }
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
 }
 
-.glitch-active::before,
-.glitch-active::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-}
-
-.glitch-active::before {
-  color: #ff2d2d;
-  animation: glitch 0.3s infinite linear alternate-reverse;
-}
-
-.glitch-active::after {
-  color: #00ff87;
-  animation: glitch 0.3s 0.1s infinite linear alternate-reverse;
-  left: 2px;
+.glass-panel {
+  background: rgba(5, 5, 5, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
