@@ -199,7 +199,7 @@ useHead({
       : `⏳ Waiting — ${channelInput.value || 'DeauWait'}`
   ),
   link: [
-    { rel: 'preconnect', href: 'https://www.youtube.com' },
+    { rel: 'preconnect', href: 'https://www.youtube-nocookie.com' },
     { rel: 'preconnect', href: 'https://s.ytimg.com' }
   ]
 })
@@ -218,11 +218,24 @@ onMounted(() => {
     isFullscreen.value = !!document.fullscreenElement
   })
 
+  // Set up global callback for YT API
+  window.onYouTubeIframeAPIReady = () => {
+    console.log('[YT-API] Ready')
+    if (status.value === 'waiting') {
+      initDetector()
+    } else if (status.value === 'live') {
+      initMainPlayer(videoUrl.value)
+    }
+  }
+
+  // Load YouTube API script
   if (!window.YT) {
     const tag = document.createElement('script')
     tag.src = "https://www.youtube.com/iframe_api"
     const firstScriptTag = document.getElementsByTagName('script')[0]
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+  } else if (window.YT.Player) {
+    window.onYouTubeIframeAPIReady()
   }
 })
 
@@ -251,7 +264,6 @@ async function initStatus() {
     if (status.value === 'live') {
       triggerLive(data.videoUrl)
     } else {
-      initDetector()
       pollInterval = setInterval(pollServer, 60_000)
     }
   } catch {
@@ -271,39 +283,38 @@ async function pollServer() {
 }
 
 function initDetector() {
-  window.onYouTubeIframeAPIReady = () => {
-    detectorPlayer = new window.YT.Player('detector-player', {
-      height: '1',
-      width: '1',
-      videoId: '',
-      playerVars: {
-        'autoplay': 1,
-        'mute': 1,
-        'listType': 'live_stream',
-        'list': channelId.value,
-        'controls': 0,
-        'showinfo': 0,
-        'rel': 0,
-        'iv_load_policy': 3
-      },
-      events: {
-        'onStateChange': (event) => {
-          if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
-            const currentVideoUrl = detectorPlayer.getVideoUrl()
-            const videoId = currentVideoUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
-            if (videoId) {
-              videoUrl.value = `https://www.youtube.com/watch?v=${videoId}`
-              reportLive(videoId)
-            }
+  if (!window.YT || !window.YT.Player || detectorPlayer) return
+
+  console.log('[Detector] Initializing...')
+  detectorPlayer = new window.YT.Player('detector-player', {
+    height: '1',
+    width: '1',
+    host: 'https://www.youtube-nocookie.com',
+    playerVars: {
+      'autoplay': 1,
+      'mute': 1,
+      'listType': 'live_stream',
+      'list': channelId.value,
+      'origin': window.location.origin,
+      'controls': 0,
+      'showinfo': 0,
+      'rel': 0,
+      'iv_load_policy': 3
+    },
+    events: {
+      'onReady': () => console.log('[Detector] Ready'),
+      'onStateChange': (event) => {
+        if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
+          const currentVideoUrl = detectorPlayer.getVideoUrl()
+          const videoId = currentVideoUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
+          if (videoId) {
+            videoUrl.value = `https://www.youtube.com/watch?v=${videoId}`
+            reportLive(videoId)
           }
         }
       }
-    })
-  }
-  
-  if (window.YT && window.YT.Player) {
-    window.onYouTubeIframeAPIReady()
-  }
+    }
+  })
 }
 
 async function reportLive(videoId) {
@@ -334,6 +345,8 @@ function triggerLive(url) {
 }
 
 function initMainPlayer(url) {
+  if (!window.YT || !window.YT.Player || !url) return
+  
   const videoId = url.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
   if (!videoId) return
 
@@ -342,12 +355,18 @@ function initMainPlayer(url) {
     return
   }
 
+  console.log('[MainPlayer] Initializing...')
   mainPlayer = new window.YT.Player('youtube-player', {
     videoId: videoId,
+    host: 'https://www.youtube-nocookie.com',
     playerVars: {
       'autoplay': 1,
+      'origin': window.location.origin,
       'modestbranding': 1,
       'rel': 0
+    },
+    events: {
+      'onReady': () => console.log('[MainPlayer] Ready')
     }
   })
 }
