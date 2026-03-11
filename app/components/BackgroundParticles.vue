@@ -20,16 +20,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-
-const props = defineProps({
-  count: { type: Number, default: 60 }
-})
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const particles = ref([])
+let resizeTimer = null
 
-onMounted(() => {
-  particles.value = Array.from({ length: props.count }).map((_, i) => ({
+const generateParticles = () => {
+  const area = window.innerWidth * window.innerHeight
+  const baseArea = 1920 * 1080
+  const count = Math.min(Math.max(Math.floor(60 * (area / baseArea)), 40), 150)
+
+  particles.value = Array.from({ length: count }).map((_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
@@ -39,5 +40,20 @@ onMounted(() => {
     duration: 15 + Math.random() * 25,
     delay: Math.random() * -30
   }))
+}
+
+const handleResize = () => {
+  clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(generateParticles, 500)
+}
+
+onMounted(() => {
+  generateParticles()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  clearTimeout(resizeTimer)
 })
 </script>

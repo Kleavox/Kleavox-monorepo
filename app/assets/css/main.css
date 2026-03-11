@@ -5,20 +5,25 @@
 
 :root {
   --grain-opacity: 0.05;
+  --fluid-spacing: clamp(1rem, 2vw, 3rem);
+  --fluid-radius: clamp(1rem, 1.5vw, 2.5rem);
 }
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   background: #000000;
   color: #f0f0f0;
   scroll-behavior: smooth;
+  font-size: clamp(14px, 1vw + 8px, 24px);
 }
 
 body {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   overflow-x: hidden;
   position: relative;
 }
@@ -33,22 +38,22 @@ body {
 
 .amoled-glow {
   position: absolute;
-  width: 140vmax;
-  height: 140vmax;
-  top: -20%;
-  left: -20%;
+  width: 150vmax;
+  height: 150vmax;
+  top: -25%;
+  left: -25%;
   background: radial-gradient(circle at center, rgba(255, 45, 45, 0.04) 0%, transparent 60%);
-  animation: drift 50s linear infinite;
+  animation: drift 60s linear infinite;
 }
 
 .amoled-glow-2 {
   position: absolute;
-  width: 100vmax;
-  height: 100vmax;
-  bottom: -10%;
-  right: -10%;
+  width: 130vmax;
+  height: 130vmax;
+  bottom: -15%;
+  right: -15%;
   background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
-  animation: drift 70s linear infinite reverse;
+  animation: drift 80s linear infinite reverse;
 }
 
 @keyframes drift {
@@ -66,8 +71,6 @@ body {
 
 .particle {
   position: absolute;
-  width: 2px;
-  height: 2px;
   background: #ff2d2d;
   border-radius: 50%;
   box-shadow: 0 0 8px rgba(255, 45, 45, 0.8);
@@ -101,14 +104,17 @@ body::after {
     0deg,
     transparent,
     transparent 2px,
-    rgba(255, 255, 255, 0.015) 2px,
-    rgba(255, 255, 255, 0.015) 4px
+    rgba(255, 255, 255, 0.01) 2px,
+    rgba(255, 255, 255, 0.01) 4px
   );
 }
 
-::selection {
-  background: rgba(255, 45, 45, 0.3);
-  color: #f0f0f0;
+.glass-panel {
+  background: rgba(5, 5, 5, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
 
 @keyframes livePulse {
@@ -141,8 +147,20 @@ body::after {
   50% { opacity: 1; transform: scale(1.2); }
 }
 
-.glass-panel {
-  background: rgba(5, 5, 5, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+@media (max-height: 500px) and (orientation: landscape) {
+  .landscape-condensed {
+    flex-direction: row !important;
+    gap: 2rem !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  .landscape-hidden {
+    display: none !important;
+  }
+}
+
+.safe-paddings {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
