@@ -57,7 +57,14 @@
       <div v-show="isLive && !isIntro" class="w-full max-w-5xl aspect-video relative transition-all duration-1000 transform" 
            :class="isTheater ? 'fixed inset-0 max-w-none h-full z-50 bg-black' : 'rounded-3xl overflow-hidden glass-panel shadow-2xl animate-fade-up'">
         
-        <div id="youtube-player" class="w-full h-full"></div>
+        <iframe 
+          v-if="videoId"
+          :src="`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0&origin=${origin}`"
+          class="w-full h-full"
+          frameborder="0"
+          allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
         
         <div class="absolute top-4 right-4 flex gap-2">
           <button @click="isTheater = !isTheater" 
@@ -116,7 +123,7 @@
 
     </div>
 
-    <div id="detector-player" class="pointer-events-none opacity-0 absolute -top-999"></div>
+    <div id="detector-player" class="pointer-events-none opacity-0 absolute -top-[9999px]"></div>
 
     <footer v-if="!isTheater && !isIntro" class="relative z-10 m-4 rounded-2xl glass-panel p-6 animate-fade-up">
       <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -175,14 +182,19 @@ const isTheater = ref(false)
 const isIntro = ref(false)
 const autoRedirect = ref(false)
 const videoUrl = ref('')
-const videoTitle = ref('')
+const origin = ref('')
 
 let detectorPlayer = null
-let mainPlayer = null
 let pollInterval = null
 let elapsedInterval = null
 
 const isLive = computed(() => status.value === 'live')
+
+const videoId = computed(() => {
+  if (!videoUrl.value) return ''
+  const match = videoUrl.value.match(/v=([a-zA-Z0-9_-]{11})/) || videoUrl.value.match(/embed\/([a-zA-Z0-9_-]{11})/)
+  return match ? match[1] : ''
+})
 
 const elapsedStr = computed(() => {
   const s = elapsed.value
@@ -197,14 +209,11 @@ useHead({
     isLive.value
       ? `🔴 LIVE — ${channelInput.value || 'DeauWait'}`
       : `⏳ Waiting — ${channelInput.value || 'DeauWait'}`
-  ),
-  link: [
-    { rel: 'preconnect', href: 'https://www.youtube-nocookie.com' },
-    { rel: 'preconnect', href: 'https://s.ytimg.com' }
-  ]
+  )
 })
 
 onMounted(() => {
+  origin.value = window.location.origin
   initStatus()
   elapsedInterval = setInterval(() => {
     elapsed.value = Math.floor((Date.now() - startedAt.value) / 1000)
@@ -218,14 +227,9 @@ onMounted(() => {
     isFullscreen.value = !!document.fullscreenElement
   })
 
-  // Set up global callback for YT API
+  // Global callback for YT API
   window.onYouTubeIframeAPIReady = () => {
-    console.log('[YT-API] Ready')
-    if (status.value === 'waiting') {
-      initDetector()
-    } else if (status.value === 'live') {
-      initMainPlayer(videoUrl.value)
-    }
+    if (status.value === 'waiting') initDetector()
   }
 
   // Load YouTube API script
@@ -243,7 +247,6 @@ onUnmounted(() => {
   clearInterval(pollInterval)
   clearInterval(elapsedInterval)
   if (detectorPlayer) detectorPlayer.destroy()
-  if (mainPlayer) mainPlayer.destroy()
 })
 
 function toggleRedirect() {
@@ -283,33 +286,26 @@ async function pollServer() {
 }
 
 function initDetector() {
-  if (!window.YT || !window.YT.Player || detectorPlayer) return
+  if (!window.YT || !window.YT.Player || detectorPlayer || !channelId.value) return
 
-  console.log('[Detector] Initializing...')
   detectorPlayer = new window.YT.Player('detector-player', {
     height: '1',
     width: '1',
-    host: 'https://www.youtube-nocookie.com',
     playerVars: {
       'autoplay': 1,
       'mute': 1,
       'listType': 'live_stream',
       'list': channelId.value,
-      'origin': window.location.origin,
-      'controls': 0,
-      'showinfo': 0,
-      'rel': 0,
-      'iv_load_policy': 3
+      'origin': window.location.origin
     },
     events: {
-      'onReady': () => console.log('[Detector] Ready'),
       'onStateChange': (event) => {
         if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
           const currentVideoUrl = detectorPlayer.getVideoUrl()
-          const videoId = currentVideoUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
-          if (videoId) {
-            videoUrl.value = `https://www.youtube.com/watch?v=${videoId}`
-            reportLive(videoId)
+          const vid = currentVideoUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
+          if (vid) {
+            videoUrl.value = `https://www.youtube.com/watch?v=${vid}`
+            reportLive(vid)
           }
         }
       }
@@ -317,58 +313,30 @@ function initDetector() {
   })
 }
 
-async function reportLive(videoId) {
+async function reportLive(vid) {
   try {
     const res = await $fetch('/api/report-live', {
       method: 'POST',
-      body: { watchId, videoId }
+      body: { watchId, videoId: vid }
     })
     if (res.success && status.value !== 'live') {
-      triggerLive(`https://www.youtube.com/watch?v=${videoId}`)
+      triggerLive(`https://www.youtube.com/watch?v=${vid}`)
       clearInterval(pollInterval)
     }
   } catch {}
 }
 
 function triggerLive(url) {
-  isIntro.value = true
   status.value = 'live'
+  isIntro.value = true
   
   setTimeout(() => {
     if (autoRedirect.value) {
       window.location.href = url
     } else {
       isIntro.value = false
-      initMainPlayer(url)
     }
   }, 3500)
-}
-
-function initMainPlayer(url) {
-  if (!window.YT || !window.YT.Player || !url) return
-  
-  const videoId = url.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
-  if (!videoId) return
-
-  if (mainPlayer) {
-    mainPlayer.loadVideoById(videoId)
-    return
-  }
-
-  console.log('[MainPlayer] Initializing...')
-  mainPlayer = new window.YT.Player('youtube-player', {
-    videoId: videoId,
-    host: 'https://www.youtube-nocookie.com',
-    playerVars: {
-      'autoplay': 1,
-      'origin': window.location.origin,
-      'modestbranding': 1,
-      'rel': 0
-    },
-    events: {
-      'onReady': () => console.log('[MainPlayer] Ready')
-    }
-  })
 }
 
 function toggleFullscreen() {
