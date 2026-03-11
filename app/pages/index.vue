@@ -1,14 +1,8 @@
 // app/pages/index.vue
 <template>
-  <main class="min-h-screen text-snow flex flex-col relative overflow-hidden safe-paddings">
+  <main class="min-h-screen text-snow flex flex-col relative bg-transparent safe-paddings">
     
-    <div class="amoled-bg">
-      <div class="amoled-glow"></div>
-      <div class="amoled-glow-2"></div>
-      <BackgroundParticles />
-    </div>
-
-    <header class="relative z-10 w-full max-w-7xl mx-auto p-4 sm:p-6 flex items-center justify-between glass-panel mt-4 rounded-2xl">
+    <header class="relative z-20 w-full max-w-7xl mx-auto p-4 sm:p-6 flex items-center justify-between glass-panel mt-4 rounded-2xl">
       <div class="flex items-center gap-3 sm:gap-4">
         <div class="w-8 h-8 sm:w-10 sm:h-10">
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
@@ -32,7 +26,7 @@
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
         </button>
         <div class="hidden xs:block font-mono text-[10px] text-ghost tracking-widest uppercase border border-white/10 px-3 py-1.5 rounded-lg">
-          v5.0.2
+          v5.0.3
         </div>
       </div>
     </header>
@@ -43,8 +37,8 @@
         <p class="font-mono text-[10px] sm:text-xs text-ghost tracking-widest3 uppercase mb-4">
           — distributed sentinel system —
         </p>
-        <h1 class="font-display leading-none tracking-widest text-snow"
-          style="font-size: clamp(2.5rem, 10vw, 7.5rem); text-shadow: 0 0 40px rgba(255,255,255,0.05);">
+        <h1 class="font-display leading-none tracking-widest text-snow text-5xl sm:text-7xl lg:text-9xl"
+          style="text-shadow: 0 0 40px rgba(255,255,255,0.05);">
           WAITING ROOM
         </h1>
       </div>
@@ -56,7 +50,7 @@
             <label class="block font-mono text-[10px] sm:text-xs text-ghost tracking-widest uppercase mb-3 ml-1">
               Target Channel
             </label>
-            <div class="relative border border-white/10 focus-within:border-signal/50 transition-all duration-300 rounded-2xl overflow-hidden bg-black/40 backdrop-blur-md">
+            <div class="relative border border-white/10 focus-within:border-signal/50 transition-all duration-300 rounded-2xl overflow-hidden bg-black/60 backdrop-blur-md">
               <input
                 v-model="channelInput"
                 type="text"
@@ -71,11 +65,10 @@
 
           <div class="flex items-center justify-between px-1">
             <button @click="toggleRedirect" class="flex items-center gap-3 group cursor-pointer outline-none">
-              <!-- Robust Toggle with standard px dimensions -->
-              <div class="w-[44px] h-[24px] rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-1" 
-                   :class="autoRedirect ? 'bg-signal border-signal/50' : 'bg-white/5'">
-                <div class="w-[16px] h-[16px] rounded-full bg-snow transition-transform duration-300 shadow-sm" 
-                     :class="autoRedirect ? 'translate-x-[20px]' : 'translate-x-0'"></div>
+              <div class="w-11 h-6 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-1" 
+                   :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
+                <div class="w-4 h-4 rounded-full bg-snow transition-transform duration-300 shadow-sm" 
+                     :class="autoRedirect ? 'translate-x-5' : 'translate-x-0'"></div>
               </div>
               <span class="font-mono text-[10px] text-ghost group-hover:text-snow uppercase tracking-widest transition-colors">
                 Auto-redirect
@@ -122,7 +115,7 @@
       </div>
     </div>
 
-    <footer class="relative z-10 w-full max-w-7xl mx-auto m-4 rounded-2xl glass-panel p-6">
+    <footer class="relative z-20 w-full max-w-7xl mx-auto m-4 rounded-2xl glass-panel p-6">
       <div class="flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-3">

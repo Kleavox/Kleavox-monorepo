@@ -13,21 +13,22 @@
 }
 
 html, body {
-  background: #000000;
+  background: transparent !important;
   color: #f0f0f0;
   scroll-behavior: smooth;
-  font-size: 16px;
+  margin: 0;
+  padding: 0;
+  width: 100%;
   height: 100%;
 }
 
 body {
   min-height: 100vh;
-  min-height: -webkit-fill-available;
+  min-height: 100dvh;
   overflow-x: hidden;
   position: relative;
 }
 
-/* ─── AMOLED Protection: Absolute Viewport Coverage ─────────────────────── */
 .amoled-bg {
   position: fixed;
   top: 0;
@@ -36,8 +37,9 @@ body {
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  z-index: -1;
-  background: #000000;
+  height: 100dvh;
+  z-index: -10;
+  background: #000000 !important;
   overflow: hidden;
   pointer-events: none;
 }
@@ -48,7 +50,7 @@ body {
   height: 150vmax;
   top: -25%;
   left: -25%;
-  background: radial-gradient(circle at center, rgba(255, 45, 45, 0.04) 0%, transparent 60%);
+  background: radial-gradient(circle at center, rgba(255, 45, 45, 0.08) 0%, transparent 60%);
   animation: drift 60s linear infinite;
 }
 
@@ -58,7 +60,7 @@ body {
   height: 130vmax;
   bottom: -15%;
   right: -15%;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
   animation: drift 80s linear infinite reverse;
 }
 
@@ -72,27 +74,30 @@ body {
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   pointer-events: none;
-  z-index: 0;
+  z-index: -5;
 }
 
 .particle {
   position: absolute;
   background: #ff2d2d;
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(255, 45, 45, 0.8);
+  box-shadow: 0 0 12px rgba(255, 45, 45, 1);
+  opacity: 0.9;
 }
 
 @keyframes float-particle {
   0% { transform: translate(0, 0) scale(0); opacity: 0; }
-  20% { transform: translate(calc(var(--x) * 0.2), calc(var(--y) * 0.2)) scale(1); opacity: 0.6; }
-  80% { transform: translate(calc(var(--x) * 0.8), calc(var(--y) * 0.8)) scale(1); opacity: 0.6; }
+  20% { opacity: 0.9; transform: scale(1); }
+  80% { opacity: 0.9; transform: scale(1); }
   100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
 }
 
-/* ─── Overlays ─────────────────────────────────────────────────────────── */
 body::before {
   content: "";
   position: fixed;
@@ -119,11 +124,10 @@ body::after {
   );
 }
 
-/* ─── UI Components ────────────────────────────────────────────────────── */
 .glass-panel {
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -158,8 +162,8 @@ body::after {
 }
 
 .safe-paddings {
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  padding-top: max(1.25rem, env(safe-area-inset-top));
 }

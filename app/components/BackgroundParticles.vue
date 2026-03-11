@@ -26,34 +26,38 @@ const particles = ref([])
 let resizeTimer = null
 
 const generateParticles = () => {
-  const area = window.innerWidth * window.innerHeight
+  if (typeof window === 'undefined') return
+  
+  const width = window.innerWidth
+  const height = window.innerHeight
+  const area = width * height
   const baseArea = 1920 * 1080
-  const count = Math.min(Math.max(Math.floor(60 * (area / baseArea)), 40), 150)
+  
+  const count = Math.min(Math.max(Math.floor(80 * (area / baseArea)), 60), 150)
 
   particles.value = Array.from({ length: count }).map((_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
-    dx: (Math.random() - 0.5) * 400,
-    dy: (Math.random() - 0.5) * 400,
-    size: 1 + Math.random() * 2,
-    duration: 15 + Math.random() * 25,
+    dx: (Math.random() - 0.5) * 500,
+    dy: (Math.random() - 0.5) * 500,
+    size: 1.5 + Math.random() * 2.5,
+    duration: 10 + Math.random() * 20,
     delay: Math.random() * -30
   }))
 }
 
-const handleResize = () => {
-  clearTimeout(resizeTimer)
-  resizeTimer = setTimeout(generateParticles, 500)
-}
-
 onMounted(() => {
   generateParticles()
-  window.addEventListener('resize', handleResize)
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(generateParticles, 500)
+  })
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  clearTimeout(resizeTimer)
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', generateParticles)
+  }
 })
 </script>

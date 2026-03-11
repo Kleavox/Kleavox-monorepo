@@ -1,14 +1,8 @@
 // app/pages/wait/[watchId].vue
 <template>
-  <main class="min-h-screen text-snow flex flex-col relative overflow-hidden safe-paddings">
+  <main class="min-h-screen text-snow flex flex-col relative bg-transparent safe-paddings">
     
-    <div class="amoled-bg">
-      <div class="amoled-glow" :style="`background: radial-gradient(circle at center, ${isLive ? 'rgba(0, 255, 135, 0.04)' : 'rgba(255, 45, 45, 0.04)'} 0%, transparent 50%); transition: background 2s ease`" />
-      <div class="amoled-glow-2" />
-      <BackgroundParticles />
-    </div>
-
-    <header v-if="!isTheater && !isIntro" class="relative z-10 w-full max-w-7xl mx-auto p-4 sm:p-6 flex items-center justify-between glass-panel mt-4 rounded-2xl animate-fade-down">
+    <header v-if="!isTheater && !isIntro" class="relative z-20 w-full max-w-7xl mx-auto p-4 sm:p-6 flex items-center justify-between glass-panel mt-4 rounded-2xl animate-fade-down">
       <NuxtLink to="/" class="flex items-center gap-3 sm:gap-4 group outline-none">
         <div class="w-8 h-8 sm:w-10 sm:h-10 relative group-hover:scale-105 transition-transform duration-300">
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
@@ -34,7 +28,7 @@
       </div>
     </header>
 
-    <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative z-10">
+    <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative z-20">
       
       <div v-if="isIntro" class="flex flex-col items-center animate-intro-zoom w-full">
         <div class="w-20 h-20 sm:w-28 sm:h-28 bg-live rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(0,255,135,0.4)] animate-live-pulse mb-8">
@@ -66,7 +60,7 @@
 
         <div class="relative mb-12 animate-fade-up" style="animation-delay:0.1s;opacity:0">
           <template v-if="!isError">
-            <div class="font-display leading-none text-snow opacity-90" style="font-size: clamp(3rem, 12vw, 8.5rem);">STANDBY</div>
+            <div class="font-display leading-none text-snow opacity-90 text-5xl sm:text-7xl lg:text-9xl">STANDBY</div>
             <div class="mt-8 flex items-center justify-center gap-4">
               <span v-for="i in 3" :key="i"
                 class="w-2 h-2 rounded-full bg-signal shadow-[0_0_12px_rgba(255,45,45,0.6)]"
@@ -74,7 +68,7 @@
             </div>
           </template>
           <template v-else>
-            <div class="font-display leading-none text-signal" style="font-size: clamp(2.5rem, 10vw, 7rem);">OFFLINE</div>
+            <div class="font-display leading-none text-signal text-5xl sm:text-7xl lg:text-9xl">OFFLINE</div>
             <p class="mt-6 font-mono text-xs text-ghost max-w-xs mx-auto glass-panel p-5 rounded-3xl">Session expired or connection closed.</p>
           </template>
         </div>
@@ -91,7 +85,7 @@
 
     <div id="detector-player" class="pointer-events-none opacity-0 absolute -top-[9999px]"></div>
 
-    <footer v-if="!isTheater && !isIntro" class="relative z-10 w-full max-w-7xl mx-auto m-4 rounded-2xl glass-panel p-6 animate-fade-up">
+    <footer v-if="!isTheater && !isIntro" class="relative z-20 w-full max-w-7xl mx-auto m-4 rounded-2xl glass-panel p-6 animate-fade-up">
       <div class="flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-3">
@@ -102,9 +96,8 @@
           <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
           
           <button v-if="!isLive" @click="toggleRedirect" class="flex items-center gap-3 group outline-none">
-            <!-- Rebuilt Toggle with standard classes -->
-            <div class="w-10 h-5.5 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-0.5" :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
-              <div class="w-3.5 h-3.5 rounded-full bg-snow transition-transform duration-300 shadow-sm" :class="autoRedirect ? 'translate-x-4.5' : 'translate-x-0'"></div>
+            <div class="w-11 h-6 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-1" :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
+              <div class="w-4 h-4 rounded-full bg-snow transition-transform duration-300 shadow-sm" :class="autoRedirect ? 'translate-x-5' : 'translate-x-0'"></div>
             </div>
             <span class="font-mono text-[10px] text-ghost group-hover:text-snow uppercase tracking-widest">Auto-Redirect: {{ autoRedirect ? 'ON' : 'OFF' }}</span>
           </button>
@@ -116,7 +109,7 @@
             </span>
           </a>
         </div>
-        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.0.1</div>
+        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.0.3</div>
       </div>
     </footer>
 
