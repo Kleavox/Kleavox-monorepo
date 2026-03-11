@@ -24,7 +24,7 @@ function browserHeaders(): Record<string, string> {
   };
 }
 
-function isActuallyLive(html: string, channelId: string, context: string): boolean {
+export function isActuallyLive(html: string, channelId: string, context: string): boolean {
   const isOwner = html.includes(`"channelId":"${channelId}"`) || 
                   html.includes(`"externalId":"${channelId}"`) || 
                   html.includes(`"browseId":"${channelId}"`) ||
@@ -69,13 +69,13 @@ function extractPrimaryVideoId(html: string): string | null {
   return null;
 }
 
-function extractTitle(html: string): string {
+export function extractTitle(html: string): string {
   const m = html.match(/<title>([^<]+)<\/title>/);
   return m ? m[1]!.replace(/ - YouTube$/, "").trim() : "Live Stream";
 }
 
 export async function checkLive(channelId: string) {
-  console.log(`[checkLive/${channelId}] Checking...`);
+  console.log(`[checkLive/${channelId}] Starting check...`);
 
   try {
     const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, {

@@ -36,11 +36,11 @@
           class="p-2.5 rounded-xl hover:bg-white/5 transition-colors border border-white/10 group"
           title="Toggle Fullscreen"
         >
-          <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3H5a2 2 0 0 0-2-2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
         </button>
         <div class="hidden sm:block font-mono text-[10px] text-ghost tracking-widest uppercase border border-white/10 px-3 py-1.5 rounded-lg">
-          v4.0.0
+          v4.2.0
         </div>
       </div>
     </header>
@@ -78,7 +78,20 @@
           </div>
         </div>
 
-        <div v-if="recentChannels.length" class="mt-6 ml-1">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 ml-1">
+          <button @click="toggleRedirect" class="flex items-center gap-3 group cursor-pointer">
+            <div class="w-9 h-5 rounded-full relative transition-all duration-300 border border-white/10" 
+                 :class="autoRedirect ? 'bg-signal border-signal/50' : 'bg-white/5'">
+              <div class="absolute top-1 left-1 w-2.5 h-2.5 rounded-full bg-snow transition-transform duration-300 shadow-sm" 
+                   :class="autoRedirect ? 'translate-x-4' : 'translate-x-0'"></div>
+            </div>
+            <span class="font-mono text-[10px] text-ghost group-hover:text-snow uppercase tracking-widest transition-colors">
+              Auto-redirect to YouTube
+            </span>
+          </button>
+        </div>
+
+        <div v-if="recentChannels.length" class="mt-8 ml-1">
           <p class="font-mono text-[9px] text-mist tracking-widest uppercase mb-3">Recently Watched</p>
           <div class="flex flex-wrap gap-2">
             <div
@@ -164,6 +177,7 @@ const error = ref('')
 const lastOpened = ref(null)
 const recentChannels = ref([])
 const isFullscreen = ref(false)
+const autoRedirect = ref(false)
 
 const MAX_RECENT = 6
 
@@ -171,12 +185,22 @@ onMounted(() => {
   try {
     const saved = localStorage.getItem('deau-recent')
     if (saved) recentChannels.value = JSON.parse(saved)
+    
+    const savedRedirect = localStorage.getItem('deau-redirect')
+    autoRedirect.value = savedRedirect === 'true'
   } catch {}
   
   document.addEventListener('fullscreenchange', () => {
     isFullscreen.value = !!document.fullscreenElement
   })
 })
+
+function toggleRedirect() {
+  autoRedirect.value = !autoRedirect.value
+  try {
+    localStorage.setItem('deau-redirect', autoRedirect.value.toString())
+  } catch {}
+}
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {

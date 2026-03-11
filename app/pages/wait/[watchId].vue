@@ -8,7 +8,7 @@
       <BackgroundParticles :count="120" />
     </div>
 
-    <header class="relative z-10 px-6 py-6 flex items-center justify-between glass-panel border-b-0 m-4 rounded-2xl">
+    <header v-if="!isTheater && !isIntro" class="relative z-10 px-6 py-6 flex items-center justify-between glass-panel border-b-0 m-4 rounded-2xl animate-fade-down">
       <NuxtLink to="/" class="flex items-center gap-4 group">
         <div class="w-10 h-10 relative group-hover:scale-105 transition-transform duration-300">
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
@@ -39,108 +39,111 @@
           <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
         </button>
-        <div class="font-mono text-[10px] text-ghost tracking-widest uppercase border border-white/10 px-3 py-1.5 rounded-lg">
-          Room
-        </div>
       </div>
     </header>
 
-    <div class="flex-1 flex flex-col items-center justify-center px-4 py-10 text-center">
-
-      <div class="glass-panel px-6 py-2 rounded-full mb-8 animate-fade-up">
-        <p class="font-mono text-[10px] sm:text-xs text-ghost tracking-widest3 uppercase">
-          {{ channelInput || 'Scanning Channel...' }}
+    <div class="flex-1 flex flex-col items-center justify-center relative z-10 px-4">
+      
+      <div v-if="isIntro" class="flex flex-col items-center animate-intro-zoom">
+        <div class="w-24 h-24 bg-live rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(0,255,135,0.4)] animate-live-pulse mb-8">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <h2 class="font-display text-6xl sm:text-8xl tracking-widest text-live mb-4">LIVE NOW</h2>
+        <p class="font-mono text-xs text-live/60 tracking-widest uppercase animate-pulse">
+          {{ autoRedirect ? 'Forwarding to YouTube...' : 'Establishing connection...' }}
         </p>
       </div>
 
-      <div class="relative mb-12 animate-fade-up" style="animation-delay:0.1s;opacity:0">
+      <div v-show="isLive && !isIntro" class="w-full max-w-5xl aspect-video relative transition-all duration-1000 transform" 
+           :class="isTheater ? 'fixed inset-0 max-w-none h-full z-50 bg-black' : 'rounded-3xl overflow-hidden glass-panel shadow-2xl animate-fade-up'">
+        
+        <div id="youtube-player" class="w-full h-full"></div>
+        
+        <div class="absolute top-4 right-4 flex gap-2">
+          <button @click="isTheater = !isTheater" 
+                  class="bg-black/60 hover:bg-black/80 p-2 rounded-lg border border-white/10 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></svg>
+          </button>
+        </div>
+      </div>
 
-        <template v-if="isLive">
-          <div class="font-display leading-none text-live animate-pulse-slow"
-            style="font-size: clamp(4rem, 20vw, 12rem); text-shadow: 0 0 60px rgba(0,255,135,0.15);">
-            LIVE
-          </div>
-          <div class="mt-4 font-mono text-xs sm:text-sm text-live/80 tracking-widest uppercase bg-live/5 px-6 py-2 rounded-full inline-block border border-live/10">
-            Redirecting in {{ countdown }}s...
-          </div>
-        </template>
-
-        <template v-else-if="!isError">
-          <div class="font-display leading-none text-snow"
-            style="font-size: clamp(3.5rem, 18vw, 10rem); opacity: 0.9;">
-            STANDBY
-          </div>
-          <div class="mt-8 flex items-center justify-center gap-3">
-            <span v-for="i in 3" :key="i"
-              class="inline-block w-2 h-2 rounded-full bg-signal shadow-[0_0_10px_rgba(255,45,45,0.5)]"
-              :style="`animation: dotPulse 1.5s ease-in-out ${(i-1)*0.3}s infinite`" />
-          </div>
-          <p class="mt-6 font-mono text-[10px] text-ghost tracking-widest uppercase">
-            Synchronizing with broadcast server
+      <div v-if="!isLive && !isIntro" class="flex flex-col items-center">
+        <div class="glass-panel px-6 py-2 rounded-full mb-8 animate-fade-up">
+          <p class="font-mono text-[10px] sm:text-xs text-ghost tracking-widest3 uppercase">
+            {{ channelInput || 'Scanning Channel...' }}
           </p>
-        </template>
+        </div>
 
-        <template v-else>
-          <div class="font-display leading-none text-signal"
-            style="font-size: clamp(3rem, 14vw, 8rem);">
-            OFFLINE
-          </div>
-          <p class="mt-6 font-mono text-xs text-ghost max-w-xs mx-auto border border-white/5 p-4 rounded-2xl bg-white/5">
-            Connection lost or watcher expired.<br>Maximum active duration: 12h.
-          </p>
-        </template>
+        <div class="relative mb-12 animate-fade-up" style="animation-delay:0.1s;opacity:0">
+          <template v-if="!isError">
+            <div class="font-display leading-none text-snow"
+              style="font-size: clamp(3.5rem, 18vw, 10rem); opacity: 0.9;">
+              STANDBY
+            </div>
+            <div class="mt-8 flex items-center justify-center gap-3">
+              <span v-for="i in 3" :key="i"
+                class="inline-block w-2 h-2 rounded-full bg-signal shadow-[0_0_10px_rgba(255,45,45,0.5)]"
+                :style="`animation: dotPulse 1.5s ease-in-out ${(i-1)*0.3}s infinite`" />
+            </div>
+            <p class="mt-6 font-mono text-[10px] text-ghost tracking-widest uppercase">
+              Distributed detection active
+            </p>
+          </template>
+
+          <template v-else>
+            <div class="font-display leading-none text-signal"
+              style="font-size: clamp(3rem, 14vw, 8rem);">
+              OFFLINE
+            </div>
+            <p class="mt-6 font-mono text-xs text-ghost max-w-xs mx-auto border border-white/5 p-4 rounded-2xl bg-white/5">
+              Connection lost or watcher expired.
+            </p>
+          </template>
+        </div>
+
+        <div class="mt-12 font-mono text-[10px] text-mist animate-fade-up space-y-2" style="animation-delay:0.4s;opacity:0">
+          <p class="tracking-widest uppercase">Uptime: {{ elapsedStr }}</p>
+          <p class="opacity-50">Browser sentinel active — Monitoring status</p>
+        </div>
+
+        <NuxtLink
+          to="/"
+          class="mt-10 font-mono text-[10px] text-ghost hover:text-snow transition-all tracking-widest uppercase border-b border-ghost/20 hover:border-snow pb-1"
+        >
+          ← Return to Terminal
+        </NuxtLink>
       </div>
-
-      <div v-if="isLive && videoTitle" class="mb-10 px-6 py-4 max-w-md glass-panel rounded-2xl animate-fade-up" style="animation-delay:0.2s;opacity:0">
-        <p class="font-mono text-[10px] text-ghost uppercase tracking-widest mb-2">Transmission Detected</p>
-        <p class="font-mono text-sm text-live truncate font-medium">{{ videoTitle }}</p>
-      </div>
-
-      <a
-        v-if="isLive && videoUrl"
-        :href="videoUrl"
-        target="_blank"
-        class="font-display text-2xl tracking-widest2 px-12 py-5 bg-live text-void hover:bg-snow hover:shadow-[0_0_40px_rgba(0,255,135,0.3)] transition-all animate-fade-up rounded-2xl"
-        style="animation-delay:0.3s;opacity:0"
-      >
-        ACCESS STREAM
-      </a>
-
-      <div v-if="!isLive && !isError" class="mt-12 font-mono text-[10px] text-mist animate-fade-up space-y-2" style="animation-delay:0.4s;opacity:0">
-        <p class="tracking-widest uppercase">Uptime: {{ elapsedStr }}</p>
-        <p class="opacity-50">Monitoring will continue until broadcast detection</p>
-      </div>
-
-      <NuxtLink
-        v-if="!isLive"
-        to="/"
-        class="mt-10 font-mono text-[10px] text-ghost hover:text-snow transition-all tracking-widest uppercase border-b border-ghost/20 hover:border-snow pb-1"
-      >
-        ← Return to Terminal
-      </NuxtLink>
 
     </div>
 
-    <footer class="relative z-10 m-4 rounded-2xl glass-panel p-6">
+    <div id="detector-player" class="pointer-events-none opacity-0 absolute -top-999"></div>
+
+    <footer v-if="!isTheater && !isIntro" class="relative z-10 m-4 rounded-2xl glass-panel p-6 animate-fade-up">
       <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-3">
             <div :class="isLive ? 'bg-live shadow-[0_0_10px_rgba(0,255,135,0.5)]' : 'bg-signal shadow-[0_0_10px_rgba(255,45,45,0.5)]'" 
                  class="w-2 h-2 rounded-full animate-pulse"></div>
             <span class="font-mono text-[10px] text-ghost tracking-widest uppercase">
-              {{ isLive ? 'Live Transmission' : 'Monitoring' }}
+              {{ isLive ? 'Live Stream Active' : 'Sentinel Mode' }}
             </span>
           </div>
           <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
-          <div class="flex items-center gap-3 font-mono text-[10px] text-mist truncate max-w-[150px]">
-            <span class="tracking-widest uppercase">{{ watchId }}</span>
-          </div>
+          
+          <button @click="toggleRedirect" class="flex items-center gap-2 group cursor-pointer">
+            <div class="w-7 h-4 rounded-full relative transition-all duration-300 border border-white/10" 
+                 :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
+              <div class="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-snow transition-transform duration-300" 
+                   :class="autoRedirect ? 'translate-x-3' : 'translate-x-0'"></div>
+            </div>
+            <span class="font-mono text-[9px] text-ghost group-hover:text-snow uppercase tracking-widest transition-colors">
+              Redirect: {{ autoRedirect ? 'ON' : 'OFF' }}
+            </span>
+          </button>
         </div>
         
         <div class="font-mono text-[10px] text-mist tracking-widest uppercase flex items-center gap-4">
-          <span class="hover:text-snow transition-colors cursor-default">wait.deau.site</span>
-          <span class="text-white/5">/</span>
-          <span class="text-ghost">v4.0.0</span>
+          <span class="text-ghost">v4.2.0</span>
         </div>
       </div>
     </footer>
@@ -155,14 +158,22 @@ const route = useRoute()
 const watchId = route.params.watchId
 
 const status = ref('waiting')
-const videoUrl = ref(null)
-const videoTitle = ref(null)
+const channelId = ref('')
 const channelInput = ref('')
 const startedAt = ref(Date.now())
 const isError = ref(false)
 const elapsed = ref(0)
-const countdown = ref(3)
 const isFullscreen = ref(false)
+const isTheater = ref(false)
+const isIntro = ref(false)
+const autoRedirect = ref(false)
+const videoUrl = ref('')
+const videoTitle = ref('')
+
+let detectorPlayer = null
+let mainPlayer = null
+let pollInterval = null
+let elapsedInterval = null
 
 const isLive = computed(() => status.value === 'live')
 
@@ -174,75 +185,151 @@ const elapsedStr = computed(() => {
   return `${m}m ${rem}s`
 })
 
-useHead({
-  title: computed(() =>
-    isLive.value
-      ? `🔴 LIVE — ${channelInput.value || 'DeauWait'}`
-      : `⏳ Waiting — ${channelInput.value || 'DeauWait'}`
-  )
-})
-
-let pollInterval = null
-let elapsedInterval = null
-let countdownInterval = null
-
 onMounted(() => {
-  poll()
-  pollInterval = setInterval(poll, 30_000)
+  initStatus()
   elapsedInterval = setInterval(() => {
     elapsed.value = Math.floor((Date.now() - startedAt.value) / 1000)
   }, 1000)
   
+  try {
+    autoRedirect.value = localStorage.getItem('deau-redirect') === 'true'
+  } catch {}
+
   document.addEventListener('fullscreenchange', () => {
     isFullscreen.value = !!document.fullscreenElement
   })
+
+  if (!window.YT) {
+    const tag = document.createElement('script')
+    tag.src = "https://www.youtube.com/iframe_api"
+    const firstScriptTag = document.getElementsByTagName('script')[0]
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+  }
 })
 
 onUnmounted(() => {
   clearInterval(pollInterval)
   clearInterval(elapsedInterval)
-  clearInterval(countdownInterval)
+  if (detectorPlayer) detectorPlayer.destroy()
+  if (mainPlayer) mainPlayer.destroy()
 })
 
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(err => {
-      console.error(`Error attempting to enable full-screen mode: ${err.message}`)
-    })
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen()
-    }
-  }
+function toggleRedirect() {
+  autoRedirect.value = !autoRedirect.value
+  try {
+    localStorage.setItem('deau-redirect', autoRedirect.value.toString())
+  } catch {}
 }
 
-async function poll() {
+async function initStatus() {
   try {
     const data = await $fetch(`/api/status/${watchId}`)
-    channelInput.value = data.channelInput || channelInput.value
+    channelId.value = data.channelId
+    channelInput.value = data.channelInput
     status.value = data.status
-    videoUrl.value = data.videoUrl
-    videoTitle.value = data.title
-
-    if (data.status === 'live' && data.videoUrl) {
-      clearInterval(pollInterval)
-      startCountdown(data.videoUrl)
+    
+    if (status.value === 'live') {
+      triggerLive(data.videoUrl)
+    } else {
+      initDetector()
+      pollInterval = setInterval(pollServer, 60_000)
     }
   } catch {
     isError.value = true
-    clearInterval(pollInterval)
   }
 }
 
-function startCountdown(url) {
-  countdown.value = 3
-  countdownInterval = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(countdownInterval)
-      window.location.href = url
+async function pollServer() {
+  try {
+    const data = await $fetch(`/api/status/${watchId}`)
+    if (data.status === 'live' && status.value !== 'live') {
+      triggerLive(data.videoUrl)
+      clearInterval(pollInterval)
     }
-  }, 1000)
+  } catch {}
+}
+
+function initDetector() {
+  window.onYouTubeIframeAPIReady = () => {
+    detectorPlayer = new window.YT.Player('detector-player', {
+      height: '1',
+      width: '1',
+      videoId: '',
+      playerVars: {
+        'autoplay': 1,
+        'mute': 1,
+        'listType': 'live_stream',
+        'list': channelId.value
+      },
+      events: {
+        'onStateChange': (event) => {
+          if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
+            const currentVideoUrl = detectorPlayer.getVideoUrl()
+            const videoId = currentVideoUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
+            if (videoId) reportLive(videoId)
+          }
+        }
+      }
+    })
+  }
+  
+  if (window.YT && window.YT.Player) {
+    window.onYouTubeIframeAPIReady()
+  }
+}
+
+async function reportLive(videoId) {
+  try {
+    const res = await $fetch('/api/report-live', {
+      method: 'POST',
+      body: { watchId, videoId }
+    })
+    if (res.success && status.value !== 'live') {
+      triggerLive(`https://www.youtube.com/watch?v=${videoId}`)
+      clearInterval(pollInterval)
+    }
+  } catch {}
+}
+
+function triggerLive(url) {
+  isIntro.value = true
+  status.value = 'live'
+  
+  setTimeout(() => {
+    if (autoRedirect.value) {
+      window.location.href = url
+    } else {
+      isIntro.value = false
+      initMainPlayer(url)
+    }
+  }, 3500)
+}
+
+function initMainPlayer(url) {
+  const videoId = url.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
+  if (!videoId) return
+
+  if (mainPlayer) {
+    mainPlayer.loadVideoById(videoId)
+    return
+  }
+
+  mainPlayer = new window.YT.Player('youtube-player', {
+    videoId: videoId,
+    playerVars: {
+      'autoplay': 1,
+      'modestbranding': 1,
+      'rel': 0
+    }
+  })
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+  } else {
+    document.exitFullscreen()
+  }
 }
 </script>
 
@@ -251,4 +338,20 @@ function startCountdown(url) {
   0%, 100% { opacity: 0.2; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }
 }
+.animate-fade-down { animation: fadeDown 0.6s ease-out forwards; }
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes introZoom {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.animate-intro-zoom { animation: introZoom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+@keyframes livePulseGlow {
+  0% { transform: scale(1); box-shadow: 0 0 20px rgba(0,255,135,0.4); }
+  50% { transform: scale(1.1); box-shadow: 0 0 60px rgba(0,255,135,0.6); }
+  100% { transform: scale(1); box-shadow: 0 0 20px rgba(0,255,135,0.4); }
+}
+.animate-live-pulse { animation: livePulseGlow 2s infinite ease-in-out; }
 </style>
