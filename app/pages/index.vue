@@ -32,7 +32,7 @@
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
         </button>
         <div class="hidden xs:block font-mono text-[10px] text-ghost tracking-widest uppercase border border-white/10 px-3 py-1.5 rounded-lg">
-          v5.0.1
+          v5.0.2
         </div>
       </div>
     </header>
@@ -71,11 +71,11 @@
 
           <div class="flex items-center justify-between px-1">
             <button @click="toggleRedirect" class="flex items-center gap-3 group cursor-pointer outline-none">
-              <!-- Rebuilt Toggle with standard classes -->
-              <div class="w-11 h-6 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-1" 
+              <!-- Robust Toggle with standard px dimensions -->
+              <div class="w-[44px] h-[24px] rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-1" 
                    :class="autoRedirect ? 'bg-signal border-signal/50' : 'bg-white/5'">
-                <div class="w-4 h-4 rounded-full bg-snow transition-transform duration-300 shadow-sm" 
-                     :class="autoRedirect ? 'translate-x-5' : 'translate-x-0'"></div>
+                <div class="w-[16px] h-[16px] rounded-full bg-snow transition-transform duration-300 shadow-sm" 
+                     :class="autoRedirect ? 'translate-x-[20px]' : 'translate-x-0'"></div>
               </div>
               <span class="font-mono text-[10px] text-ghost group-hover:text-snow uppercase tracking-widest transition-colors">
                 Auto-redirect
@@ -86,7 +86,7 @@
           <button
             @click="startWatching"
             :disabled="isLoading || !channelInput.trim()"
-            class="w-full py-4 sm:py-5 flex items-center justify-center font-display text-xl tracking-widest2 uppercase transition-all duration-500 rounded-2xl overflow-hidden relative group outline-none"
+            class="w-full py-5 flex items-center justify-center font-display text-xl tracking-widest2 uppercase transition-all duration-500 rounded-2xl overflow-hidden relative group outline-none"
             :class="isLoading || !channelInput.trim()
               ? 'bg-white/5 text-ghost cursor-not-allowed'
               : 'bg-snow text-void hover:bg-signal hover:text-snow active:scale-[0.98] shadow-lg shadow-white/5'"
@@ -130,7 +130,7 @@
             <span class="font-mono text-[10px] text-ghost tracking-widest uppercase">Distributed Engine</span>
           </div>
           <div class="hidden sm:block h-4 w-px bg-white/10"></div>
-          <div class="font-mono text-[10px] text-ghost tracking-widest uppercase opacity-60">Production Sentinel V5</div>
+          <div class="font-mono text-[10px] text-ghost tracking-widest uppercase opacity-60 text-center sm:text-left">Production Sentinel</div>
         </div>
         
         <div class="flex items-center gap-6 font-mono text-[10px] text-mist">

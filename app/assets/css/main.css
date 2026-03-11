@@ -16,7 +16,6 @@ html, body {
   background: #000000;
   color: #f0f0f0;
   scroll-behavior: smooth;
-  /* Standard base size for consistency */
   font-size: 16px;
   height: 100%;
 }
@@ -28,13 +27,19 @@ body {
   position: relative;
 }
 
-/* ─── AMOLED Protection ────────────────────────────────────────────────── */
+/* ─── AMOLED Protection: Absolute Viewport Coverage ─────────────────────── */
 .amoled-bg {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: -1;
   background: #000000;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .amoled-glow {
@@ -65,7 +70,10 @@ body {
 
 .particle-container {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 0;
 }
@@ -149,7 +157,6 @@ body::after {
   50% { opacity: 1; transform: scale(1.2); }
 }
 
-/* ─── Safe Area Support ────────────────────────────────────────────────── */
 .safe-paddings {
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
