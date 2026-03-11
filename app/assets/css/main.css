@@ -5,8 +5,6 @@
 
 :root {
   --grain-opacity: 0.05;
-  --fluid-spacing: clamp(1rem, 2vw, 3rem);
-  --fluid-radius: clamp(1rem, 1.5vw, 2.5rem);
 }
 
 * {
@@ -14,11 +12,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
+html, body {
   background: #000000;
   color: #f0f0f0;
   scroll-behavior: smooth;
-  font-size: clamp(14px, 1vw + 8px, 24px);
+  /* Standard base size for consistency */
+  font-size: 16px;
+  height: 100%;
 }
 
 body {
@@ -28,6 +28,7 @@ body {
   position: relative;
 }
 
+/* ─── AMOLED Protection ────────────────────────────────────────────────── */
 .amoled-bg {
   position: fixed;
   inset: 0;
@@ -83,6 +84,7 @@ body {
   100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
 }
 
+/* ─── Overlays ─────────────────────────────────────────────────────────── */
 body::before {
   content: "";
   position: fixed;
@@ -109,12 +111,12 @@ body::after {
   );
 }
 
+/* ─── UI Components ────────────────────────────────────────────────────── */
 .glass-panel {
-  background: rgba(5, 5, 5, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @keyframes livePulse {
@@ -147,20 +149,10 @@ body::after {
   50% { opacity: 1; transform: scale(1.2); }
 }
 
-@media (max-height: 500px) and (orientation: landscape) {
-  .landscape-condensed {
-    flex-direction: row !important;
-    gap: 2rem !important;
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-  }
-  .landscape-hidden {
-    display: none !important;
-  }
-}
-
+/* ─── Safe Area Support ────────────────────────────────────────────────── */
 .safe-paddings {
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-top: max(1rem, env(safe-area-inset-top));
 }
