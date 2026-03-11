@@ -9,7 +9,7 @@
     </div>
 
     <header v-if="!isTheater && !isIntro" class="relative z-10 w-full max-w-7xl mx-auto p-4 sm:p-6 flex items-center justify-between glass-panel mt-4 rounded-2xl animate-fade-down">
-      <NuxtLink to="/" class="flex items-center gap-3 sm:gap-4 group">
+      <NuxtLink to="/" class="flex items-center gap-3 sm:gap-4 group outline-none">
         <div class="w-8 h-8 sm:w-10 sm:h-10 relative group-hover:scale-105 transition-transform duration-300">
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
             <path fill="currentColor" d="M 22,15 L 65,15 C 92,15 98,35 98,50 C 98,65 92,85 58,85 L 15,85 L 23,70 L 58,70 C 78,70 82,60 82,50 C 82,40 78,30 65,30 L 30,30 Z" />
@@ -27,7 +27,7 @@
       </NuxtLink>
       
       <div class="flex items-center gap-2">
-        <button @click="toggleFullscreen" class="p-2 rounded-xl hover:bg-white/5 transition-colors border border-white/10 group">
+        <button @click="toggleFullscreen" class="p-2 rounded-xl hover:bg-white/5 transition-colors border border-white/10 group outline-none">
           <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
         </button>
@@ -51,7 +51,7 @@
           class="w-full h-full" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
         
         <div class="absolute top-4 right-4 flex gap-2">
-          <button @click="isTheater = !isTheater" class="bg-black/60 hover:bg-black/80 p-2.5 rounded-xl border border-white/10 backdrop-blur-md transition-colors">
+          <button @click="isTheater = !isTheater" class="bg-black/60 hover:bg-black/80 p-2.5 rounded-xl border border-white/10 backdrop-blur-md transition-colors outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></svg>
           </button>
         </div>
@@ -84,7 +84,7 @@
           <p class="opacity-40 uppercase text-[9px]">Distributed Sentinel Active</p>
         </div>
 
-        <NuxtLink to="/" class="mt-12 font-mono text-xs text-ghost hover:text-snow transition-all tracking-widest uppercase border-b border-white/10 hover:border-snow pb-1">← Return</NuxtLink>
+        <NuxtLink to="/" class="mt-12 font-mono text-xs text-ghost hover:text-snow transition-all tracking-widest uppercase border-b border-white/10 hover:border-snow pb-1 outline-none">← Return</NuxtLink>
       </div>
 
     </div>
@@ -102,8 +102,9 @@
           <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
           
           <button v-if="!isLive" @click="toggleRedirect" class="flex items-center gap-3 group outline-none">
-            <div class="w-9 h-5 rounded-full relative transition-all duration-300 border border-white/10" :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
-              <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-snow transition-transform duration-300" :class="autoRedirect ? 'translate-x-4' : 'translate-x-0'"></div>
+            <!-- Rebuilt Toggle with standard classes -->
+            <div class="w-10 h-5.5 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-0.5" :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
+              <div class="w-3.5 h-3.5 rounded-full bg-snow transition-transform duration-300 shadow-sm" :class="autoRedirect ? 'translate-x-4.5' : 'translate-x-0'"></div>
             </div>
             <span class="font-mono text-[10px] text-ghost group-hover:text-snow uppercase tracking-widest">Auto-Redirect: {{ autoRedirect ? 'ON' : 'OFF' }}</span>
           </button>
@@ -115,7 +116,7 @@
             </span>
           </a>
         </div>
-        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.0.0</div>
+        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.0.1</div>
       </div>
     </footer>
 

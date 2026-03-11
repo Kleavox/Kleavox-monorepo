@@ -8,7 +8,6 @@
       <BackgroundParticles />
     </div>
 
-    <!-- Header: Consistent max-width and padding -->
     <header class="relative z-10 w-full max-w-7xl mx-auto p-4 sm:p-6 flex items-center justify-between glass-panel mt-4 rounded-2xl">
       <div class="flex items-center gap-3 sm:gap-4">
         <div class="w-8 h-8 sm:w-10 sm:h-10">
@@ -22,25 +21,24 @@
             </g>
           </svg>
         </div>
-        <div class="font-display text-xl sm:text-2xl tracking-widest2 text-snow">
+        <div class="font-display text-xl sm:text-2xl tracking-widest2 text-snow uppercase">
           DEAU<span class="text-signal">WAIT</span>
         </div>
       </div>
       
       <div class="flex items-center gap-2 sm:gap-4">
-        <button @click="toggleFullscreen" class="p-2 rounded-xl hover:bg-white/5 transition-colors border border-white/10 group">
+        <button @click="toggleFullscreen" class="p-2 rounded-xl hover:bg-white/5 transition-colors border border-white/10 group outline-none">
           <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
         </button>
         <div class="hidden xs:block font-mono text-[10px] text-ghost tracking-widest uppercase border border-white/10 px-3 py-1.5 rounded-lg">
-          v5.0.0
+          v5.0.1
         </div>
       </div>
     </header>
 
     <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
 
-      <!-- Hero Section: Balanced Scaling -->
       <div class="text-center mb-8 sm:mb-16 animate-fade-up w-full">
         <p class="font-mono text-[10px] sm:text-xs text-ghost tracking-widest3 uppercase mb-4">
           — distributed sentinel system —
@@ -51,7 +49,6 @@
         </h1>
       </div>
 
-      <!-- Input Card: Fixed Max Width -->
       <div class="w-full max-w-lg glass-panel p-6 sm:p-10 rounded-[2rem] animate-fade-up shadow-2xl" style="animation-delay: 0.15s; opacity: 0;">
 
         <div class="space-y-6">
@@ -72,13 +69,13 @@
             </div>
           </div>
 
-          <!-- Toggle: Re-built for stability -->
           <div class="flex items-center justify-between px-1">
             <button @click="toggleRedirect" class="flex items-center gap-3 group cursor-pointer outline-none">
-              <div class="w-10 h-5.5 rounded-full relative transition-all duration-300 border border-white/10" 
-                   :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
-                <div class="absolute top-1 left-1 w-3.5 h-3.5 rounded-full bg-snow transition-transform duration-300" 
-                     :class="autoRedirect ? 'translate-x-4.5' : 'translate-x-0'"></div>
+              <!-- Rebuilt Toggle with standard classes -->
+              <div class="w-11 h-6 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-1" 
+                   :class="autoRedirect ? 'bg-signal border-signal/50' : 'bg-white/5'">
+                <div class="w-4 h-4 rounded-full bg-snow transition-transform duration-300 shadow-sm" 
+                     :class="autoRedirect ? 'translate-x-5' : 'translate-x-0'"></div>
               </div>
               <span class="font-mono text-[10px] text-ghost group-hover:text-snow uppercase tracking-widest transition-colors">
                 Auto-redirect
@@ -89,26 +86,25 @@
           <button
             @click="startWatching"
             :disabled="isLoading || !channelInput.trim()"
-            class="w-full py-4.5 font-display text-xl tracking-widest2 uppercase transition-all duration-500 rounded-2xl overflow-hidden relative group"
+            class="w-full py-4 sm:py-5 flex items-center justify-center font-display text-xl tracking-widest2 uppercase transition-all duration-500 rounded-2xl overflow-hidden relative group outline-none"
             :class="isLoading || !channelInput.trim()
               ? 'bg-white/5 text-ghost cursor-not-allowed'
               : 'bg-snow text-void hover:bg-signal hover:text-snow active:scale-[0.98] shadow-lg shadow-white/5'"
           >
             <span v-if="!isLoading" class="relative z-10">INITIALIZE</span>
-            <span v-else class="flex items-center justify-center gap-3 relative z-10">
-              <span class="w-5 h-5 border-2 border-void border-t-transparent rounded-full animate-spin" />
+            <span v-else class="relative z-10">
+              <span class="block w-6 h-6 border-2 border-void border-t-transparent rounded-full animate-spin" />
             </span>
           </button>
 
-          <!-- Recent Items: Better Grid -->
           <div v-if="recentChannels.length" class="pt-4 border-t border-white/5">
             <p class="font-mono text-[9px] text-mist tracking-widest uppercase mb-3 ml-1">History</p>
             <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
               <div v-for="ch in recentChannels" :key="ch"
                 class="flex items-center border border-white/5 hover:border-signal/30 transition-all rounded-xl bg-white/[0.03] overflow-hidden"
               >
-                <button @click="channelInput = ch" class="font-mono text-[10px] text-ghost hover:text-snow px-3 py-2">{{ ch }}</button>
-                <button @click.stop="removeRecent(ch)" class="px-2.5 py-2 text-white/10 hover:text-signal border-l border-white/5 transition-colors">✕</button>
+                <button @click="channelInput = ch" class="font-mono text-[10px] text-ghost hover:text-snow px-3 py-2 outline-none">{{ ch }}</button>
+                <button @click.stop="removeRecent(ch)" class="px-2.5 py-2 text-white/10 hover:text-signal border-l border-white/5 transition-colors outline-none">✕</button>
               </div>
             </div>
           </div>
@@ -126,7 +122,6 @@
       </div>
     </div>
 
-    <!-- Footer: Clean and centered -->
     <footer class="relative z-10 w-full max-w-7xl mx-auto m-4 rounded-2xl glass-panel p-6">
       <div class="flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-6">
