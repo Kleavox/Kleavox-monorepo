@@ -130,7 +130,7 @@
           </div>
           <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
           
-          <button @click="toggleRedirect" class="flex items-center gap-2 group cursor-pointer">
+          <button v-if="!isLive" @click="toggleRedirect" class="flex items-center gap-2 group cursor-pointer">
             <div class="w-7 h-4 rounded-full relative transition-all duration-300 border border-white/10" 
                  :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
               <div class="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-snow transition-transform duration-300" 
@@ -140,6 +140,13 @@
               Redirect: {{ autoRedirect ? 'ON' : 'OFF' }}
             </span>
           </button>
+
+          <a v-else :href="videoUrl" target="_blank" class="flex items-center gap-2 group cursor-pointer">
+            <span class="font-mono text-[10px] text-live group-hover:text-snow uppercase tracking-widest transition-colors flex items-center gap-2">
+              Open in YouTube
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="4"/></svg>
+            </span>
+          </a>
         </div>
         
         <div class="font-mono text-[10px] text-mist tracking-widest uppercase flex items-center gap-4">
@@ -185,6 +192,18 @@ const elapsedStr = computed(() => {
   return `${m}m ${rem}s`
 })
 
+useHead({
+  title: computed(() =>
+    isLive.value
+      ? `🔴 LIVE — ${channelInput.value || 'DeauWait'}`
+      : `⏳ Waiting — ${channelInput.value || 'DeauWait'}`
+  ),
+  link: [
+    { rel: 'preconnect', href: 'https://www.youtube.com' },
+    { rel: 'preconnect', href: 'https://s.ytimg.com' }
+  ]
+})
+
 onMounted(() => {
   initStatus()
   elapsedInterval = setInterval(() => {
@@ -227,6 +246,7 @@ async function initStatus() {
     channelId.value = data.channelId
     channelInput.value = data.channelInput
     status.value = data.status
+    videoUrl.value = data.videoUrl || ''
     
     if (status.value === 'live') {
       triggerLive(data.videoUrl)
@@ -243,6 +263,7 @@ async function pollServer() {
   try {
     const data = await $fetch(`/api/status/${watchId}`)
     if (data.status === 'live' && status.value !== 'live') {
+      videoUrl.value = data.videoUrl || ''
       triggerLive(data.videoUrl)
       clearInterval(pollInterval)
     }
@@ -259,14 +280,21 @@ function initDetector() {
         'autoplay': 1,
         'mute': 1,
         'listType': 'live_stream',
-        'list': channelId.value
+        'list': channelId.value,
+        'controls': 0,
+        'showinfo': 0,
+        'rel': 0,
+        'iv_load_policy': 3
       },
       events: {
         'onStateChange': (event) => {
           if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
             const currentVideoUrl = detectorPlayer.getVideoUrl()
             const videoId = currentVideoUrl.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]
-            if (videoId) reportLive(videoId)
+            if (videoId) {
+              videoUrl.value = `https://www.youtube.com/watch?v=${videoId}`
+              reportLive(videoId)
+            }
           }
         }
       }
