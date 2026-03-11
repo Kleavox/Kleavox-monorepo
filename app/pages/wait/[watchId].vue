@@ -64,6 +64,7 @@
           frameborder="0"
           allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowfullscreen
+          referrerpolicy="no-referrer-when-downgrade"
         ></iframe>
         
         <div class="absolute top-4 right-4 flex gap-2">
@@ -227,12 +228,10 @@ onMounted(() => {
     isFullscreen.value = !!document.fullscreenElement
   })
 
-  // Global callback for YT API
   window.onYouTubeIframeAPIReady = () => {
     if (status.value === 'waiting') initDetector()
   }
 
-  // Load YouTube API script
   if (!window.YT) {
     const tag = document.createElement('script')
     tag.src = "https://www.youtube.com/iframe_api"
@@ -267,6 +266,7 @@ async function initStatus() {
     if (status.value === 'live') {
       triggerLive(data.videoUrl)
     } else {
+      initDetector()
       pollInterval = setInterval(pollServer, 60_000)
     }
   } catch {
