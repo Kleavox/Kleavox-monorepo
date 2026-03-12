@@ -2,16 +2,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE_NAME, verifyUserJWT, generateOTP } from "@/lib/auth";
+import { generateOTP } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/session";
 import { sendAdminDeletionCodeEmail } from "@/lib/mail";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const payload = verifyUserJWT(token);
+    const payload = await getAuthenticatedUser(req);
     if (!payload || payload.role !== 'ADMIN') {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

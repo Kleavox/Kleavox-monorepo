@@ -1,6 +1,6 @@
 {
   "name": "deaubit",
-  "version": "0.8.3",
+  "version": "9.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -41,7 +41,7 @@
     "dotenv-cli": "^11.0.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.3",
-    "prisma": "^7.4.2",
+    "prisma": "^6.19.2",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3"
   },

@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Loader2, BarChart3, Globe, Monitor, Link2 } from "lucide-react"; // Tambah icon Link2
+import { X, Loader2, BarChart3, Globe, Link2 } from "lucide-react"; 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface AnalyticsModalProps {
@@ -32,27 +32,27 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-      <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-[var(--db-surface)] border-4 border-[var(--db-border)] shadow-[12px_12px_0px_0px_var(--db-border)] p-6">
+      <div className="db-card relative w-full max-w-5xl max-h-[90vh] overflow-y-auto p-6 shadow-[12px_12px_0px_0px_var(--db-border)]">
         
-        <div className="flex items-center justify-between mb-6 border-b-4 border-[var(--db-border)] pb-4">
+        <div className="flex items-center justify-between mb-6 border-b-4 border-(--db-border) pb-4">
           <div>
-            <h2 className="text-xl font-black uppercase flex items-center gap-2 text-[var(--db-text)]">
-              <BarChart3 className="h-6 w-6 text-[var(--db-primary)]" />
-              Analytics: <span className="font-mono bg-[var(--db-accent)] px-2 text-black">/{slug}</span>
+            <h2 className="text-xl font-black uppercase flex items-center gap-2 text-(--db-text)">
+              <BarChart3 className="h-6 w-6 text-(--db-primary)" />
+              Analytics: <span className="font-mono bg-(--db-accent) px-2 text-black">/{slug}</span>
             </h2>
-            <p className="text-xs font-bold uppercase tracking-widest text-[var(--db-text-muted)] mt-1">Performance Data (7 Days)</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-(--db-text-muted) mt-1">Performance Data (7 Days)</p>
           </div>
-          <button onClick={onClose} className="border-2 border-[var(--db-border)] p-2 hover:bg-red-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="border-2 border-(--db-border) p-2 hover:bg-red-500 hover:text-white transition-colors">
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {loading ? (
-          <div className="h-60 flex items-center justify-center text-[var(--db-text-muted)] font-bold animate-pulse">
+          <div className="h-60 flex items-center justify-center text-(--db-text-muted) font-bold animate-pulse">
             <Loader2 className="h-10 w-10 animate-spin mr-2" /> LOADING DATA...
           </div>
         ) : !data ? (
-          <div className="h-40 flex items-center justify-center font-bold text-red-500 border-2 border-dashed border-[var(--db-border)]">
+          <div className="h-40 flex items-center justify-center font-bold text-red-500 border-2 border-dashed border-(--db-border)">
             FAILED TO LOAD DATA.
           </div>
         ) : (
@@ -61,11 +61,11 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
               {[
                 { label: "TOTAL CLICKS", value: data.total, icon: null },
                 { label: "TOP COUNTRY", value: data.topCountries[0]?.name || "-", icon: <Globe className="h-4 w-4"/> },
-                { label: "TOP SOURCE", value: data.topReferrers[0]?.name || "-", icon: <Link2 className="h-4 w-4"/> } // Update stat ke Source
+                { label: "TOP SOURCE", value: data.topReferrers[0]?.name || "-", icon: <Link2 className="h-4 w-4"/> } 
               ].map((stat, i) => (
-                <div key={i} className="p-4 bg-[var(--db-bg)] border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)]">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--db-text-muted)] mb-1">{stat.label}</p>
-                  <div className="flex items-center gap-2 text-[var(--db-text)]">
+                <div key={i} className="p-4 bg-(--db-bg) border-2 border-(--db-border) shadow-[4px_4px_0px_0px_var(--db-border)]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-(--db-text-muted) mb-1">{stat.label}</p>
+                  <div className="flex items-center gap-2 text-(--db-text)">
                      {stat.icon}
                      <p className="text-2xl font-black truncate">{stat.value}</p>
                   </div>
@@ -73,7 +73,7 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
               ))}
             </div>
 
-            <div className="h-64 w-full p-2 border-2 border-[var(--db-border)] bg-[var(--db-surface)]">
+            <div className="h-64 w-full p-2 border-2 border-(--db-border) bg-(--db-surface)">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data.chartData}>
                   <defs>
@@ -102,15 +102,15 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
                 { title: "TOP REFERRERS", list: data.topReferrers }
               ].map((section, idx) => (
                 <div key={idx}>
-                   <h3 className="text-sm font-black uppercase border-b-2 border-[var(--db-border)] mb-3 pb-1 text-[var(--db-text)]">{section.title}</h3>
+                   <h3 className="text-sm font-black uppercase border-b-2 border-(--db-border) mb-3 pb-1 text-(--db-text)">{section.title}</h3>
                    <div className="space-y-2">
                       {section.list.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs p-2 bg-[var(--db-bg)] border-2 border-[var(--db-border)] text-[var(--db-text)]">
+                        <div key={i} className="flex items-center justify-between text-xs p-2 bg-(--db-bg) border-2 border-(--db-border) text-(--db-text)">
                           <span className="font-bold truncate max-w-[150px]">{item.name || "Unknown"}</span>
-                          <span className="font-mono bg-[var(--db-primary)] text-[var(--db-primary-fg)] px-1.5">{item.value}</span>
+                          <span className="font-mono bg-(--db-primary) text-(--db-primary-fg) px-1.5">{item.value}</span>
                         </div>
                       ))}
-                      {section.list.length === 0 && <p className="text-xs font-medium text-[var(--db-text-muted)]">No data recorded.</p>}
+                      {section.list.length === 0 && <p className="text-xs font-medium text-(--db-text-muted)">No data recorded.</p>}
                    </div>
                 </div>
               ))}

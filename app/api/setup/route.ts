@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, message: "OTP sent to email." });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

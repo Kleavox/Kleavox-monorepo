@@ -2,16 +2,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyUserJWT, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const user = verifyUserJWT(token);
+    const user = await getAuthenticatedUser(req);
     if (!user || user.role !== "ADMIN") {
         return NextResponse.json({ error: "Forbidden: Admin access only" }, { status: 403 });
     }

@@ -17,7 +17,7 @@ export default function VerifyPage() {
         <VerifyForm />
 
         <div className="text-center">
-          <Link href="/register" className="inline-flex items-center gap-2 font-bold text-sm text-[var(--db-text-muted)] hover:text-[var(--db-text)] transition-colors">
+          <Link href="/register" className="inline-flex items-center gap-2 font-bold text-sm text-(--db-text-muted) hover:text-(--db-text) transition-colors">
             <ArrowLeft className="h-4 w-4" /> Incorrect Email? Go Back
           </Link>
         </div>

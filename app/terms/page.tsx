@@ -5,13 +5,13 @@ import DeauBitLogo from "@/components/DeauBitLogo";
 
 export default function TermsPage() {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 text-[var(--db-text)]">
-      <div className="mb-8 flex items-center gap-4 border-b-4 border-[var(--db-border)] pb-4">
+    <div className="max-w-3xl mx-auto px-4 py-12 text-(--db-text)">
+      <div className="mb-8 flex items-center gap-4 border-b-4 border-(--db-border) pb-4">
         <DeauBitLogo size={40} />
         <h1 className="text-3xl font-black uppercase">Terms of Service</h1>
       </div>
 
-      <div className="space-y-6 text-sm font-medium leading-relaxed bg-[var(--db-surface)] p-6 border-4 border-[var(--db-border)] shadow-[8px_8px_0px_0px_var(--db-border)]">
+      <div className="space-y-6 text-sm font-medium leading-relaxed bg-(--db-surface) p-6 border-4 border-(--db-border) shadow-[8px_8px_0px_0px_var(--db-border)]">
         <p>Last updated: December 2025</p>
 
         <section>
@@ -21,7 +21,7 @@ export default function TermsPage() {
 
         <section>
             <h2 className="text-xl font-black uppercase mb-2">2. Use License</h2>
-            <p>Permission is granted to temporarily download one copy of the materials (information or software) on DeauBit's website for personal, non-commercial transitory viewing only.</p>
+            <p>Permission is granted to temporarily download one copy of the materials (information or software) on DeauBit&apos;s website for personal, non-commercial transitory viewing only.</p>
         </section>
 
         <section>
@@ -37,11 +37,11 @@ export default function TermsPage() {
 
         <section>
             <h2 className="text-xl font-black uppercase mb-2">4. Disclaimer</h2>
-            <p>The materials on DeauBit's website are provided "as is". DeauBit makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties.</p>
+            <p>The materials on DeauBit&apos;s website are provided &quot;as is&quot;. DeauBit makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties.</p>
         </section>
 
-        <div className="pt-6 border-t-2 border-dashed border-[var(--db-border)]">
-            <Link href="/" className="font-black text-[var(--db-primary)] hover:underline">
+        <div className="pt-6 border-t-2 border-dashed border-(--db-border)">
+            <Link href="/" className="font-black text-(--db-primary) hover:underline">
                 &larr; Back to Home
             </Link>
         </div>

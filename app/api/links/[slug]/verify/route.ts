@@ -36,7 +36,7 @@ export async function POST(
 
     return NextResponse.json({ targetUrl: link.targetUrl });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

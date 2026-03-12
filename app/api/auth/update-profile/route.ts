@@ -3,14 +3,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { SESSION_COOKIE_NAME, verifyUserJWT } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    
-    const payload = verifyUserJWT(token);
+    const payload = await getAuthenticatedUser(req);
     if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { name, oldPassword, newPassword } = await req.json();
@@ -18,7 +15,7 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({ where: { id: payload.id } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const updateData: any = {};
+    const updateData: { name?: string; password?: string } = {};
 
     if (name) {
         updateData.name = name;
@@ -42,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

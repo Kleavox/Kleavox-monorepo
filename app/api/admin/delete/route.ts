@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { action: string; slug: string };
         if (decoded.action !== 'delete_abuse' || decoded.slug !== slug) {
             throw new Error("Invalid token claim");
         }
-    } catch (e) {
+    } catch {
         return NextResponse.json({ error: "Invalid or expired token" }, { status: 403 });
     }
 

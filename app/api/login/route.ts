@@ -6,15 +6,7 @@ import bcrypt from "bcryptjs";
 import { signUserJWT, SESSION_COOKIE_NAME, SESSION_MAX_AGE } from "@/lib/auth";
 import { isLoginBlocked, registerFailedLogin } from "@/lib/loginRateLimit";
 import { storeSession } from "@/lib/session";
-import { createHmac } from "crypto";
-
-const TURNSTILE_COOKIE_NAME = "db-cv";
-const TURNSTILE_VALIDITY = 300; 
-
-function signData(data: string) {
-    const secret = process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-key";
-    return createHmac("sha256", secret).update(data).digest("hex");
-}
+import { verifyTurnstileWithCookie } from "@/lib/turnstile";
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -24,7 +16,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
   }
 
-  const { email, password } = (body || {}) as { email?: string; password?: string };
+  const { email, password, cfTurnstile } = (body || {}) as { email?: string; password?: string; cfTurnstile?: string };
+
+  const turnstileCheck = await verifyTurnstileWithCookie(req, cfTurnstile);
+  if (!turnstileCheck.success) {
+      return NextResponse.json({ error: "Security check failed (Captcha)." }, { status: 400 });
+  }
 
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
@@ -40,19 +37,6 @@ export async function POST(req: NextRequest) {
       { status: 429 }
     );
   }
-
-  const withTurnstileCookie = (res: NextResponse) => {
-      const now = Math.floor(Date.now() / 1000);
-      const signature = signData(now.toString());
-      res.cookies.set(TURNSTILE_COOKIE_NAME, `${now}.${signature}`, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: TURNSTILE_VALIDITY,
-      });
-      return res;
-  };
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
@@ -79,7 +63,6 @@ export async function POST(req: NextRequest) {
       role: user.role
     });
 
-    // Store session in Redis (no-op in dev when REDIS_URL is not set)
     await storeSession(jti, SESSION_MAX_AGE);
 
     const res = NextResponse.json({ ok: true });
@@ -94,7 +77,10 @@ export async function POST(req: NextRequest) {
       maxAge: SESSION_MAX_AGE,
     });
     
-    return withTurnstileCookie(res);
+    if (turnstileCheck.cookieAction) {
+        return turnstileCheck.cookieAction(res);
+    }
+    return res;
 
   } catch (error) {
     console.error("Login error:", error);

@@ -19,17 +19,4 @@ export function sanitizeAndValidateUrl(url: string): string | null {
     
     let cleaned = url.trim();
 
-    if (!/^https?:\/\//i.test(cleaned)) {
-        cleaned = `https://${cleaned}`;
-    }
-
-    try {
-        const parsed = new URL(cleaned);
-        if (!parsed.hostname.includes(".")) {
-             return null;
-        }
-        return parsed.href;
-    } catch {
-        return null;
-    }
-}
+    if (!/^https?:\/\

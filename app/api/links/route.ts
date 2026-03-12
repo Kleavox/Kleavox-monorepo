@@ -4,18 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateRandomSlug } from "@/lib/slug";
 import bcrypt from "bcryptjs";
-import { SESSION_COOKIE_NAME, verifyUserJWT } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/session";
 import { sanitizeAndValidateUrl, isValidSlug } from "@/lib/validation";
-
-function getUser(req: NextRequest) {
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) return null;
-  return verifyUserJWT(token);
-}
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUser(req);
+    const user = await getAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -46,14 +40,14 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / limit),
       }
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Error fetching links" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getUser(req);
+    const user = await getAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

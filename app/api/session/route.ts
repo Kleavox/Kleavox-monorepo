@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     return res;
   }
 
-  // Validate session in Redis (no-op / returns true in dev)
+  
   if (payload.jti) {
     const valid = await validateSession(payload.jti);
     if (!valid) {
@@ -31,11 +31,11 @@ export async function GET(req: NextRequest) {
       res.cookies.delete(SESSION_COOKIE_NAME);
       return res;
     }
-    // Rotate: delete old JTI, issue new one
+    
     await deleteSession(payload.jti);
   }
 
-  // Issue a new JWT with a fresh JTI (rolling window)
+  
   const { token: newToken, jti: newJti } = signUserJWT({
     id: payload.id,
     email: payload.email,

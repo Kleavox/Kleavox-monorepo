@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
             padding: "20px",
           }}
         >
+          {}
           <img src={qrUrl} width={450} height={450} alt="QR Code" />
         </div>
       </div>

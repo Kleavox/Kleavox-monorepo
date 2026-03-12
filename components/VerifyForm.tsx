@@ -90,18 +90,18 @@ function VerifyContent() {
 
   if (success) {
     return (
-      <div className="bg-[var(--db-surface)] border-4 border-[var(--db-border)] p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center animate-in zoom-in-95 duration-300 w-full max-w-md">
-         <div className="inline-flex p-4 bg-[var(--db-success)] border-4 border-[var(--db-border)] rounded-full mb-6 shadow-[4px_4px_0px_0px_var(--db-border)] animate-in zoom-in-50 duration-300">
+      <div className="bg-(--db-surface) border-4 border-(--db-border) p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center animate-in zoom-in-95 duration-300 w-full max-w-md">
+         <div className="inline-flex p-4 bg-(--db-success) border-4 border-(--db-border) rounded-full mb-6 shadow-[4px_4px_0px_0px_var(--db-border)] animate-in zoom-in-50 duration-300">
              <CheckCircle2 className="h-12 w-12 text-white" />
          </div>
-         <h2 className="text-3xl font-black uppercase text-[var(--db-text)] mb-2">ACCOUNT VERIFIED!</h2>
-         <p className="text-sm font-bold text-[var(--db-text-muted)] mb-8">
+         <h2 className="text-3xl font-black uppercase text-(--db-text) mb-2">ACCOUNT VERIFIED!</h2>
+         <p className="text-sm font-bold text-(--db-text-muted) mb-8">
             Your account has been successfully created. You can now login to your dashboard.
          </p>
          
          <button 
             onClick={() => router.push("/")}
-            className="w-full bg-[var(--db-text)] text-[var(--db-bg)] py-4 font-black uppercase border-2 border-[var(--db-border)] hover:shadow-[6px_6px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all"
+            className="w-full bg-(--db-text) text-(--db-bg) py-4 font-black uppercase border-2 border-(--db-border) hover:shadow-[6px_6px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all"
          >
             GO TO LOGIN
          </button>
@@ -111,12 +111,12 @@ function VerifyContent() {
 
   if (!emailConfirmed) {
     return (
-      <div className="bg-[var(--db-surface)] border-4 border-[var(--db-border)] p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center w-full max-w-md">
-        <div className="inline-block p-3 bg-[var(--db-accent)] border-2 border-[var(--db-border)] rounded-full mb-4">
-          <ShieldCheck className="h-8 w-8 text-[var(--db-accent-fg)]" />
+      <div className="bg-(--db-surface) border-4 border-(--db-border) p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center w-full max-w-md">
+        <div className="inline-block p-3 bg-(--db-accent) border-2 border-(--db-border) rounded-full mb-4">
+          <ShieldCheck className="h-8 w-8 text-(--db-accent-fg)" />
         </div>
-        <h2 className="text-2xl font-black uppercase text-[var(--db-text)] mb-1">VERIFY EMAIL</h2>
-        <p className="text-xs font-bold text-[var(--db-text-muted)] mb-6">Enter your email address to receive a verification code.</p>
+        <h2 className="text-2xl font-black uppercase text-(--db-text) mb-1">VERIFY EMAIL</h2>
+        <p className="text-xs font-bold text-(--db-text-muted) mb-6">Enter your email address to receive a verification code.</p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -127,7 +127,7 @@ function VerifyContent() {
           <input
             type="email"
             required
-            className="w-full bg-[var(--db-bg)] border-4 border-[var(--db-border)] px-4 py-3 text-base font-bold text-[var(--db-text)] placeholder:font-normal placeholder:text-[var(--db-text-muted)] focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--db-border)] transition-all"
+            className="w-full bg-(--db-bg) border-4 border-(--db-border) px-4 py-3 text-base font-bold text-(--db-text) placeholder:font-normal placeholder:text-(--db-text-muted) focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--db-border)] transition-all"
             placeholder="user@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -136,7 +136,7 @@ function VerifyContent() {
           <button
             type="submit"
             disabled={!email}
-            className="w-full bg-[var(--db-primary)] text-[var(--db-primary-fg)] py-3 font-black uppercase border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-(--db-primary) text-(--db-primary-fg) py-3 font-black uppercase border-2 border-(--db-border) shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             CONTINUE
           </button>
@@ -146,16 +146,16 @@ function VerifyContent() {
   }
 
   return (
-    <div className="bg-[var(--db-surface)] border-4 border-[var(--db-border)] p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center w-full max-w-md">
-      <div className="inline-block p-3 bg-[var(--db-accent)] border-2 border-[var(--db-border)] rounded-full mb-4">
-          <ShieldCheck className="h-8 w-8 text-[var(--db-accent-fg)]"/>
+    <div className="bg-(--db-surface) border-4 border-(--db-border) p-8 shadow-[8px_8px_0px_0px_var(--db-border)] text-center w-full max-w-md">
+      <div className="inline-block p-3 bg-(--db-accent) border-2 border-(--db-border) rounded-full mb-4">
+          <ShieldCheck className="h-8 w-8 text-(--db-accent-fg)"/>
       </div>
-      <h2 className="text-2xl font-black uppercase text-[var(--db-text)] mb-1">VERIFY EMAIL</h2>
-      <p className="text-xs font-bold text-[var(--db-text-muted)] mb-6">Code sent to {email}</p>
+      <h2 className="text-2xl font-black uppercase text-(--db-text) mb-1">VERIFY EMAIL</h2>
+      <p className="text-xs font-bold text-(--db-text-muted) mb-6">Code sent to {email}</p>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <input 
-            className="w-full text-center text-3xl font-mono font-bold tracking-[0.5em] py-4 bg-[var(--db-bg)] border-4 border-[var(--db-border)] focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--db-border)] text-[var(--db-text)] placeholder:text-[var(--db-text-muted)] transition-all" 
+            className="w-full text-center text-3xl font-mono font-bold tracking-[0.5em] py-4 bg-(--db-bg) border-4 border-(--db-border) focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--db-border)] text-(--db-text) placeholder:text-(--db-text-muted) transition-all" 
             placeholder="000000" 
             maxLength={6} 
             value={otp} 
@@ -165,15 +165,15 @@ function VerifyContent() {
         
         <div className="min-h-[3.5rem] flex items-center justify-center px-1">
             {error ? (
-                <div className="bg-[var(--db-danger)] text-white font-bold text-xs p-2 border-2 border-[var(--db-border)] shadow-[2px_2px_0px_0px_var(--db-border)] w-full animate-in fade-in slide-in-from-top-1 duration-200 flex items-center justify-center gap-2">
+                <div className="bg-(--db-danger) text-white font-bold text-xs p-2 border-2 border-(--db-border) shadow-[2px_2px_0px_0px_var(--db-border)] w-full animate-in fade-in slide-in-from-top-1 duration-200 flex items-center justify-center gap-2">
                    <AlertCircle className="h-4 w-4 shrink-0" /> {error}
                 </div>
             ) : resendMessage ? (
-                <div className="bg-[var(--db-success)] text-white font-bold text-xs p-2 border-2 border-[var(--db-border)] shadow-[2px_2px_0px_0px_var(--db-border)] w-full animate-in fade-in slide-in-from-top-1 duration-200 flex items-center justify-center gap-2">
+                <div className="bg-(--db-success) text-white font-bold text-xs p-2 border-2 border-(--db-border) shadow-[2px_2px_0px_0px_var(--db-border)] w-full animate-in fade-in slide-in-from-top-1 duration-200 flex items-center justify-center gap-2">
                    <CheckCircle2 className="h-4 w-4 shrink-0" /> {resendMessage}
                 </div>
             ) : (
-                <div className="w-full h-full flex items-center justify-center opacity-0 pointer-events-none text-xs font-bold text-[var(--db-text-muted)]">
+                <div className="w-full h-full flex items-center justify-center opacity-0 pointer-events-none text-xs font-bold text-(--db-text-muted)">
                     Waiting for input...
                 </div>
             )}
@@ -182,7 +182,7 @@ function VerifyContent() {
         <button 
             type="submit" 
             disabled={loading || otp.length < 6} 
-            className="w-full bg-[var(--db-primary)] text-[var(--db-primary-fg)] py-3 font-black uppercase border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-(--db-primary) text-(--db-primary-fg) py-3 font-black uppercase border-2 border-(--db-border) shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
             {loading ? <Loader2 className="animate-spin mx-auto"/> : "CONFIRM CODE"}
         </button>
@@ -192,7 +192,7 @@ function VerifyContent() {
                 type="button"
                 onClick={handleResend}
                 disabled={cooldown > 0 || resendLoading}
-                className="text-xs font-bold text-[var(--db-text-muted)] hover:text-[var(--db-primary)] disabled:opacity-50 disabled:hover:text-[var(--db-text-muted)] flex items-center justify-center gap-2 mx-auto transition-colors h-8"
+                className="text-xs font-bold text-(--db-text-muted) hover:text-(--db-primary) disabled:opacity-50 disabled:hover:text-(--db-text-muted) flex items-center justify-center gap-2 mx-auto transition-colors h-8"
             >
                 {resendLoading ? (
                     <Loader2 className="h-3 w-3 animate-spin" />

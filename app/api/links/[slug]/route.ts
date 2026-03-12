@@ -3,21 +3,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidateTag } from "next/cache"; 
-import { SESSION_COOKIE_NAME, verifyUserJWT } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/session";
 import bcrypt from "bcryptjs";
 import { sanitizeAndValidateUrl } from "@/lib/validation";
-
-function getUser(req: NextRequest) {
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) return null;
-  return verifyUserJWT(token);
-}
 
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ slug: string }> },
 ) {
-  const user = getUser(req);
+  const user = await getAuthenticatedUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -60,7 +54,7 @@ export async function PATCH(
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const user = getUser(req);
+    const user = await getAuthenticatedUser(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { slug: rawSlug } = await context.params;
@@ -78,7 +72,11 @@ export async function PATCH(
 
     if (!isOwner && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const updateData: any = {};
+    const updateData: {
+        targetUrl?: string;
+        password?: string | null;
+        expiresAt?: Date | null;
+    } = {};
 
     if (body.targetUrl) {
       const cleanUrl = sanitizeAndValidateUrl(body.targetUrl);

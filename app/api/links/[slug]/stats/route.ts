@@ -2,20 +2,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE_NAME, verifyUserJWT } from "@/lib/auth";
-
-function getUser(req: NextRequest) {
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) return null;
-  return verifyUserJWT(token);
-}
+import { getAuthenticatedUser } from "@/lib/session";
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const user = getUser(req);
+    const user = await getAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -38,7 +32,7 @@ export async function GET(
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // Run all aggregation queries in parallel
+    
     const [
       total,
       clicksByDay,
@@ -106,7 +100,7 @@ export async function GET(
       }),
     ]);
 
-    // Build chart data for last 7 days
+    
     const last7Days = new Array(7).fill(0).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
@@ -142,7 +136,7 @@ export async function GET(
       topReferrers: referrerGroups.map((r) => ({ name: cleanReferrer(r.referrer), value: r._count.id })),
       recentClicks,
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

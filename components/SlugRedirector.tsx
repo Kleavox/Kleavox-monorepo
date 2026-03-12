@@ -18,13 +18,13 @@ export default function SlugRedirector({ target, delay = 5 }: { target: string; 
 
   return (
     <div className="w-full space-y-2">
-      <div className="h-12 border-4 border-[var(--db-border)] bg-[var(--db-bg)] relative overflow-hidden shadow-[4px_4px_0px_0px_var(--db-border)]">
+      <div className="h-12 border-4 border-(--db-border) bg-(--db-bg) relative overflow-hidden shadow-[4px_4px_0px_0px_var(--db-border)]">
          <div 
-            className="absolute top-0 left-0 h-full bg-[var(--db-primary)] transition-all duration-100 ease-linear border-r-4 border-[var(--db-border)]"
+            className="absolute top-0 left-0 h-full bg-(--db-primary) transition-all duration-100 ease-linear border-r-4 border-(--db-border)"
             style={{ width: `${progressPercent}%` }}
          />
          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <span className="font-black font-mono text-lg text-[var(--db-text)] mix-blend-hard-light">
+            <span className="font-black font-mono text-lg text-(--db-text) mix-blend-hard-light">
                 {Math.ceil(timeLeft)}s
             </span>
          </div>

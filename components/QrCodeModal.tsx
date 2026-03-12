@@ -41,19 +41,20 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-      <div className="relative w-full max-w-sm bg-[var(--db-surface)] border-4 border-[var(--db-border)] shadow-[12px_12px_0px_0px_var(--db-border)] p-6 space-y-6">
+      <div className="db-card relative w-full max-w-sm p-6 shadow-[12px_12px_0px_0px_var(--db-border)] space-y-6">
         
-        <div className="flex items-center justify-between border-b-4 border-[var(--db-border)] pb-4">
+        <div className="flex items-center justify-between border-b-4 border-(--db-border) pb-4">
           <div>
-            <h3 className="text-lg font-black uppercase flex items-center gap-2 text-[var(--db-text)]">
+            <h3 className="text-lg font-black uppercase flex items-center gap-2 text-(--db-text)">
               <QrCode className="h-5 w-5" /> QR CODE
             </h3>
-            <p className="text-xs font-mono bg-[var(--db-accent)] text-black px-1 inline-block mt-1">/{slug}</p>
+            <p className="text-xs font-mono bg-(--db-accent) text-black px-1 inline-block mt-1">/{slug}</p>
           </div>
-          <button onClick={onClose} className="border-2 border-[var(--db-border)] p-1 hover:bg-red-500 hover:text-white transition-colors"><X className="h-5 w-5"/></button>
+          <button onClick={onClose} className="border-2 border-(--db-border) p-1 hover:bg-red-500 hover:text-white transition-colors"><X className="h-5 w-5"/></button>
         </div>
 
-        <div className="bg-white border-4 border-[var(--db-border)] p-2 flex items-center justify-center aspect-square relative min-h-[300px]">
+        <div className="bg-white border-4 border-(--db-border) p-2 flex items-center justify-center aspect-square relative min-h-[300px] overflow-hidden">
+          <div className="qr-scan-line z-20" />
           
           {!imgLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10">
@@ -62,28 +63,29 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
             </div>
           )}
 
+          {}
           <img 
             src={previewQrUrl} 
             alt={`QR ${slug}`} 
-            className={`w-full h-full object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`} 
+            className={`w-full h-full object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100 animate-qr-pulse' : 'opacity-0'}`} 
             onLoad={() => setImgLoaded(true)}
             loading="eager" 
           />
         </div>
         
         {downloadError && (
-          <div className="bg-[var(--db-danger)] text-white text-xs font-bold p-2 border-2 border-[var(--db-border)] text-center">
+          <div className="bg-(--db-danger) text-white text-xs font-bold p-2 border-2 border-(--db-border) text-center">
             DOWNLOAD FAILED. TRY AGAIN.
           </div>
         )}
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 font-bold border-2 border-[var(--db-border)] hover:bg-[var(--db-bg)] text-[var(--db-text)]">CLOSE</button>
+          <button onClick={onClose} className="flex-1 py-3 font-bold border-2 border-(--db-border) hover:bg-(--db-bg) text-(--db-text)">CLOSE</button>
           
           <button 
             onClick={handleDownload} 
             disabled={downloading || !imgLoaded} 
-            className="flex-1 py-3 font-bold bg-[var(--db-primary)] text-white border-2 border-[var(--db-border)] hover:shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-3 font-bold bg-(--db-primary) text-white border-2 border-(--db-border) hover:shadow-[4px_4px_0px_0px_var(--db-border)] hover:-translate-y-1 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {downloading ? <Loader2 className="h-4 w-4 animate-spin"/> : <><Download className="h-4 w-4"/> DOWNLOAD</>}
           </button>

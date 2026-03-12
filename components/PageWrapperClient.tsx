@@ -32,7 +32,9 @@ export default function PageWrapperClient({
   if (isSlugPage) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
-        {children}
+        <div key={pathname} className="animate-page-in w-full flex justify-center">
+          {children}
+        </div>
       </div>
     );
   }
@@ -42,7 +44,9 @@ export default function PageWrapperClient({
       <>
         <ThemeToggle />
         <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 pb-24 transition-all duration-300">
-          {children}
+          <div key={pathname} className="animate-page-in w-full flex flex-col items-center">
+            {children}
+          </div>
         </div>
       </>
     );
@@ -52,7 +56,11 @@ export default function PageWrapperClient({
     <>
       <ThemeToggle />
       <div className="min-h-screen flex flex-col px-4 items-center md:items-start justify-start py-8 pb-28 transition-all duration-300">
-        <AppShell>{children}</AppShell>
+        <AppShell>
+          <div key={pathname} className="animate-page-in w-full h-full">
+            {children}
+          </div>
+        </AppShell>
       </div>
     </>
   );

@@ -47,67 +47,7 @@ export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    setMounted(true);
     const isDark = document.documentElement.classList.contains("dark");
-    setTheme(isDark ? "dark" : "light");
-  }, []);
-
-  function setThemeEverywhere(newTheme: Theme) {
-    const html = document.documentElement;
-
-    if (newTheme === "dark") {
-      html.classList.add("dark");
-    } else {
-      html.classList.remove("dark");
-    }
-
-    try {
-      window.localStorage.setItem("theme", newTheme);
-    } catch {}
-
-    writeThemeCookie(newTheme);
-    setTheme(newTheme);
-  }
-
-  function toggleTheme() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    setThemeEverywhere(next);
-  }
-
-  if (!mounted) {
-    return (
-      <div className="fixed right-4 bottom-4 z-50 p-3 bg-[var(--db-surface)] border-2 border-[var(--db-border)] shadow-[4px_4px_0px_0px_var(--db-border)]">
-         <Loader2 className="h-6 w-6 animate-spin text-[var(--db-text)]" />
-      </div>
-    );
-  }
-
-  const isDark = theme === "dark";
-
-  return (
-    <button
-      type="button"
-      onClick={toggleTheme}
-      aria-label="Toggle theme"
-      className={`
-        fixed right-4 bottom-4 z-50 
-        flex items-center justify-center
-        p-3
-        bg-[var(--db-surface)] border-2 border-[var(--db-border)]
-        shadow-[4px_4px_0px_0px_var(--db-border)] 
-        hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--db-border)] 
-        active:translate-y-0 active:shadow-[2px_2px_0px_0px_var(--db-border)]
-        transition-all 
-        cursor-pointer
-      `}
-    >
-      <div className="text-[var(--db-text)]">
-        {isDark ? (
-            <Moon className="h-6 w-6 fill-current" />
-        ) : (
-            <SunMedium className="h-6 w-6 fill-yellow-400" />
-        )}
-      </div>
-    </button>
-  );
-}
+    const currentTheme = isDark ? "dark" : "light";
+    
+    

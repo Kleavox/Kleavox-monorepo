@@ -66,7 +66,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${mono.variable} antialiased font-sans bg-[var(--db-bg)] text-[var(--db-text)] selection:bg-[var(--db-primary)] selection:text-white`}
+        className={`${inter.variable} ${mono.variable} antialiased font-sans bg-(--db-bg) text-(--db-text) selection:bg-(--db-primary) selection:text-white`}
       >
         <PageWrapperClient>{children}</PageWrapperClient>
       </body>

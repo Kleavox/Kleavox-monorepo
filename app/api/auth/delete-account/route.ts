@@ -3,15 +3,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { SESSION_COOKIE_NAME, verifyUserJWT, generateOTP } from "@/lib/auth";
+import { generateOTP, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sendAccountDeletedEmail, sendAdminDeletionCodeEmail, sendAdminGoodbyeEmail } from "@/lib/mail";
+import { getAuthenticatedUser } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const payload = verifyUserJWT(token);
+    const payload = await getAuthenticatedUser(req);
     if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { password, otp } = await req.json();

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       message: `Successfully deleted ${result.count} expired link(s).`,
     });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

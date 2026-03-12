@@ -32,12 +32,4 @@ if (process.env.REDIS_URL) {
       }
     });
 
-    // Preserve singleton across hot reloads in dev
-    if (process.env.NODE_ENV !== "production") {
-      globalForRedis.redis = redis;
-    }
-  }
-}
-
-export { redis };
-export default redis;
+    
