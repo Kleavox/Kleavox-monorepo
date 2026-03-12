@@ -163,7 +163,7 @@ function VerifyContent() {
             autoFocus 
         />
         
-        <div className="min-h-[3.5rem] flex items-center justify-center px-1">
+        <div className="min-h-14 flex items-center justify-center px-1">
             {error ? (
                 <div className="bg-(--db-danger) text-white font-bold text-xs p-2 border-2 border-(--db-border) shadow-[2px_2px_0px_0px_var(--db-border)] w-full animate-in fade-in slide-in-from-top-1 duration-200 flex items-center justify-center gap-2">
                    <AlertCircle className="h-4 w-4 shrink-0" /> {error}

@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { X, Download, Loader2, QrCode } from "lucide-react";
 
 interface QrCodeModalProps { slug: string; shortUrl: string; onClose: () => void; }
@@ -53,7 +54,7 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
           <button onClick={onClose} className="border-2 border-(--db-border) p-1 hover:bg-red-500 hover:text-white transition-colors"><X className="h-5 w-5"/></button>
         </div>
 
-        <div className="bg-white border-4 border-(--db-border) p-2 flex items-center justify-center aspect-square relative min-h-[300px] overflow-hidden">
+        <div className="bg-white border-4 border-(--db-border) p-2 flex items-center justify-center aspect-square relative min-h-75 overflow-hidden">
           <div className="qr-scan-line z-20" />
           
           {!imgLoaded && (
@@ -63,13 +64,14 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
             </div>
           )}
 
-          {}
-          <img 
+          <Image 
             src={previewQrUrl} 
             alt={`QR ${slug}`} 
+            width={300}
+            height={300}
             className={`w-full h-full object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100 animate-qr-pulse' : 'opacity-0'}`} 
             onLoad={() => setImgLoaded(true)}
-            loading="eager" 
+            unoptimized
           />
         </div>
         

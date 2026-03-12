@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
             padding: "20px",
           }}
         >
-          {}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qrUrl} width={450} height={450} alt="QR Code" />
         </div>
       </div>

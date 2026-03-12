@@ -47,8 +47,8 @@ export default function UserMenu({ username = "User", role = "USER" }: UserMenuP
         }`}>
           {username.charAt(0).toUpperCase()}
         </div>
-        <div className="flex flex-col items-start leading-none hidden sm:flex">
-          <span className="font-bold text-sm truncate max-w-[120px]">{username}</span>
+        <div className="hidden sm:flex flex-col items-start leading-none">
+          <span className="font-bold text-sm truncate max-w-30">{username}</span>
           {role === "ADMIN" ? (
              <span className={`text-[10px] font-black px-1 border mt-0.5 ${
                  isAdminPage ? "bg-white text-red-600 border-red-600" : "bg-red-100 text-red-600 border-red-200"

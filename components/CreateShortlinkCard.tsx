@@ -90,7 +90,7 @@ export function CreateShortlinkCard({
             
             {isExpanded && (
                 <div className="p-3 pt-0 grid grid-cols-1 gap-3 animate-in slide-in-from-top-1 fade-in duration-200">
-                    <div className="h-[1px] bg-(--db-border)/20 mb-1 w-full"></div>
+                    <div className="h-px bg-(--db-border)/20 mb-1 w-full"></div>
                     
                     <div className="flex items-center gap-2 bg-(--db-surface) border-2 border-(--db-border) px-2 py-2 focus-within:shadow-[2px_2px_0px_0px_var(--db-border)] transition-shadow">
                         <Lock className="h-4 w-4 text-(--db-text) shrink-0" />
@@ -131,7 +131,7 @@ export function CreateShortlinkCard({
         <button
           type="submit"
           disabled={loading || !targetUrl}
-          className="w-full bg-(--db-primary) text-(--db-primary-fg) border-2 border-(--db-border) py-3 lg:py-4 font-black text-xs lg:text-sm uppercase tracking-widest shadow-[4px_4px_0px_0px_var(--db-border)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_var(--db-border)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full bg-(--db-primary) text-(--db-primary-fg) border-2 border-(--db-border) py-3 lg:py-4 font-black text-xs lg:text-sm uppercase tracking-widest shadow-[4px_4px_0px_0px_var(--db-border)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_var(--db-border)] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin"/> : <><ArrowRight className="h-5 w-5" /> SHORTEN IT!</>}
         </button>

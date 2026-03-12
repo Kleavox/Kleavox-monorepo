@@ -128,7 +128,7 @@ export default function ReportPage() {
             <div>
                 <label className="font-black text-xs uppercase mb-1 block text-(--db-text)">Additional Details (Optional)</label>
                 <textarea 
-                    className="w-full bg-(--db-bg) border-2 border-(--db-border) p-3 font-medium text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--db-border)] transition-all min-h-[80px]"
+                    className="w-full bg-(--db-bg) border-2 border-(--db-border) p-3 font-medium text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--db-border)] transition-all min-h-20"
                     placeholder="Describe the issue..."
                     value={formData.details}
                     onChange={e => setFormData({...formData, details: e.target.value})}

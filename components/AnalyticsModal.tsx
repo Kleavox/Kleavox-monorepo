@@ -106,7 +106,7 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
                    <div className="space-y-2">
                       {section.list.map((item, i) => (
                         <div key={i} className="flex items-center justify-between text-xs p-2 bg-(--db-bg) border-2 border-(--db-border) text-(--db-text)">
-                          <span className="font-bold truncate max-w-[150px]">{item.name || "Unknown"}</span>
+                          <span className="font-bold truncate max-w-37.5">{item.name || "Unknown"}</span>
                           <span className="font-mono bg-(--db-primary) text-(--db-primary-fg) px-1.5">{item.value}</span>
                         </div>
                       ))}

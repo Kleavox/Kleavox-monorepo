@@ -1,6 +1,6 @@
 {
   "name": "deaubit",
-  "version": "9.0.0",
+  "version": "9.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.4.1",
-    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "@types/ua-parser-js": "^0.7.39",
     "bcryptjs": "^3.0.3",

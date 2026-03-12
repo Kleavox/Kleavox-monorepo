@@ -18,17 +18,47 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)',
-          border: '3px solid #000000',
-          borderRadius: '0px',
-          color: 'white',
-          fontSize: 20,
-          fontWeight: 900,
-          fontFamily: 'sans-serif',
-          textShadow: '1px 1px 0px rgba(0,0,0,0.3)',
+          backgroundColor: '#030712',
+          position: 'relative',
         }}
       >
-        D
+        <div 
+          style={{
+            position: 'absolute',
+            top: '6px',
+            left: '6px',
+            width: '24px',
+            height: '24px',
+            backgroundColor: '#fbbf24',
+          }}
+        />
+        
+        <div
+          style={{
+            position: 'absolute',
+            top: '2px',
+            left: '2px',
+            width: '24px',
+            height: '24px',
+            backgroundColor: '#4f46e5',
+            border: '2px solid #ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span
+            style={{
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: 900,
+              fontFamily: 'sans-serif',
+              lineHeight: 1,
+            }}
+          >
+            D
+          </span>
+        </div>
       </div>
     ),
     {

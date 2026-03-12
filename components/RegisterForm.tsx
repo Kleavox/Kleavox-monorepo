@@ -188,7 +188,7 @@ export default function RegisterForm() {
                />
           </div>
 
-          <div className="min-h-[3rem] w-full flex items-center justify-center px-1 py-1">
+          <div className="min-h-12 w-full flex items-center justify-center px-1 py-1">
               <div 
                   className={`
                       w-full p-2 flex items-center gap-2 text-[9px] font-bold
@@ -201,7 +201,7 @@ export default function RegisterForm() {
                   `}
               >
                   <AlertCircle className={`h-4 w-4 shrink-0 ${!error && "opacity-0"}`} />
-                  <span className="leading-tight break-words w-full">
+                  <span className="leading-tight wrap-break-word w-full">
                      {error || "Placeholder"}
                   </span>
               </div>

@@ -101,7 +101,7 @@ function ShortlinkRow({
               />
               <div className="flex flex-col gap-1">
                   <span className="text-[8px] font-black uppercase tracking-tighter text-(--db-text-muted) leading-none">Slug</span>
-                  <a href={shortUrl} target="_blank" className={`truncate bg-(--db-accent) text-(--db-accent-fg) text-[10px] lg:text-xs font-black px-2 py-1 border-2 border-(--db-border) shadow-[2px_2px_0px_0px_var(--db-border)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all flex items-center gap-1 cursor-pointer ${isCopied ? "animate-copy-flash" : ""}`}>
+                  <a href={shortUrl} target="_blank" className={`truncate bg-(--db-accent) text-(--db-accent-fg) text-[10px] lg:text-xs font-black px-2 py-1 border-2 border-(--db-border) shadow-[2px_2px_0px_0px_var(--db-border)] hover:translate-x-px hover:translate-y-px hover:shadow-none transition-all flex items-center gap-1 cursor-pointer ${isCopied ? "animate-copy-flash" : ""}`}>
                       /{link.slug} <ExternalLink className="h-3 w-3"/>
                   </a>
               </div>
