@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.4.1",
-    "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.4.2",
+    "@prisma/adapter-pg": "^6.19.2",
+    "@prisma/client": "^6.19.2",
     "@types/ua-parser-js": "^0.7.39",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
