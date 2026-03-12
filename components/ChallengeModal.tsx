@@ -29,7 +29,7 @@ export default function ChallengeModal({ onSuccess, onClose }: ChallengeModalPro
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+        <div className="fixed inset-0 z-100 flex items-center justify-center px-4 bg-black/80 backdrop-blur-md animate-in fade-in">
             <div className="db-card w-full max-w-sm p-8 space-y-6 animate-success-pop">
                 
                 <div className="flex items-center justify-between border-b-4 border-(--db-border) pb-4">
