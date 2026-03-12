@@ -109,7 +109,7 @@
             </span>
           </a>
         </div>
-        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.0.3</div>
+        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.1.0</div>
       </div>
     </footer>
 

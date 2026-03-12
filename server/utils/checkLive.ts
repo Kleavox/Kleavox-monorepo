@@ -35,22 +35,30 @@ export function isActuallyLive(html: string, channelId: string, context: string)
 
   const indicators = {
     isLiveTrue: html.includes('"isLive":true'),
+    isLiveNow: html.includes('"isLiveNow":true'),
+    isLiveBroadcast: html.includes('"isLiveBroadcast":true'),
     styleLive: html.includes('"style":"LIVE"'),
     labelLive: html.includes('"label":"LIVE"'),
-    indicatorTag: html.includes('yt-live-label-display-renderer'),
-    hls: html.includes('hlsManifestUrl')
+    statusLive: html.includes('"status":"LIVE"'),
+    indicatorTag: html.includes('yt-live-label-display-renderer')
   };
   
-  const isUpcoming = html.includes('"isUpcoming":true') || 
-                     html.includes('"style":"UPCOMING"') || 
-                     html.includes('"upcomingEventData"');
+  const negativeIndicators = {
+    isUpcoming: html.includes('"isUpcoming":true') || html.includes('"style":"UPCOMING"'),
+    isPostLive: html.includes('"isPostLiveDvr":true'),
+    hasEndDate: html.includes('"endDate"'),
+    endedStatus: html.includes('"status":"ENDED"') || html.includes('Streamed live') || html.includes('Livestream ended')
+  };
   
-  const hasLiveIndicator = Object.values(indicators).some(v => v);
-  const live = hasLiveIndicator && !isUpcoming;
+  const hasLiveSignal = indicators.isLiveTrue || indicators.isLiveNow || indicators.isLiveBroadcast || indicators.styleLive || indicators.labelLive || indicators.statusLive || indicators.indicatorTag;
+  const isCurrentlyEnded = negativeIndicators.isPostLive || negativeIndicators.hasEndDate || negativeIndicators.endedStatus;
+  
+  const live = hasLiveSignal && !negativeIndicators.isUpcoming && !isCurrentlyEnded;
   
   if (live) {
-    const found = Object.entries(indicators).filter(([_, v]) => v).map(([k]) => k).join(', ');
-    console.log(`[checkLive/verify] ${context} - LIVE CONFIRMED for ${channelId} via: ${found}`);
+    console.log(`[checkLive/verify] ${context} - LIVE CONFIRMED for ${channelId}`);
+  } else if (hasLiveSignal) {
+    console.log(`[checkLive/verify] ${context} - False positive detected (Signals found but negative indicators triggered)`);
   }
   
   return live;
@@ -125,7 +133,7 @@ export async function checkLive(channelId: string) {
     }
   } catch {}
 
-  console.log(`[checkLive/${channelId}] Still waiting...`);
+  console.log(`[checkLive/${channelId}] Result: Still waiting...`);
   return { live: false };
 }
 
