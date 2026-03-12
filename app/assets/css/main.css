@@ -5,6 +5,13 @@
 
 :root {
   --grain-opacity: 0.05;
+  --bg-glow-rgb: 255, 45, 45;
+  --particle-color: #ff2d2d;
+}
+
+body.is-live {
+  --bg-glow-rgb: 0, 255, 135;
+  --particle-color: #00ff87;
 }
 
 * {
@@ -27,14 +34,12 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   position: relative;
+  transition: --bg-glow-rgb 2s ease, --particle-color 2s ease;
 }
 
 .amoled-bg {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
@@ -50,8 +55,9 @@ body {
   height: 150vmax;
   top: -25%;
   left: -25%;
-  background: radial-gradient(circle at center, rgba(255, 45, 45, 0.08) 0%, transparent 60%);
+  background: radial-gradient(circle at center, rgba(var(--bg-glow-rgb), 0.08) 0%, transparent 60%);
   animation: drift 60s linear infinite;
+  transition: background 2s ease;
 }
 
 .amoled-glow-2 {
@@ -85,10 +91,11 @@ body {
 
 .particle {
   position: absolute;
-  background: #ff2d2d;
+  background: var(--particle-color);
   border-radius: 50%;
-  box-shadow: 0 0 12px rgba(255, 45, 45, 1);
+  box-shadow: 0 0 12px var(--particle-color);
   opacity: 0.9;
+  transition: background 2s ease, box-shadow 2s ease;
 }
 
 @keyframes float-particle {

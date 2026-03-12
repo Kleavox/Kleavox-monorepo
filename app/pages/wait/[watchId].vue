@@ -96,8 +96,8 @@
           <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
           
           <button v-if="!isLive" @click="toggleRedirect" class="flex items-center gap-3 group outline-none">
-            <div class="w-11 h-6 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-1" :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
-              <div class="w-4 h-4 rounded-full bg-snow transition-transform duration-300 shadow-sm" :class="autoRedirect ? 'translate-x-5' : 'translate-x-0'"></div>
+            <div class="w-10 h-5.5 rounded-full relative transition-all duration-300 border border-white/10 flex items-center px-0.5" :class="autoRedirect ? 'bg-signal' : 'bg-white/5'">
+              <div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-snow transition-transform duration-300 shadow-sm" :class="autoRedirect ? 'translate-x-4.5' : 'translate-x-0'"></div>
             </div>
             <span class="font-mono text-[10px] text-ghost group-hover:text-snow uppercase tracking-widest">Auto-Redirect: {{ autoRedirect ? 'ON' : 'OFF' }}</span>
           </button>
@@ -109,7 +109,7 @@
             </span>
           </a>
         </div>
-        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.1.0</div>
+        <div class="font-mono text-[10px] text-mist tracking-widest uppercase">v5.1.1</div>
       </div>
     </footer>
 
@@ -117,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
 const route = useRoute()
 const watchId = route.params.watchId
@@ -154,6 +154,13 @@ const elapsedStr = computed(() => {
   return `${m}m ${rem}s`
 })
 
+watch(isLive, (val) => {
+  if (process.client) {
+    if (val) document.body.classList.add('is-live')
+    else document.body.classList.remove('is-live')
+  }
+}, { immediate: true })
+
 useHead({
   title: computed(() => isLive.value ? `🔴 LIVE — ${channelInput.value || 'DeauWait'}` : `⏳ Waiting — ${channelInput.value || 'DeauWait'}`)
 })
@@ -183,6 +190,7 @@ onUnmounted(() => {
   clearInterval(pollInterval)
   clearInterval(elapsedInterval)
   if (detectorPlayer) detectorPlayer.destroy()
+  if (process.client) document.body.classList.remove('is-live')
 })
 
 function toggleRedirect() {

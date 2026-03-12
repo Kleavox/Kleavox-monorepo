@@ -26,7 +26,7 @@
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ghost group-hover:text-snow"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
         </button>
         <div class="hidden xs:block font-mono text-[10px] text-ghost tracking-widest uppercase border border-white/10 px-3 py-1.5 rounded-lg">
-          v5.1.0
+          v5.1.1
         </div>
       </div>
     </header>
