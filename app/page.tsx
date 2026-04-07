@@ -73,18 +73,19 @@ function HomeContent() {
                 <div className="h-2 w-32 bg-(--db-primary) rounded-full mx-auto lg:mx-0"></div>
             </div>
             
-            <div className="mb-12 max-w-xl">
+            {/* TECHY SLOGAN AREA */}
+            <div className="mb-12 max-w-2xl space-y-4">
                 <div className="inline-block">
-                    <p className="typewriter-text text-lg md:text-xl font-bold text-(--db-text) leading-relaxed">
+                    <p className="typewriter-text font-dot text-xl md:text-2xl font-bold text-(--db-text) tracking-tight leading-none uppercase">
                         Refined Link Infrastructure.
                     </p>
                 </div>
-                <p className="nothing-label normal-case tracking-normal text-base md:text-lg mt-2 opacity-60 text-(--db-text)">
+                <p className="font-dot text-base md:text-lg opacity-60 text-(--db-text) tracking-widest uppercase">
                     Minimalist. Private. Secure. Pure Utility.
                 </p>
             </div>
 
-            <div className="w-full max-w-lg mb-10">
+            <div className="w-full max-w-xl mb-10">
                 <PublicShortlinkForm />
             </div>
             
