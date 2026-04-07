@@ -7,24 +7,29 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function GlobalSecurityGate({ children }: { children: React.ReactNode }) {
-  const [isVerified, setIsVerified] = useState<boolean | null>(null); // Use null for initial check
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   useEffect(() => {
-    setMounted(true);
-    const lastVerified = localStorage.getItem("db_human_verified");
-    if (lastVerified) {
-        const age = Date.now() - parseInt(lastVerified);
-        if (age < 1800000) { // 30 minutes
-            setIsVerified(true);
-            return;
+    const init = async () => {
+        setMounted(true);
+        const lastVerified = localStorage.getItem("db_human_verified");
+        if (lastVerified) {
+            const age = Date.now() - parseInt(lastVerified);
+            if (age < 1800000) { // 30 minutes
+                setIsVerified(true);
+                return;
+            }
         }
-    }
-    setIsVerified(false);
-  }, [siteKey]);
+        setIsVerified(false);
+    };
+
+    const timer = setTimeout(init, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSuccess = async (token: string) => {
     setVerifying(true);
@@ -46,7 +51,7 @@ export default function GlobalSecurityGate({ children }: { children: React.React
         setError("Verification failed");
         setVerifying(false);
       }
-    } catch (err) {
+    } catch {
       setError("Verification failed");
       setVerifying(false);
     }
@@ -56,34 +61,35 @@ export default function GlobalSecurityGate({ children }: { children: React.React
   if (isVerified) return <>{children}</>;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-(--db-bg) text-(--db-text) animate-in fade-in duration-500">
-      <div className="w-full max-w-md p-8 flex flex-col items-center justify-center space-y-8 text-center">
+    <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-(--db-bg) text-(--db-text) animate-reveal">
+      <div className="w-full max-w-md p-8 flex flex-col items-center justify-center space-y-10 text-center">
         
-        <div className="space-y-2">
-          <h1 className="font-dot text-4xl tracking-nothing text-(--db-primary)">SYS.CHECK</h1>
+        <div className="space-y-3">
+          <h1 className="nothing-title text-4xl text-(--db-primary)">SYS.CHECK</h1>
+          <p className="nothing-label">Human_Verification_Protocol</p>
         </div>
 
-        <div className="min-h-32 flex flex-col items-center justify-center w-full">
+        <div className="min-h-40 flex flex-col items-center justify-center w-full">
           {verifying ? (
-            <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
+            <div className="flex flex-col items-center gap-6 animate-reveal">
               <Loader2 className="h-12 w-12 animate-spin text-(--db-primary)" />
-              <span className="font-dot text-xl tracking-widest animate-pulse">VALIDATING...</span>
+              <span className="nothing-label animate-pulse">VALIDATING_PAYLOAD...</span>
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center gap-4 animate-in shake duration-300">
-              <div className="bg-red-500/10 p-4 rounded-full text-red-500">
+            <div className="flex flex-col items-center gap-6 animate-reveal">
+              <div className="bg-red-500/10 p-6 rounded-3xl text-red-500">
                 <AlertTriangle className="h-10 w-10" />
               </div>
-              <p className="text-xs font-black text-red-500 uppercase">{error}</p>
+              <p className="nothing-label text-red-500 opacity-100">{error}</p>
               <button 
                 onClick={() => { setError(null); }}
-                className="flex items-center gap-2 px-6 py-2 bg-var(--db-text) text-var(--db-bg) rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all"
+                className="btn-primary px-8 py-3 text-[10px] nothing-label text-white opacity-100"
               >
-                <RefreshCw className="h-3 w-3" /> RETRY_OPS
+                <RefreshCw className="h-3.5 w-3.5 mr-2" /> RETRY_OPS
               </button>
             </div>
           ) : (
-            <div className="border border-(--db-border) p-2 rounded-3xl bg-white shadow-xl overflow-hidden transition-all duration-500">
+            <div className="db-card p-3 bg-white shadow-2xl overflow-hidden transition-all duration-700 hover:scale-105 border-white/5">
               <Turnstile 
                 siteKey={siteKey || ""} 
                 onSuccess={handleSuccess}
@@ -96,9 +102,9 @@ export default function GlobalSecurityGate({ children }: { children: React.React
           )}
         </div>
 
-        <div className="pt-8 border-t border-(--db-border) w-full opacity-30">
-          <p className="text-[9px] font-black uppercase tracking-nothing">
-            Verifying your connection to bit.vordeau.net
+        <div className="pt-10 border-t border-(--db-border)/30 w-full opacity-30">
+          <p className="nothing-label text-[8px] normal-case tracking-normal">
+            Verifying secure tunnel connection to system endpoint
           </p>
         </div>
 

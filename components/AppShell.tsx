@@ -49,6 +49,8 @@ export default function AppShell({
     "/login", "/register", "/verify", "/forgot-password", "/reset-password", "/account-deleted", "/setup"
   ].includes(pathname);
 
+  const isLandingPage = ["/", "/terms", "/privacy", "/report"].includes(pathname);
+
   if (isAuthPage) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center p-6 sm:p-12">
@@ -72,50 +74,58 @@ export default function AppShell({
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="sticky top-0 z-50 px-4 py-6">
-        <div className="max-w-4xl mx-auto flex items-center justify-between glass-panel rounded-full px-6 py-3 shadow-xl">
+        <div className="max-w-5xl mx-auto flex items-center justify-between glass-panel rounded-full px-6 py-3 shadow-xl">
           <div className="flex items-center gap-4 sm:gap-8">
-            <Link href="/dash" className="hover:scale-110 transition-transform active:scale-95 shrink-0">
+            <Link href="/" className="hover:scale-110 transition-transform active:scale-95 shrink-0">
               <DeauBitLogo size={32} />
             </Link>
             
-            <div className="hidden sm:flex items-center gap-1.5">
-              <Link href="/dash" className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-dot tracking-widest transition-all ${pathname === "/dash" ? "bg-(--db-text) text-(--db-bg)" : "hover:bg-(--db-surface-hover) text-(--db-text-muted)"}`}>
-                <LayoutDashboard className="h-3.5 w-3.5" /> <span className="hidden md:inline">DASH</span>
-              </Link>
-              <Link href="/dash/settings" className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-dot tracking-widest transition-all ${pathname === "/dash/settings" ? "bg-(--db-text) text-(--db-bg)" : "hover:bg-(--db-surface-hover) text-(--db-text-muted)"}`}>
-                <Settings className="h-3.5 w-3.5" /> <span className="hidden md:inline">SETTINGS</span>
-              </Link>
-              {user?.role === "ADMIN" && (
-                <Link href="/admin" className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-dot tracking-widest transition-all ${isAdminPage ? "bg-(--db-primary) text-white" : "text-(--db-primary) hover:bg-(--db-primary)/10"}`}>
-                  <ShieldAlert className="h-3.5 w-3.5" /> <span className="hidden md:inline">ADMIN</span>
+            {!isLandingPage && (
+              <div className="hidden sm:flex items-center gap-1.5">
+                <Link href="/dash" className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-dot tracking-widest transition-all ${pathname === "/dash" ? "bg-(--db-text) text-(--db-bg)" : "hover:bg-(--db-surface-hover) text-(--db-text-muted)"}`}>
+                  <LayoutDashboard className="h-3.5 w-3.5" /> <span className="hidden md:inline">DASH</span>
                 </Link>
-              )}
-            </div>
+                <Link href="/dash/settings" className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-dot tracking-widest transition-all ${pathname === "/dash/settings" ? "bg-(--db-text) text-(--db-bg)" : "hover:bg-(--db-surface-hover) text-(--db-text-muted)"}`}>
+                  <Settings className="h-3.5 w-3.5" /> <span className="hidden md:inline">SETTINGS</span>
+                </Link>
+                {user?.role === "ADMIN" && (
+                  <Link href="/admin" className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-dot tracking-widest transition-all ${isAdminPage ? "bg-(--db-primary) text-white" : "text-(--db-primary) hover:bg-(--db-primary)/10"}`}>
+                    <ShieldAlert className="h-3.5 w-3.5" /> <span className="hidden md:inline">ADMIN</span>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
-            {user && (
-              <div className="hidden md:flex flex-col items-end leading-none">
-                <span className="nothing-label opacity-40 scale-75 origin-right mb-0.5">Authenticated</span>
-                <span className="text-xs font-black tracking-tight uppercase">{user.email.split('@')[0]}</span>
-              </div>
+            {user ? (
+              <>
+                {!isLandingPage && (
+                  <div className="hidden md:flex flex-col items-end leading-none">
+                    <span className="nothing-label opacity-40 scale-75 origin-right mb-0.5">Authenticated</span>
+                    <span className="text-xs font-black tracking-tight uppercase">{user.email.split('@')[0]}</span>
+                  </div>
+                )}
+                <button 
+                  onClick={handleLogout}
+                  className="p-3 rounded-full bg-(--db-surface) border border-(--db-border) hover:bg-(--db-primary) hover:text-white hover:border-(--db-primary) transition-all active:scale-90 shadow-sm"
+                  title="Sign Out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              isLandingPage && (
+                <Link href="/login" className="btn-primary px-6 py-2 text-[10px] tracking-widest">
+                  AUTHORIZE_
+                </Link>
+              )
             )}
-            <button 
-              onClick={handleLogout}
-              className="p-3 rounded-full bg-(--db-surface) border border-(--db-border) hover:bg-(--db-primary) hover:text-white hover:border-(--db-primary) transition-all active:scale-90 shadow-sm"
-              title="Sign Out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           </div>
-        </div>
-        
-        <div className="sm:hidden flex justify-center mt-4 gap-2">
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 container-nothing py-6 md:py-12 animate-reveal">
+      <main className={`flex-1 ${isLandingPage ? "w-full" : "container-nothing"} py-6 md:py-12 animate-reveal`}>
         {children}
       </main>
 

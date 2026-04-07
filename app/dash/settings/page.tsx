@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Lock, Loader2, Save, Shield, Trash2, AlertTriangle, X, ArrowLeft, Check, Eye, EyeOff, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { User, Lock, Loader2, Shield, Trash2, AlertTriangle, X, ArrowLeft, Check, Eye, EyeOff, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
