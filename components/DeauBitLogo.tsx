@@ -2,29 +2,58 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import React from "react";
 
-type DeauBitLogoProps = { size?: number; className?: string };
+interface DeauBitLogoProps {
+  size?: number;
+  className?: string;
+}
 
-export default function DeauBitLogo({ size = 40, className = "" }: DeauBitLogoProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return <div style={{ width: size, height: size }} className={className}></div>;
-
+export default function DeauBitLogo({ size = 48, className = "" }: DeauBitLogoProps) {
   return (
-    <div style={{ width: size, height: size }} className={`relative group select-none ${className}`}>
-      <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 group-hover:scale-110 transition-transform"></div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-2/3 h-2/3 rounded-full bg-current flex items-center justify-center">
-            <span className="font-dot text-white leading-none mb-px" style={{ fontSize: size * 0.4 }}>D</span>
-        </div>
-      </div>
-      <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(234,21,6,0.6)] animate-pulse"></div>
+    <div 
+      className={`relative flex items-center justify-center select-none ${className}`}
+      style={{ width: size, height: size }}
+    >
+      <svg
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full"
+      >
+        <circle 
+          cx="50" 
+          cy="50" 
+          r="45" 
+          stroke="currentColor" 
+          strokeWidth="8" 
+          className="text-(--db-text)"
+        />
+        
+        <circle 
+          cx="50" 
+          cy="50" 
+          r="12" 
+          fill="#ea1506" 
+          className="animate-pulse"
+        />
+
+        <text
+          x="50%"
+          y="52%"
+          dominantBaseline="middle"
+          textAnchor="middle"
+          fill="currentColor"
+          className="text-(--db-text) font-black"
+          style={{ 
+            fontSize: "32px", 
+            fontFamily: "var(--font-dot), monospace",
+            fontWeight: 900
+          }}
+        >
+          DB
+        </text>
+      </svg>
     </div>
   );
 }

@@ -73,7 +73,7 @@ function HomeContent() {
                 <div className="h-1.5 w-24 bg-(--db-primary) rounded-full mx-auto lg:mx-0"></div>
             </div>
             
-            <p className="nothing-label normal-case tracking-normal text-sm mb-10 max-w-md leading-relaxed opacity-60">
+            <p className="nothing-label normal-case tracking-normal text-sm mb-10 max-w-md leading-relaxed opacity-70 text-(--db-text)">
                 Refined Link Infrastructure. <br className="hidden md:block" />
                 Minimalist. Private. Secure. Pure Utility.
             </p>
@@ -82,15 +82,15 @@ function HomeContent() {
                 <PublicShortlinkForm />
             </div>
             
-            <div className="hidden lg:flex items-center gap-8 opacity-20 mt-4">
-                <Link href="/terms" className="nothing-label text-[8px] hover:text-(--db-text) hover:opacity-100 transition-all">TERMS_OF_SERVICE</Link>
-                <Link href="/privacy" className="nothing-label text-[8px] hover:text-(--db-text) hover:opacity-100 transition-all">PRIVACY_PROTOCOL</Link>
-                <Link href="/report" className="nothing-label text-[8px] text-red-500 hover:text-red-400 transition-all">REPORT_ABUSE</Link>
+            <div className="flex items-center gap-8 mt-4">
+                <Link href="/terms" className="nothing-label text-[10px] text-(--db-text) opacity-50 hover:opacity-100 transition-all font-bold">TERMS_OF_SERVICE</Link>
+                <Link href="/privacy" className="nothing-label text-[10px] text-(--db-text) opacity-50 hover:opacity-100 transition-all font-bold">PRIVACY_PROTOCOL</Link>
+                <Link href="/report" className="nothing-label text-[10px] text-red-600 hover:text-red-500 transition-all font-bold">REPORT_ABUSE</Link>
             </div>
         </div>
 
         <div className="lg:col-span-5 w-full flex justify-center">
-          <div className="db-card p-8 lg:p-10 shadow-2xl bg-(--db-surface) w-full max-w-md border-white/5">
+          <div className="db-card p-8 lg:p-10 shadow-2xl bg-(--db-surface) w-full max-w-md border-(--db-border)">
              <LoginForm nextPath={nextPath} />
           </div>
         </div>

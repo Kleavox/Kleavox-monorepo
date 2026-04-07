@@ -55,8 +55,8 @@ export default function AppShell({
         <main className="flex-1 flex flex-col items-center justify-center p-4">
            {children}
         </main>
-        <footer className="py-6 text-center opacity-20">
-            <p className="nothing-label text-[8px]">
+        <footer className="py-6 text-center">
+            <p className="nothing-label text-[10px] text-(--db-text) opacity-40 font-bold">
               VORDEAU_SYSTEM_CORE &copy; {new Date().getFullYear()}
             </p>
         </footer>
