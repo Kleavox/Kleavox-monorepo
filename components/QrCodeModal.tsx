@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { X, Download, Loader2, QrCode, ShieldCheck } from "lucide-react";
+import { X, DownloadSimple, CircleNotch, QrCode, ShieldCheck } from "@phosphor-icons/react";
 
 interface QrCodeModalProps { slug: string; shortUrl: string; onClose: () => void; }
 
@@ -17,8 +17,7 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
   const downloadApiUrl = `/api/qr-download?url=${encodeURIComponent(shortUrl)}`;
 
   const handleDownload = async () => {
-    setDownloading(true);
-    setDownloadError(false);
+    setDownloading(true); setDownloadError(false);
     try {
       const response = await fetch(downloadApiUrl);
       const blob = await response.blob();
@@ -41,34 +40,32 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 db-overlay animate-reveal">
       <div className="db-card animate-modal-in relative w-full max-w-sm shadow-2xl">
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-(--db-border)">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-(--db-border)">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-(--db-primary)/10 text-(--db-primary) rounded-xl">
-              <QrCode className="h-4.5 w-4.5" />
+            <div className="p-2 bg-(--db-primary)/15 text-(--db-primary) rounded-xl">
+              <QrCode size={18} />
             </div>
             <div>
               <h3 className="nothing-title text-base text-(--db-text)">QR_CODE</h3>
-              <p className="nothing-label text-[9px] opacity-50 tracking-widest">/{slug}</p>
+              <p className="nothing-label text-[9px] opacity-40 tracking-widest">/{slug}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-(--db-surface-hover) text-(--db-text) opacity-40 hover:opacity-100 transition-all group"
+            className="p-2 rounded-full hover:bg-(--db-surface-hover) text-(--db-text) opacity-30 hover:opacity-100 transition-all group"
           >
-            <X className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+            <X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
           </button>
         </div>
 
-        <div className="p-7 space-y-6">
+        <div className="p-6 space-y-5">
 
-          {/* QR Display */}
           <div className="relative rounded-3xl overflow-hidden bg-white aspect-square flex items-center justify-center border border-(--db-border)/20 shadow-xl shadow-(--db-primary)/5">
             <div className="qr-scan-line" />
 
             {!imgLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-white">
-                <Loader2 className="h-8 w-8 animate-spin text-(--db-primary)" />
+                <CircleNotch size={32} className="animate-spin text-(--db-primary)" />
                 <p className="nothing-label text-[9px] text-black animate-pulse">Generating_Matrix...</p>
               </div>
             )}
@@ -85,12 +82,11 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
 
             {imgLoaded && (
               <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm p-1.5 rounded-full border border-green-200 shadow-sm">
-                <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
+                <ShieldCheck size={14} className="text-green-500" weight="fill" />
               </div>
             )}
           </div>
 
-          {/* URL label */}
           <div className="bg-(--db-surface-hover) rounded-2xl px-4 py-3 border border-(--db-border)">
             <p className="nothing-label text-[8px] mb-1 opacity-40">Destination_URL</p>
             <p className="font-dot text-xs text-(--db-text) truncate tracking-tighter">{shortUrl.replace(/^https?:\/\//, "")}</p>
@@ -102,13 +98,8 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary flex-1 py-3.5 text-[10px] nothing-label opacity-100"
-            >
+            <button type="button" onClick={onClose} className="btn-secondary flex-1 py-3.5 text-[10px] nothing-label opacity-100">
               CLOSE
             </button>
             <button
@@ -116,11 +107,7 @@ export default function QrCodeModal({ slug, shortUrl, onClose }: QrCodeModalProp
               disabled={downloading || !imgLoaded}
               className="btn-primary flex-1 py-3.5 text-[10px] nothing-label opacity-100 shadow-lg shadow-(--db-primary)/20 disabled:opacity-30 disabled:grayscale"
             >
-              {downloading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <><Download className="h-3.5 w-3.5" /> DOWNLOAD</>
-              )}
+              {downloading ? <CircleNotch size={16} className="animate-spin" /> : <><DownloadSimple size={15} /> DOWNLOAD</>}
             </button>
           </div>
         </div>

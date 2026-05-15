@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Loader2, BarChart3, Globe, Link2, TrendingUp, Monitor, Smartphone, AlertTriangle } from "lucide-react";
+import { X, CircleNotch, ChartBar, Globe, Link as LinkIcon, TrendUp, Monitor, DeviceMobile, Warning } from "@phosphor-icons/react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface AnalyticsModalProps {
@@ -25,10 +25,10 @@ function StatBar({ label, value, max }: { label: string; value: number; max: num
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="nothing-label text-[9px] truncate max-w-[70%] opacity-80">{label || "Unknown"}</span>
+        <span className="nothing-label text-[9px] truncate max-w-[70%] opacity-70">{label || "Unknown"}</span>
         <span className="font-dot text-xs font-bold text-(--db-primary)">{value}</span>
       </div>
-      <div className="h-1 rounded-full bg-(--db-surface-hover) overflow-hidden">
+      <div className="h-1.5 rounded-full bg-(--db-surface-hover) overflow-hidden">
         <div
           className="h-full bg-(--db-primary) rounded-full animate-bar-fill"
           style={{ width: `${pct}%` }}
@@ -50,63 +50,61 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
   }, [slug]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 db-overlay animate-reveal">
-      <div className="db-card animate-modal-in relative w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl border-(--db-border)">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-4 sm:py-6 db-overlay animate-reveal">
+      <div className="db-card animate-modal-in relative w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-2xl">
 
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-8 py-5 border-b border-(--db-border) bg-(--db-surface)/90 backdrop-blur-xl">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-(--db-primary)/10 text-(--db-primary) rounded-2xl">
-              <BarChart3 className="h-5 w-5" />
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-(--db-border) bg-(--db-surface)/90 backdrop-blur-xl">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2.5 bg-(--db-primary)/15 text-(--db-primary) rounded-2xl">
+              <ChartBar size={18} />
             </div>
             <div>
-              <h2 className="nothing-title text-xl text-(--db-text)">ANALYTICS</h2>
-              <p className="nothing-label text-[9px] tracking-widest opacity-60">
+              <h2 className="nothing-title text-lg sm:text-xl text-(--db-text)">ANALYTICS</h2>
+              <p className="nothing-label text-[9px] tracking-widest opacity-50">
                 NODE_{slug.toUpperCase()} • LAST_7_DAYS
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2.5 rounded-full hover:bg-(--db-surface-hover) text-(--db-text) opacity-40 hover:opacity-100 transition-all group"
+            className="p-2.5 rounded-full hover:bg-(--db-surface-hover) text-(--db-text) opacity-30 hover:opacity-100 transition-all group"
           >
-            <X className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+            <X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
           </button>
         </div>
 
-        <div className="p-6 lg:p-10">
+        <div className="p-5 sm:p-8 lg:p-10">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-6 opacity-40">
-              <Loader2 className="h-10 w-10 animate-spin text-(--db-primary)" />
+            <div className="flex flex-col items-center justify-center py-24 gap-6 opacity-30">
+              <CircleNotch size={40} className="animate-spin text-(--db-primary)" />
               <span className="nothing-label animate-pulse">Syncing_Analytics_Node...</span>
             </div>
           ) : !data ? (
             <div className="flex flex-col items-center justify-center py-24 gap-6">
-              <div className="p-6 bg-(--db-primary)/10 rounded-3xl text-(--db-primary)">
-                <AlertTriangle className="h-10 w-10" />
+              <div className="p-6 bg-red-500/10 rounded-3xl text-red-500">
+                <Warning size={40} weight="fill" />
               </div>
-              <p className="nothing-label text-(--db-primary) opacity-100">DATA_UNAVAILABLE</p>
+              <p className="nothing-label text-red-500 opacity-100">DATA_UNAVAILABLE</p>
             </div>
           ) : (
-            <div className="space-y-10">
+            <div className="space-y-8 sm:space-y-10">
 
-              {/* Stat tiles */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  { label: "Total_Clicks", value: data.total, icon: <TrendingUp className="h-5 w-5" />, numeric: true },
-                  { label: "Top_Country", value: data.topCountries[0]?.name || "—", icon: <Globe className="h-5 w-5" />, numeric: false },
-                  { label: "Top_Source", value: data.topReferrers[0]?.name || "—", icon: <Link2 className="h-5 w-5" />, numeric: false },
+                  { label: "Total_Clicks", value: data.total, icon: <TrendUp size={18} />, numeric: true },
+                  { label: "Top_Country", value: data.topCountries[0]?.name || "—", icon: <Globe size={18} />, numeric: false },
+                  { label: "Top_Source", value: data.topReferrers[0]?.name || "—", icon: <LinkIcon size={18} />, numeric: false },
                 ].map((stat, i) => (
                   <div
                     key={i}
-                    className="db-card p-6 bg-(--db-surface) flex items-start gap-4 animate-item-enter"
+                    className="db-card p-5 sm:p-6 bg-(--db-surface) flex items-start gap-4 animate-item-enter"
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
-                    <div className="p-2.5 bg-(--db-primary)/10 text-(--db-primary) rounded-xl shrink-0">
+                    <div className="p-2.5 bg-(--db-primary)/15 text-(--db-primary) rounded-xl shrink-0">
                       {stat.icon}
                     </div>
                     <div className="min-w-0">
-                      <p className="nothing-label text-[8px] mb-1 opacity-60">{stat.label}</p>
+                      <p className="nothing-label text-[8px] mb-1 opacity-50">{stat.label}</p>
                       <p className={`font-black truncate ${stat.numeric ? "text-3xl tracking-tighter animate-count-up" : "text-lg uppercase tracking-tight"}`}>
                         {stat.numeric ? stat.value.toLocaleString() : stat.value}
                       </p>
@@ -115,15 +113,14 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
                 ))}
               </div>
 
-              {/* Chart */}
-              <div className="db-card p-6 bg-(--db-surface) space-y-4">
-                <p className="nothing-label text-[9px] opacity-60">Clicks_Over_Time</p>
-                <div className="h-52 w-full">
+              <div className="db-card p-5 sm:p-6 bg-(--db-surface) space-y-4">
+                <p className="nothing-label text-[9px] opacity-50">Clicks_Over_Time</p>
+                <div className="h-48 sm:h-52 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                       <defs>
                         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--db-primary)" stopOpacity={0.25} />
+                          <stop offset="5%" stopColor="var(--db-primary)" stopOpacity={0.3} />
                           <stop offset="95%" stopColor="var(--db-primary)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
@@ -136,7 +133,6 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
                         tickFormatter={(s) => s.slice(5)}
                         stroke="var(--db-text-muted)"
                         fontFamily="var(--font-dot)"
-                        textDecoration="uppercase"
                       />
                       <YAxis
                         fontSize={9}
@@ -175,19 +171,18 @@ export default function AnalyticsModal({ slug, onClose }: AnalyticsModalProps) {
                 </div>
               </div>
 
-              {/* Data sections */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {[
-                  { title: "Browsers", list: data.topBrowsers, icon: <Monitor className="h-4 w-4" /> },
-                  { title: "Operating_Systems", list: data.topOS, icon: <Smartphone className="h-4 w-4" /> },
-                  { title: "Locations", list: data.topCountries, icon: <Globe className="h-4 w-4" /> },
-                  { title: "Referrers", list: data.topReferrers, icon: <Link2 className="h-4 w-4" /> },
+                  { title: "Browsers", list: data.topBrowsers, icon: <Monitor size={15} /> },
+                  { title: "Operating_Systems", list: data.topOS, icon: <DeviceMobile size={15} /> },
+                  { title: "Locations", list: data.topCountries, icon: <Globe size={15} /> },
+                  { title: "Referrers", list: data.topReferrers, icon: <LinkIcon size={15} /> },
                 ].map((section, idx) => {
                   const max = section.list[0]?.value ?? 1;
                   return (
-                    <div key={idx} className="db-card p-6 bg-(--db-surface) space-y-5">
+                    <div key={idx} className="db-card p-5 sm:p-6 bg-(--db-surface) space-y-5">
                       <div className="flex items-center gap-2 border-b border-(--db-border)/40 pb-4">
-                        <span className="text-(--db-primary) opacity-60">{section.icon}</span>
+                        <span className="text-(--db-primary) opacity-70">{section.icon}</span>
                         <h3 className="nothing-label opacity-100 font-bold">{section.title}</h3>
                       </div>
                       <div className="space-y-4">

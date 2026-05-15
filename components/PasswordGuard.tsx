@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, Loader2, ShieldCheck, AlertTriangle, Activity } from "lucide-react";
+import { Lock, CircleNotch, ShieldCheck, Warning, Activity } from "@phosphor-icons/react";
 import SlugRedirector from "./SlugRedirector";
 
 export default function PasswordGuard({ slug }: { slug: string }) {
@@ -14,8 +14,7 @@ export default function PasswordGuard({ slug }: { slug: string }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const res = await fetch(`/api/links/${slug}/verify`, {
         method: "POST",
@@ -35,14 +34,14 @@ export default function PasswordGuard({ slug }: { slug: string }) {
     return (
       <div className="w-full space-y-6 animate-reveal">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl">
-            <ShieldCheck className="h-6 w-6" />
+          <div className="p-3 bg-(--db-primary)/15 text-(--db-primary) rounded-2xl">
+            <ShieldCheck size={22} weight="fill" />
           </div>
           <div>
             <p className="nothing-title text-xl text-(--db-text)">ACCESS_GRANTED</p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <Activity className="h-3 w-3 text-green-500 animate-pulse" />
-              <span className="nothing-label text-[9px] text-green-500 opacity-100">CLEARANCE_CONFIRMED</span>
+              <Activity size={12} className="text-(--db-primary) animate-pulse" />
+              <span className="nothing-label text-[9px] text-(--db-primary) opacity-100">CLEARANCE_CONFIRMED</span>
             </div>
           </div>
         </div>
@@ -56,13 +55,12 @@ export default function PasswordGuard({ slug }: { slug: string }) {
       <div className="space-y-2">
         <label className="nothing-label block ml-1 text-[9px]">Security_Key</label>
         <div className="relative">
-          <div className="absolute left-0 top-0 bottom-0 w-14 flex items-center justify-center text-(--db-text) opacity-40 z-10 pointer-events-none">
-            <Lock className="h-5 w-5" />
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-(--db-text-muted) z-10 pointer-events-none">
+            <Lock size={18} />
           </div>
           <input
             type="password"
-            className="db-input"
-            style={{ paddingLeft: "4rem" }}
+            className="db-input pl-10!"
             placeholder="Enter access key"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -74,16 +72,16 @@ export default function PasswordGuard({ slug }: { slug: string }) {
 
       {error && (
         <div className="bg-red-500/10 text-red-500 font-bold p-3 rounded-2xl border border-red-500/20 text-[10px] animate-error-shake flex items-center gap-3 uppercase tracking-widest">
-          <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+          <Warning size={16} weight="fill" className="shrink-0" /> {error}
         </div>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="btn-primary w-full py-4 text-xs tracking-[0.2em] shadow-lg shadow-(--db-primary)/20 disabled:opacity-50"
+        className="btn-primary w-full py-4 text-xs tracking-[0.2em] shadow-lg shadow-(--db-primary)/20 disabled:opacity-40"
       >
-        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Lock className="h-4 w-4" /> UNLOCK_NODE</>}
+        {loading ? <CircleNotch size={18} className="animate-spin" /> : <><Lock size={16} /> UNLOCK_NODE</>}
       </button>
     </form>
   );

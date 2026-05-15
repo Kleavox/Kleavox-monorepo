@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Warning, ArrowClockwise } from "@phosphor-icons/react";
 
 export default function Error({
   error,
@@ -18,14 +18,14 @@ export default function Error({
 
   return (
     <div className="min-h-dvh flex items-center justify-center bg-(--db-bg) p-4 sm:p-6">
-      <div className="db-card w-full max-w-md p-10 shadow-2xl text-center animate-reveal border-(--db-primary)/20">
+      <div className="db-card w-full max-w-md p-10 shadow-2xl text-center animate-reveal border-(--db-danger)/20">
 
-        <div className="inline-flex p-6 bg-(--db-primary)/10 text-(--db-primary) rounded-3xl mb-8 animate-soft-pulse">
-          <AlertTriangle className="h-12 w-12" />
+        <div className="inline-flex p-6 bg-(--db-danger)/10 text-(--db-danger) rounded-3xl mb-8 animate-soft-pulse">
+          <Warning size={44} weight="fill" />
         </div>
 
         <div className="space-y-3 mb-8">
-          <p className="nothing-label text-(--db-primary) opacity-100">SYSTEM_CRITICAL</p>
+          <p className="nothing-label text-(--db-danger) opacity-100">SYSTEM_CRITICAL</p>
           <h2 className="nothing-title text-3xl text-(--db-text)">CORE_ERROR</h2>
           <p className="nothing-label normal-case tracking-normal opacity-40 text-[10px] leading-relaxed">
             An unexpected fault occurred in the core matrix. Initiating recovery protocol.
@@ -44,7 +44,7 @@ export default function Error({
           onClick={() => reset()}
           className="btn-primary w-full py-4 text-xs tracking-[0.2em] shadow-lg shadow-(--db-primary)/20"
         >
-          <RefreshCw className="h-4 w-4" /> REBOOT_SYSTEM
+          <ArrowClockwise size={16} /> REBOOT_SYSTEM
         </button>
       </div>
     </div>

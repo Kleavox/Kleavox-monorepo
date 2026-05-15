@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DotGothic16, Inter } from "next/font/google";
 import "@/app/globals.css";
 import PageWrapperClient from "@/components/PageWrapperClient";
+import PhosphorProvider from "@/components/PhosphorProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const dot = DotGothic16({ weight: "400", subsets: ["latin"], variable: "--font-dot" });
@@ -66,7 +67,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${dot.variable} antialiased font-sans bg-(--db-bg) text-(--db-text) selection:bg-(--db-primary) selection:text-white`}
       >
-        <PageWrapperClient>{children}</PageWrapperClient>
+        <PhosphorProvider>
+          <PageWrapperClient>{children}</PageWrapperClient>
+        </PhosphorProvider>
       </body>
     </html>
   );

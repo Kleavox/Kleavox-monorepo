@@ -2,7 +2,7 @@
 
 import VerifyForm from "@/components/VerifyForm";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
 export default function VerifyPage() {
   return (
@@ -13,7 +13,7 @@ export default function VerifyPage() {
           href="/register"
           className="nothing-label text-[9px] hover:text-(--db-text) flex items-center justify-center gap-2 transition-colors"
         >
-          <ArrowLeft className="h-3 w-3" />
+          <ArrowLeft size={12} />
           <span className="underline">INCORRECT_EMAIL?_BACK</span>
         </Link>
       </div>
