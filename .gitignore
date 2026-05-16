@@ -31,3 +31,5 @@ worker-configuration.d.ts
 CapTeknik/
 portfolio-capteknik/
 portfolio/
+
+.vscode/

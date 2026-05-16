@@ -1,0 +1,200 @@
+---
+---
+
+<section
+  class="min-h-screen flex items-center dot-grid pt-14"
+  style="position: relative; overflow: hidden;"
+>
+  <!-- Subtle radial glow -->
+  <div
+    style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(34,211,238,0.04) 0%, transparent 70%); pointer-events: none;"
+  ></div>
+
+  <div class="max-w-5xl mx-auto px-6 py-24 w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
+
+      <!-- Left: Text -->
+      <div class="lg:col-span-3">
+        <p
+          class="font-mono text-xs mb-8 fade-up fade-up-1"
+          style="color: var(--text-dim); letter-spacing: 0.1em;"
+        >
+          ~ / hafidh musyafa
+        </p>
+
+        <h1
+          class="leading-none mb-6 fade-up fade-up-2"
+          style="font-size: clamp(3.5rem, 8vw, 6rem); font-weight: 700; letter-spacing: -0.03em; color: var(--text);"
+        >
+          Hafidh<br />
+          <span style="color: var(--accent);">Musyafa</span>
+        </h1>
+
+        <div
+          class="mb-8 fade-up fade-up-3"
+          style="height: 1px; width: 48px; background: var(--border-mid);"
+        ></div>
+
+        <p
+          class="text-base mb-3 fade-up fade-up-3"
+          style="color: var(--text-muted); font-weight: 400; line-height: 1.6; max-width: 420px;"
+        >
+          Computer Engineering student at UNNES.
+          Bridging sensor data to modern web interfaces —
+          from ESP32 prototypes to clean, accessible UIs.
+        </p>
+
+        <p
+          class="font-mono text-xs mb-10 fade-up fade-up-3"
+          style="color: var(--text-dim); letter-spacing: 0.06em;"
+        >
+          embedded · iot · web · mobile · ml
+        </p>
+
+        <div class="flex items-center gap-5 fade-up fade-up-4">
+          <a
+            href="#projects"
+            class="font-mono text-sm px-5 py-2.5 transition-all duration-200"
+            style="background: var(--accent); color: var(--bg); border-radius: 4px; font-weight: 600; letter-spacing: 0.02em;"
+          >
+            view work
+          </a>
+          <a
+            href="#contact"
+            class="font-mono text-sm px-5 py-2.5 transition-all duration-200"
+            style="border: 1px solid var(--border-mid); color: var(--text-muted); border-radius: 4px;"
+          >
+            get in touch
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: Oscilloscope -->
+      <div
+        class="lg:col-span-2 fade-up fade-up-4"
+        style="position: relative;"
+        aria-hidden="true"
+      >
+        <div
+          style="border: 1px solid var(--border); border-radius: 8px; background: var(--bg-surface); padding: 16px; position: relative; overflow: hidden;"
+        >
+          <!-- Scope header -->
+          <div
+            class="flex items-center justify-between mb-3"
+            style="border-bottom: 1px solid var(--border); padding-bottom: 10px;"
+          >
+            <span class="font-mono text-xs" style="color: var(--text-dim);">CH1: BMI270 accel</span>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs" style="color: var(--text-dim);">250Hz</span>
+              <span
+                style="width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; box-shadow: 0 0 6px var(--green);"
+              ></span>
+            </div>
+          </div>
+
+          <!-- Oscilloscope SVG -->
+          <svg
+            viewBox="0 0 380 100"
+            xmlns="http://www.w3.org/2000/svg"
+            style="width: 100%; display: block;"
+          >
+            <!-- Grid -->
+            <defs>
+              <pattern id="grid" width="38" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 38 0 L 0 0 0 20" fill="none" stroke="var(--border)" stroke-width="0.5" />
+              </pattern>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <rect width="380" height="100" fill="url(#grid)" />
+
+            <!-- Zero line -->
+            <line x1="0" y1="50" x2="380" y2="50" stroke="var(--text-dim)" stroke-width="0.5" stroke-dasharray="3,4" />
+
+            <!-- Waveform: smooth bumps (motion) with spikes (impact events) -->
+            <path
+              class="waveform-path"
+              d="
+                M0,50
+                L8,50
+                C12,50 14,44 16,38 C18,32 20,30 22,32 C24,34 26,42 28,50
+                L34,50
+                L35,49 L36,18 L37,74 L38,50
+                L50,50
+                C54,50 56,44 58,38 C60,32 62,30 64,32 C66,34 68,42 70,50
+                L76,50
+                L77,49 L78,18 L79,74 L80,50
+                L92,50
+                C96,50 98,44 100,38 C102,32 104,30 106,32 C108,34 110,42 112,50
+                L118,50
+                L119,49 L120,18 L121,74 L122,50
+                L134,50
+                C138,50 140,44 142,38 C144,32 146,30 148,32 C150,34 152,42 154,50
+                L160,50
+                L161,49 L162,18 L163,74 L164,50
+                L176,50
+                C180,50 182,44 184,38 C186,32 188,30 190,32 C192,34 194,42 196,50
+                L202,50
+                L203,49 L204,18 L205,74 L206,50
+                L218,50
+                C222,50 224,44 226,38 C228,32 230,30 232,32 C234,34 236,42 238,50
+                L244,50
+                L245,49 L246,18 L247,74 L248,50
+                L260,50
+                C264,50 266,44 268,38 C270,32 272,30 274,32 C276,34 278,42 280,50
+                L286,50
+                L287,49 L288,18 L289,74 L290,50
+                L302,50
+                C306,50 308,44 310,38 C312,32 314,30 316,32 C318,34 320,42 322,50
+                L328,50
+                L329,49 L330,18 L331,74 L332,50
+                L344,50
+                C348,50 350,44 352,38 C354,32 356,30 358,32 C360,34 362,42 364,50
+                L370,50
+                L371,49 L372,18 L373,74 L374,50
+                L380,50
+              "
+              fill="none"
+              stroke="var(--accent)"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              filter="url(#glow)"
+            />
+          </svg>
+
+          <!-- Scope footer -->
+          <div class="flex items-center justify-between mt-3" style="border-top: 1px solid var(--border); padding-top: 10px;">
+            <span class="font-mono text-xs" style="color: var(--text-dim);">I2C 0x68 · ESP32-C3</span>
+            <span class="font-mono text-xs" style="color: var(--text-dim);">20ms/div</span>
+          </div>
+        </div>
+
+        <!-- Second channel label below -->
+        <div class="mt-3 flex items-center gap-3">
+          <div style="height: 1px; flex: 1; background: var(--border);"></div>
+          <span class="font-mono text-xs" style="color: var(--text-dim);">CH2: MAX30102 ppg</span>
+          <div style="height: 1px; flex: 1; background: var(--border);"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Scroll hint -->
+    <div
+      class="absolute bottom-8 left-1/2 fade-up fade-up-4"
+      style="transform: translateX(-50%);"
+    >
+      <a href="#about" style="color: var(--text-dim);">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 4v12M5 11l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>

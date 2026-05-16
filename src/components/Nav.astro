@@ -1,0 +1,61 @@
+---
+const links = [
+  { href: '#about',    label: 'about' },
+  { href: '#projects', label: 'projects' },
+  { href: '#contact',  label: 'contact' },
+]
+---
+
+<header
+  id="nav"
+  class="fixed top-0 left-0 right-0 z-50"
+  style="background: rgba(8,8,15,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);"
+>
+  <nav class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+    <a
+      href="/"
+      class="font-mono text-sm"
+      style="color: var(--accent); letter-spacing: 0.02em;"
+    >
+      ~/deau
+    </a>
+
+    <ul class="flex items-center gap-8">
+      {links.map(l => (
+        <li>
+          <a
+            href={l.href}
+            class="font-mono text-xs transition-colors duration-150"
+            style="color: var(--text-muted); letter-spacing: 0.06em;"
+            data-nav-link
+          >
+            {l.label}
+          </a>
+        </li>
+      ))}
+      <li>
+        <a
+          href="https://github.com/J58C"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-mono text-xs px-3 py-1.5 transition-colors duration-150"
+          style="border: 1px solid var(--border-mid); color: var(--text-muted); border-radius: 4px;"
+        >
+          github ↗
+        </a>
+      </li>
+    </ul>
+  </nav>
+</header>
+
+<script>
+  const links = document.querySelectorAll('[data-nav-link]')
+  links.forEach(link => {
+    link.addEventListener('mouseenter', () => {
+      (link as HTMLElement).style.color = 'var(--accent)'
+    })
+    link.addEventListener('mouseleave', () => {
+      (link as HTMLElement).style.color = 'var(--text-muted)'
+    })
+  })
+</script>

@@ -1,0 +1,111 @@
+---
+const groups = [
+  {
+    id: 'embedded',
+    label: 'Embedded & IoT',
+    indicator: 'var(--accent)',
+    items: [
+      'ESP32 / ESP32-C3 / ESP32-S3',
+      'FreeRTOS · MQTT · BLE 5.0',
+      'KiCad 8 (PCB & schematic)',
+      'I2C / SPI / UART protocols',
+      'Edge Impulse (on-device ML)',
+      'Low-power optimization',
+      'BMI270 · MPU9250 · MAX30102',
+    ],
+  },
+  {
+    id: 'languages',
+    label: 'Languages',
+    indicator: 'var(--amber)',
+    items: [
+      'C / C++',
+      'Python',
+      'TypeScript / JavaScript',
+      'Dart',
+      'Kotlin',
+      'Java',
+    ],
+  },
+  {
+    id: 'web-mobile',
+    label: 'Web & Mobile',
+    indicator: 'var(--green)',
+    items: [
+      'Astro · Next.js · React',
+      'Tailwind CSS',
+      'Node.js · REST API',
+      'Flutter (Dart)',
+      'Jetpack Compose (Kotlin)',
+      'Cloudflare Workers',
+      'Resend · Nodemailer',
+    ],
+  },
+  {
+    id: 'data-ml',
+    label: 'Data & ML',
+    indicator: '#c084fc',
+    items: [
+      'TensorFlow / Keras',
+      'PyTorch',
+      'RNN · LSTM (HAR)',
+      'Scikit-learn',
+      'Matplotlib · Seaborn',
+      'SPSS · Excel (data cleaning)',
+      'OpenCV',
+    ],
+  },
+  {
+    id: 'tools',
+    label: 'Tools & Platforms',
+    indicator: 'var(--text-dim)',
+    items: [
+      'Git · GitHub',
+      'VSCode',
+      'Figma',
+      'Firebase',
+      'Docker',
+      'Linux',
+    ],
+  },
+]
+---
+
+<section id="skills" class="py-28" style="border-top: 1px solid var(--border);">
+  <div class="max-w-5xl mx-auto px-6">
+
+    <p class="font-mono text-xs mb-12" style="color: var(--text-dim); letter-spacing: 0.1em;">
+      02 / skills
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+      {groups.map((group, i) => (
+        <div
+          class="p-6"
+          style={`background: var(--bg-surface); ${i === groups.length - 1 && groups.length % 3 !== 0 ? 'grid-column: span 1;' : ''}`}
+        >
+          <div class="flex items-center gap-2 mb-5">
+            <span
+              style={`width: 6px; height: 6px; border-radius: 50%; background: ${group.indicator}; display: inline-block; flex-shrink: 0;`}
+            ></span>
+            <span class="font-mono text-xs" style="color: var(--text-muted); letter-spacing: 0.06em;">
+              {group.label}
+            </span>
+          </div>
+
+          <ul class="space-y-2">
+            {group.items.map(item => (
+              <li
+                class="text-sm"
+                style="color: var(--text); line-height: 1.4;"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>

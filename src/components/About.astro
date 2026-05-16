@@ -1,0 +1,160 @@
+---
+const values = [
+  { label: 'start small', desc: 'prototype early, iterate fast' },
+  { label: 'logs > guesses', desc: 'instrument everything' },
+  { label: 'readable > clever', desc: 'code others can maintain' },
+  { label: 'a11y & dx', desc: 'accessible interfaces, good tooling' },
+]
+
+const timeline = [
+  {
+    year: '2022',
+    label: 'UNNES — Teknik Komputer',
+    type: 'edu',
+    note: 'BSc Computer Engineering · Ongoing',
+  },
+  {
+    year: '2024 Q2',
+    label: 'Contract Research Staff',
+    type: 'work',
+    note: 'PT. Indonesian Consultant Mandiri · Electoral data processing & analysis',
+  },
+  {
+    year: '2024',
+    label: 'OpenCV + TensorFlow + GenAI Bootcamps',
+    type: 'cert',
+    note: 'Machine learning & computer vision certifications',
+  },
+  {
+    year: '2024—',
+    label: 'SICermat Capstone',
+    type: 'project',
+    note: 'Wearable ESP32-C3 · BMI270 + MAX30102 · Edge Impulse · Flutter dashboard',
+  },
+]
+
+const typeStyle: Record<string, string> = {
+  edu:     'var(--accent)',
+  work:    'var(--amber)',
+  cert:    'var(--text-dim)',
+  project: 'var(--green)',
+}
+---
+
+<section id="about" class="py-28" style="border-top: 1px solid var(--border);">
+  <div class="max-w-5xl mx-auto px-6">
+
+    <!-- Label -->
+    <p class="font-mono text-xs mb-12" style="color: var(--text-dim); letter-spacing: 0.1em;">
+      01 / about
+    </p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+
+      <!-- Left: bio + values -->
+      <div>
+        <h2
+          class="mb-6"
+          style="font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text);"
+        >
+          Engineering at the<br />
+          <span style="color: var(--accent);">hardware–web boundary.</span>
+        </h2>
+
+        <div style="color: var(--text-muted); line-height: 1.75; font-size: 0.925rem;" class="space-y-4">
+          <p>
+            I'm Hafidh — a computer engineering student at Semarang State University (UNNES),
+            deeply interested in the full stack that runs from sensor silicon to the
+            screen in your hand.
+          </p>
+          <p>
+            My work lives at the intersection of embedded systems, IoT, and modern
+            web/mobile. I design PCBs in KiCad, write firmware for ESP32 microcontrollers,
+            build REST APIs that stream sensor data, and ship Flutter and web apps that
+            make that data actionable.
+          </p>
+          <p>
+            Currently focused on the SICermat capstone — a wearable motion and health
+            monitor with on-device ML via Edge Impulse.
+          </p>
+        </div>
+
+        <!-- Values -->
+        <div class="mt-10">
+          <p class="font-mono text-xs mb-5" style="color: var(--text-dim); letter-spacing: 0.08em;">principles</p>
+          <ul class="space-y-3">
+            {values.map(v => (
+              <li class="flex items-start gap-3">
+                <span class="font-mono text-xs mt-0.5" style="color: var(--accent); min-width: 96px;">{v.label}</span>
+                <span style="color: var(--text-muted); font-size: 0.875rem;">{v.desc}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Links -->
+        <div class="mt-10 flex items-center gap-5">
+          <a
+            href="https://github.com/J58C"
+            target="_blank" rel="noopener noreferrer"
+            class="font-mono text-xs transition-colors"
+            style="color: var(--text-muted);"
+          >
+            github ↗
+          </a>
+          <a
+            href="https://www.linkedin.com/in/hmus122/"
+            target="_blank" rel="noopener noreferrer"
+            class="font-mono text-xs transition-colors"
+            style="color: var(--text-muted);"
+          >
+            linkedin ↗
+          </a>
+          <a
+            href="https://www.kaggle.com/hafidhmusyafa"
+            target="_blank" rel="noopener noreferrer"
+            class="font-mono text-xs transition-colors"
+            style="color: var(--text-muted);"
+          >
+            kaggle ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: timeline -->
+      <div>
+        <p class="font-mono text-xs mb-8" style="color: var(--text-dim); letter-spacing: 0.08em;">timeline</p>
+        <ol class="relative" style="border-left: 1px solid var(--border); padding-left: 24px; space-y-0;">
+          {timeline.map((item, i) => (
+            <li class={i < timeline.length - 1 ? 'pb-8' : ''} style="position: relative;">
+              <!-- Dot -->
+              <span
+                style={`position: absolute; left: -29px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: ${typeStyle[item.type]}; border: 2px solid var(--bg); box-shadow: 0 0 6px ${typeStyle[item.type]};`}
+              ></span>
+
+              <p class="font-mono text-xs mb-1" style={`color: ${typeStyle[item.type]}; letter-spacing: 0.06em;`}>
+                {item.year}
+              </p>
+              <p class="text-sm font-medium mb-1" style="color: var(--text);">{item.label}</p>
+              <p class="text-xs" style="color: var(--text-muted); line-height: 1.5;">{item.note}</p>
+            </li>
+          ))}
+        </ol>
+
+        <!-- Availability indicator -->
+        <div
+          class="mt-10 flex items-center gap-3 px-4 py-3"
+          style="border: 1px solid var(--border); border-radius: 6px; background: var(--bg-surface);"
+        >
+          <span
+            style="width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; box-shadow: 0 0 8px var(--green); flex-shrink: 0;"
+          ></span>
+          <span class="font-mono text-xs" style="color: var(--text-muted);">
+            open to collaborations & internship opportunities
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
