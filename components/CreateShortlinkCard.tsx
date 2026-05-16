@@ -42,7 +42,7 @@ export function CreateShortlinkCard({
 
       <form className="space-y-6 sm:space-y-8" onSubmit={onSubmit} autoComplete="off">
 
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex-1 space-y-2">
             <label className="nothing-label block ml-2">Destination_Target</label>
             <input
@@ -56,7 +56,7 @@ export function CreateShortlinkCard({
             />
           </div>
 
-          <div className="sm:w-44 space-y-2">
+          <div className="space-y-2">
             <label className="nothing-label block ml-2">Custom_Slug</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-(--db-text-muted) font-dot text-sm z-10">/</span>

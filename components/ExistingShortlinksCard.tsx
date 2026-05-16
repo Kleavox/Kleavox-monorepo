@@ -267,7 +267,7 @@ export function ExistingShortlinksCard({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="overflow-y-auto max-h-[480px] sm:max-h-[560px] flex flex-col gap-3 pr-0.5">
         {loadingTable ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4 opacity-30">
             <CircleNotch size={36} className="animate-spin text-(--db-primary)" />

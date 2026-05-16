@@ -76,7 +76,7 @@ export default function ShortlinkResultModal({ result, onClose }: ShortlinkResul
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-3">
               <button
                 onClick={copyShortUrl}
                 className={`flex-1 py-3.5 btn-primary text-[9px] tracking-[0.2em] transition-all whitespace-nowrap ${copied ? 'bg-green-500!' : ''}`}

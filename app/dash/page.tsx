@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ExistingShortlinksCard, ShortLink } from "@/components/ExistingShortlinksCard";
 import { CreateShortlinkCard } from "@/components/CreateShortlinkCard";
 import AnalyticsModal from "@/components/AnalyticsModal";
@@ -36,10 +36,26 @@ export default function DashboardPage() {
   const [deletingSlugs, setDeletingSlugs] = useState<string[]>([]);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  useEffect(() => { fetchLinks(1); }, []);
+  useEffect(() => {
+    fetchLinks(1, true);
 
-  async function fetchLinks(page = 1) {
-    setLoadingTable(true);
+    // Poll every 10s for cross-device sync (silent, no loading spinner)
+    const interval = setInterval(() => fetchLinks(currentPageRef.current), 10000);
+
+    // Refresh immediately when tab becomes visible again
+    const onVisible = () => { if (document.visibilityState === "visible") fetchLinks(currentPageRef.current); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  const currentPageRef = useRef(1);
+
+  async function fetchLinks(page = 1, showLoader = false) {
+    if (showLoader) setLoadingTable(true);
     try {
       const res = await fetch(`/api/links?page=${page}&limit=10`);
       const data = await res.json();
@@ -48,8 +64,9 @@ export default function DashboardPage() {
         setTotalPages(data.meta.totalPages);
         setTotalItems(data.meta.total);
         setCurrentPage(data.meta.page);
+        currentPageRef.current = data.meta.page;
       } else { setLinks([]); }
-    } catch { setLinks([]); } finally { setLoadingTable(false); }
+    } catch { setLinks([]); } finally { if (showLoader) setLoadingTable(false); }
   }
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
@@ -65,7 +82,7 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(data.error || "Failed");
       setTargetUrl(""); setSlug(""); setPassword(""); setExpiresAt("");
       setCreatedLink({ slug: data.slug, shortUrl: data.shortUrl });
-      fetchLinks(1);
+      fetchLinks(1, true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error");
     } finally { setLoading(false); }
@@ -79,7 +96,7 @@ export default function DashboardPage() {
       setDeletingSlugs(pendingDeleteSlugs);
       await new Promise(r => setTimeout(r, 400));
       setPendingDeleteSlugs([]); setDeletingSlugs([]);
-      fetchLinks(currentPage);
+      fetchLinks(currentPage, true);
     } catch { } finally { setDeleteLoading(false); }
   }
 
@@ -140,7 +157,7 @@ export default function DashboardPage() {
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}
-            onPageChange={(p) => fetchLinks(p)}
+            onPageChange={(p) => fetchLinks(p, true)}
           />
         </div>
 
@@ -150,7 +167,7 @@ export default function DashboardPage() {
       {createdLink && <ShortlinkResultModal result={createdLink} onClose={() => setCreatedLink(null)} />}
       {analyticsSlug && <AnalyticsModal slug={analyticsSlug} onClose={() => setAnalyticsSlug(null)} />}
       {qrSlug && <QrCodeModal slug={qrSlug} shortUrl={`${baseUrl}/${qrSlug}`} onClose={() => setQrSlug(null)} />}
-      {editingLink && <EditShortlinkModal link={editingLink} onClose={() => setEditingLink(null)} onUpdate={() => fetchLinks(currentPage)} />}
+      {editingLink && <EditShortlinkModal link={editingLink} onClose={() => setEditingLink(null)} onUpdate={() => fetchLinks(currentPage, true)} />}
 
       {/* ── Delete Confirm ── */}
       {pendingDeleteSlugs.length > 0 && (
