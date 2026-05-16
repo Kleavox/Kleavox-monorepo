@@ -10,6 +10,7 @@ export interface Env {
   APP_HOST: string;
   PROTOCOL: string;
   SHORT_HOST: string;
+  REDIRECT_HOST: string;
   TURNSTILE_SITE_KEY: string;
 
   // Secrets

@@ -45,6 +45,15 @@ app.route("/api/setup", setupRoutes);      // /api/setup/*
 // (Client-side QR generation used in Next.js — no server QR needed)
 // If you want server-side QR, install `qrcode` npm package and add route here.
 
+// ─── Root redirect (deau.site → portfolio) ───────────
+app.get("/", (c) => {
+  const host = c.req.header("host") ?? "";
+  if (host === c.env.SHORT_HOST) {
+    return c.redirect(`https://${c.env.REDIRECT_HOST}`, 301);
+  }
+  return c.env.ASSETS.fetch(c.req.raw);
+});
+
 // ─── Shortlink Redirect ───────────────────────────────
 app.route("/", redirectRoutes);            // /:slug
 

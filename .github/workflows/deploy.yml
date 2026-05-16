@@ -29,6 +29,7 @@ jobs:
           SHORT_HOST: ${{ secrets.SHORT_HOST }}
           TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          REDIRECT_HOST: ${{ secrets.REDIRECT_HOST }}
         run: |
           cp worker/wrangler.toml.example worker/wrangler.toml
           sed -i "s|PLACEHOLDER_DB_ID|$DB_ID|g" worker/wrangler.toml
@@ -37,6 +38,7 @@ jobs:
           sed -i "s|PLACEHOLDER_SHORT_HOST|$SHORT_HOST|g" worker/wrangler.toml
           sed -i "s|PLACEHOLDER_TURNSTILE_SITE_KEY|$TURNSTILE_SITE_KEY|g" worker/wrangler.toml
           sed -i "s|PLACEHOLDER_MAIL_FROM|$MAIL_FROM|g" worker/wrangler.toml
+          sed -i "s|PLACEHOLDER_REDIRECT_HOST|$REDIRECT_HOST|g" worker/wrangler.toml
 
       # ── Build Next.js static export ───────────────────────────
       - name: Install frontend dependencies
