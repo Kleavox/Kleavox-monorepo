@@ -1,7 +1,7 @@
 {
   "name": "deauport",
   "type": "module",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -10,6 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "workers": "npm run build && wrangler dev",
     "generate-types": "wrangler types"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "@astrojs/react": "^5.0.5",
     "@fontsource-variable/inter": "^5.2.8",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@marsidev/react-turnstile": "^1.5.2",
     "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
