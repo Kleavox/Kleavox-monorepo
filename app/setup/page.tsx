@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { CircleNotch, HardDrives, Key, ArrowClockwise, CaretRight, Cpu } from "@phosphor-icons/react";
+import { CircleNotch, HardDrives, Key, ArrowClockwise, CaretRight, Cpu, Eye, EyeSlash } from "@phosphor-icons/react";
 
 export default function SetupPage() {
   const [loading, setLoading] = useState(true);
@@ -13,7 +13,9 @@ export default function SetupPage() {
   const [step, setStep] = useState<"form" | "otp">("form");
   const router = useRouter();
 
-  const [formData, setFormData] = useState({ name: "Administrator", email: "", password: "" });
+  const [formData, setFormData] = useState({ name: "Administrator", email: "", password: "", confirmPassword: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [otp, setOtp] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
@@ -34,12 +36,16 @@ export default function SetupPage() {
 
   async function handleSetup(e: React.FormEvent) {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setSubmitting(true); setError("");
     try {
       const res = await fetch("/api/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -122,7 +128,47 @@ export default function SetupPage() {
             </div>
             <div className="space-y-2">
               <label className="nothing-label block ml-1">Root_Password</label>
-              <input type="password" className="db-input" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" required minLength={8} />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="db-input pr-12"
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-(--db-text-muted) hover:text-(--db-text) transition-colors p-1"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="nothing-label block ml-1">Confirm_Password</label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  className="db-input pr-12"
+                  value={formData.confirmPassword}
+                  onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="••••••••"
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(p => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-(--db-text-muted) hover:text-(--db-text) transition-colors p-1"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeSlash size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
 
