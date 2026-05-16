@@ -75,7 +75,7 @@ export default function Contact() {
             </span>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Thanks — I'll get back to you within 24 hours on weekdays.
+            Thanks. I'll get back to you within 24 hours on weekdays.
           </p>
           <button
             onClick={() => setState('idle')}

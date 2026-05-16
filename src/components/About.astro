@@ -1,35 +1,41 @@
 ---
 const values = [
-  { label: 'start small', desc: 'prototype early, iterate fast' },
-  { label: 'logs > guesses', desc: 'instrument everything' },
-  { label: 'readable > clever', desc: 'code others can maintain' },
-  { label: 'a11y & dx', desc: 'accessible interfaces, good tooling' },
+  { label: 'prototype first',   desc: 'ship hardware early, learn from real behavior' },
+  { label: 'instrument it',     desc: 'logs on firmware, metrics on web, same mindset' },
+  { label: 'own the stack',     desc: 'from PCB traces to browser pixels' },
+  { label: 'readable > clever', desc: 'the next reader is probably you at 2am' },
 ]
 
 const timeline = [
   {
-    year: '2022',
-    label: 'UNNES — Teknik Komputer',
+    year: '2022 to present',
+    label: 'UNNES, Teknik Komputer',
     type: 'edu',
-    note: 'BSc Computer Engineering · Ongoing',
+    note: 'BSc Computer Engineering, thesis in progress',
   },
   {
     year: '2024 Q2',
     label: 'Contract Research Staff',
     type: 'work',
-    note: 'PT. Indonesian Consultant Mandiri · Electoral data processing & analysis',
+    note: 'PT. Indonesian Consultant Mandiri. Electoral data processing and analysis',
   },
   {
-    year: '2024',
-    label: 'OpenCV + TensorFlow + GenAI Bootcamps',
+    year: '2024 Q4',
+    label: 'Dicoding Certifications',
     type: 'cert',
-    note: 'Machine learning & computer vision certifications',
+    note: 'Python Programming, Machine Learning for Beginners, AI Basics (x Google Cloud / Google Developers)',
   },
   {
-    year: '2024—',
-    label: 'SICermat Capstone',
+    year: '2025 Q1',
+    label: 'Huawei HCIA-AI V3.5',
+    type: 'cert',
+    note: 'AI Basics: Overview of AI and HCIA-AI V3.5 Course via Huawei Talent Online',
+  },
+  {
+    year: '2025',
+    label: 'DeltaT32',
     type: 'project',
-    note: 'Wearable ESP32-C3 · BMI270 + MAX30102 · Edge Impulse · Flutter dashboard',
+    note: 'Modular PCB system in KiCad 8. ESP32-C3 mainboard with detachable BMI270 and MPU9250 sensor boards',
   },
 ]
 
@@ -44,38 +50,40 @@ const typeStyle: Record<string, string> = {
 <section id="about" class="py-28" style="border-top: 1px solid var(--border);">
   <div class="max-w-5xl mx-auto px-6">
 
-    <!-- Label -->
-    <p class="font-mono text-xs mb-12" style="color: var(--text-dim); letter-spacing: 0.1em;">
+    <p
+      data-reveal="fade"
+      class="font-mono text-xs mb-12"
+      style="color: var(--text-dim); letter-spacing: 0.1em;"
+    >
       01 / about
     </p>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
 
       <!-- Left: bio + values -->
-      <div>
+      <div data-reveal style="--reveal-delay: 0.1s;">
         <h2
           class="mb-6"
           style="font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text);"
         >
-          Engineering at the<br />
-          <span style="color: var(--accent);">hardware–web boundary.</span>
+          Engineering from<br />
+          <span style="color: var(--accent);">hardware to web.</span>
         </h2>
 
         <div style="color: var(--text-muted); line-height: 1.75; font-size: 0.925rem;" class="space-y-4">
           <p>
-            I'm Hafidh — a computer engineering student at Semarang State University (UNNES),
-            deeply interested in the full stack that runs from sensor silicon to the
-            screen in your hand.
+            I'm Hafidh, a computer engineering student at Semarang State University (UNNES),
+            interested in the full stack that runs from sensor silicon to the screen in your hand.
           </p>
           <p>
-            My work lives at the intersection of embedded systems, IoT, and modern
-            web/mobile. I design PCBs in KiCad, write firmware for ESP32 microcontrollers,
-            build REST APIs that stream sensor data, and ship Flutter and web apps that
-            make that data actionable.
+            My work spans embedded systems, IoT, and modern web and mobile development.
+            I design PCBs in KiCad, write firmware for ESP32 microcontrollers,
+            build backend services on Cloudflare, and ship Flutter and web apps
+            that make that data usable.
           </p>
           <p>
-            Currently focused on the SICermat capstone — a wearable motion and health
-            monitor with on-device ML via Edge Impulse.
+            Currently active on DeauBit, a self-hosted URL shortener running entirely on
+            Cloudflare infrastructure, and open to collaborations in any layer of the stack.
           </p>
         </div>
 
@@ -93,45 +101,35 @@ const typeStyle: Record<string, string> = {
         </div>
 
         <!-- Links -->
-        <div class="mt-10 flex items-center gap-5">
+        <div class="mt-10 flex items-center gap-6">
           <a
             href="https://github.com/VorDeau"
             target="_blank" rel="noopener noreferrer"
-            class="font-mono text-xs transition-colors"
-            style="color: var(--text-muted);"
+            class="font-mono text-xs about-link"
+            style="color: var(--text-muted); transition: color 0.15s;"
           >
             github ↗
           </a>
           <a
             href="https://www.linkedin.com/in/hmus122/"
             target="_blank" rel="noopener noreferrer"
-            class="font-mono text-xs transition-colors"
-            style="color: var(--text-muted);"
+            class="font-mono text-xs about-link"
+            style="color: var(--text-muted); transition: color 0.15s;"
           >
             linkedin ↗
-          </a>
-          <a
-            href="https://www.kaggle.com/hafidhmusyafa"
-            target="_blank" rel="noopener noreferrer"
-            class="font-mono text-xs transition-colors"
-            style="color: var(--text-muted);"
-          >
-            kaggle ↗
           </a>
         </div>
       </div>
 
       <!-- Right: timeline -->
-      <div>
+      <div data-reveal style="--reveal-delay: 0.22s;">
         <p class="font-mono text-xs mb-8" style="color: var(--text-dim); letter-spacing: 0.08em;">timeline</p>
-        <ol class="relative" style="border-left: 1px solid var(--border); padding-left: 24px; space-y-0;">
+        <ol class="relative" style="border-left: 1px solid var(--border); padding-left: 24px;">
           {timeline.map((item, i) => (
             <li class={i < timeline.length - 1 ? 'pb-8' : ''} style="position: relative;">
-              <!-- Dot -->
               <span
                 style={`position: absolute; left: -29px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: ${typeStyle[item.type]}; border: 2px solid var(--bg); box-shadow: 0 0 6px ${typeStyle[item.type]};`}
               ></span>
-
               <p class="font-mono text-xs mb-1" style={`color: ${typeStyle[item.type]}; letter-spacing: 0.06em;`}>
                 {item.year}
               </p>
@@ -141,7 +139,6 @@ const typeStyle: Record<string, string> = {
           ))}
         </ol>
 
-        <!-- Availability indicator -->
         <div
           class="mt-10 flex items-center gap-3 px-4 py-3"
           style="border: 1px solid var(--border); border-radius: 6px; background: var(--bg-surface);"
@@ -150,7 +147,7 @@ const typeStyle: Record<string, string> = {
             style="width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; box-shadow: 0 0 8px var(--green); flex-shrink: 0;"
           ></span>
           <span class="font-mono text-xs" style="color: var(--text-muted);">
-            open to collaborations & internship opportunities
+            open to collaborations and internship opportunities
           </span>
         </div>
       </div>
@@ -158,3 +155,10 @@ const typeStyle: Record<string, string> = {
     </div>
   </div>
 </section>
+
+<script>
+  document.querySelectorAll('.about-link').forEach(el => {
+    el.addEventListener('mouseenter', () => (el as HTMLElement).style.color = 'var(--accent)')
+    el.addEventListener('mouseleave', () => (el as HTMLElement).style.color = 'var(--text-muted)')
+  })
+</script>

@@ -37,16 +37,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const resend = new Resend(apiKey)
 
   const { error } = await resend.emails.send({
-    from:    'Deauport Contact <noreply@deauport.id>',
-    to:      ['hello@deauport.id'],
+    from:    'Hafidh <port@deau.site>',
+    to:      ['port@deau.site'],
     replyTo: email,
-    subject: `[deauport.id] Message from ${name}`,
-    text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
+    subject: `[deauport] ${name}`,
+    text:    `From: ${name} <${email}>\n\n${message}`,
     html: `
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-      <hr />
-      <p>${message.replace(/\n/g, '<br />')}</p>
+      <table style="font-family:monospace;font-size:14px;color:#1a1a1a;">
+        <tr><td style="padding:4px 12px 4px 0;color:#666;">from</td><td>${name} &lt;<a href="mailto:${email}">${email}</a>&gt;</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#666;">reply-to</td><td><a href="mailto:${email}">${email}</a></td></tr>
+      </table>
+      <hr style="margin:16px 0;border:none;border-top:1px solid #e5e5e5;" />
+      <div style="font-family:sans-serif;font-size:15px;line-height:1.6;white-space:pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br />')}</div>
+      <hr style="margin:16px 0;border:none;border-top:1px solid #e5e5e5;" />
+      <p style="font-size:12px;color:#999;">Reply to this email to respond directly to ${name}.</p>
     `,
   })
 

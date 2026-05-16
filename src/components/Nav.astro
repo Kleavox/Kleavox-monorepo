@@ -9,7 +9,7 @@ const links = [
 <header
   id="nav"
   class="fixed top-0 left-0 right-0 z-50"
-  style="background: rgba(8,8,15,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);"
+  style="background: rgba(8,8,15,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);"
 >
   <nav class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
     <a
@@ -20,14 +20,14 @@ const links = [
       ~/vordeau
     </a>
 
-    <ul class="flex items-center gap-8">
+    <!-- Desktop links -->
+    <ul class="hidden sm:flex items-center gap-8">
       {links.map(l => (
         <li>
           <a
             href={l.href}
-            class="font-mono text-xs transition-colors duration-150"
+            class="font-mono text-xs nav-link transition-colors duration-150"
             style="color: var(--text-muted); letter-spacing: 0.06em;"
-            data-nav-link
           >
             {l.label}
           </a>
@@ -38,24 +38,80 @@ const links = [
           href="https://github.com/VorDeau"
           target="_blank"
           rel="noopener noreferrer"
-          class="font-mono text-xs px-3 py-1.5 transition-colors duration-150"
+          class="font-mono text-xs px-3 py-1.5 nav-link transition-colors duration-150"
           style="border: 1px solid var(--border-mid); color: var(--text-muted); border-radius: 4px;"
         >
           github ↗
         </a>
       </li>
     </ul>
+
+    <!-- Mobile: github + hamburger -->
+    <div class="flex sm:hidden items-center gap-4">
+      <a
+        href="https://github.com/VorDeau"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="font-mono text-xs"
+        style="color: var(--text-muted);"
+      >
+        github ↗
+      </a>
+      <button
+        id="menu-toggle"
+        aria-label="Toggle menu"
+        class="font-mono text-xs"
+        style="color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px;"
+      >
+        <span id="menu-icon">menu</span>
+      </button>
+    </div>
   </nav>
+
+  <!-- Mobile dropdown -->
+  <div
+    id="mobile-menu"
+    class="sm:hidden flex-col px-6 pb-4 gap-1"
+    style="border-top: 1px solid var(--border); background: rgba(8,8,15,0.96);"
+  >
+    {links.map(l => (
+      <a
+        href={l.href}
+        class="font-mono text-xs py-3 mobile-nav-link"
+        style="color: var(--text-muted); display: block; letter-spacing: 0.06em;"
+      >
+        {l.label}
+      </a>
+    ))}
+  </div>
 </header>
 
 <script>
-  const links = document.querySelectorAll('[data-nav-link]')
-  links.forEach(link => {
+  // Desktop hover
+  document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('mouseenter', () => {
       (link as HTMLElement).style.color = 'var(--accent)'
     })
     link.addEventListener('mouseleave', () => {
       (link as HTMLElement).style.color = 'var(--text-muted)'
+    })
+  })
+
+  // Mobile menu toggle
+  const toggle = document.getElementById('menu-toggle')
+  const menu   = document.getElementById('mobile-menu')
+  const icon   = document.getElementById('menu-icon')
+
+  toggle?.addEventListener('click', () => {
+    const isOpen = menu?.classList.toggle('open')
+    if (icon) icon.textContent = isOpen ? 'close' : 'menu'
+  })
+
+  // Close on link click
+  document.querySelectorAll('.mobile-nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      menu?.classList.remove('open')
+      if (icon) icon.textContent = 'menu'
     })
   })
 </script>

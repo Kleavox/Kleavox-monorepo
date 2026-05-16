@@ -6,14 +6,14 @@ const projects = [
     status: 'active',
     category: 'Web · CF Workers',
     description:
-      'Self-hosted URL shortener with click analytics, QR code generation, password-protected links, self-destruct expiry, and abuse reporting. Full-stack on Cloudflare — Next.js 16 frontend, Hono.js backend on CF Workers, D1 (SQLite) for storage, KV for sessions, and Resend for email.',
+      'Self-hosted URL shortener with click analytics, QR code generation, password-protected links, self-destruct expiry, and abuse reporting. Full-stack on Cloudflare: Next.js 16 frontend, Hono.js backend on CF Workers, D1 (SQLite) for storage, KV for sessions, and Resend for email.',
     stack: ['Next.js 16', 'Hono.js', 'CF Workers', 'CF D1', 'TypeScript', 'Tailwind v4', 'Resend', 'Turnstile'],
     repo: 'https://github.com/VorDeau/deaubit',
     note: 'Still actively updated',
   },
   {
     name: 'Doswall Mobile',
-    tag: 'mobile · 2024—2025',
+    tag: 'mobile · 2024 to 2025',
     status: 'done',
     category: 'Mobile · Flutter',
     description:
@@ -25,11 +25,11 @@ const projects = [
   },
   {
     name: 'DeltaT32',
-    tag: 'hardware · 2025',
+    tag: 'hardware · Q3 2025',
     status: 'done',
     category: 'PCB · Embedded',
     description:
-      'Modular hardware design built in KiCad 8, centered on the ESP32-C3 Mini-1. Comprises a main ESP unit and two hot-swappable sensor daughter boards — BMI270/BMI160 (IMU) and MPU9250 (9-axis) — intended for wearable and general-purpose embedded applications. Designed with esp-rs (Rust) firmware compatibility in mind.',
+      'Modular hardware design built in KiCad 8, centered on the ESP32-C3 Mini-1. Comprises a main ESP unit and two hot-swappable sensor daughter boards: BMI270/BMI160 (IMU) and MPU9250 (9-axis). Intended for wearable and general-purpose embedded applications, with esp-rs (Rust) firmware compatibility in mind. Assembly completed Q3 2025.',
     stack: ['KiCad 8', 'ESP32-C3', 'BMI270', 'MPU9250', 'esp-rs'],
     repo: 'https://github.com/VorDeau/DeltaT32',
     note: null,
@@ -45,17 +45,22 @@ const statusStyle: Record<string, { color: string; label: string }> = {
 <section id="projects" class="py-28" style="border-top: 1px solid var(--border);">
   <div class="max-w-5xl mx-auto px-6">
 
-    <p class="font-mono text-xs mb-12" style="color: var(--text-dim); letter-spacing: 0.1em;">
+    <p
+      data-reveal="fade"
+      class="font-mono text-xs mb-12"
+      style="color: var(--text-dim); letter-spacing: 0.1em;"
+    >
       03 / projects
     </p>
 
     <div class="space-y-px" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-      {projects.map(p => {
+      {projects.map((p, idx) => {
         const s = statusStyle[p.status]
         return (
           <article
+            data-reveal
+            style={`--reveal-delay: ${0.05 + idx * 0.1}s; background: var(--bg-surface);`}
             class="p-6 transition-colors duration-150"
-            style="background: var(--bg-surface);"
             data-project
           >
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">

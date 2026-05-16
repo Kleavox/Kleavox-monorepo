@@ -7,8 +7,8 @@ interface Props {
 }
 
 const {
-  title = 'Hafidh Musyafa — Deau',
-  description = 'Computer Engineering student at UNNES. Building at the intersection of embedded systems and modern web — from ESP32 sensors to clean interfaces.'
+  title = 'Hafidh Musyafa / VorDeau',
+  description = 'Computer Engineering student at UNNES. Building at the intersection of embedded systems and modern web, from ESP32 sensors to clean interfaces.'
 } = Astro.props
 ---
 
@@ -26,5 +26,19 @@ const {
   </head>
   <body>
     <slot />
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('revealed')
+              observer.unobserve(entry.target)
+            }
+          })
+        },
+        { threshold: 0.08 }
+      )
+      document.querySelectorAll('[data-reveal]').forEach((el) => observer.observe(el))
+    </script>
   </body>
 </html>

@@ -1,108 +1,63 @@
 ---
-const groups = [
+const rows = [
   {
-    id: 'embedded',
-    label: 'Embedded & IoT',
-    indicator: 'var(--accent)',
-    items: [
-      'ESP32 / ESP32-C3 / ESP32-S3',
-      'FreeRTOS · MQTT · BLE 5.0',
-      'KiCad 8 (PCB & schematic)',
-      'I2C / SPI / UART protocols',
-      'Edge Impulse (on-device ML)',
-      'Low-power optimization',
-      'BMI270 · MPU9250 · MAX30102',
-    ],
+    label: 'embedded',
+    color: 'var(--accent)',
+    items: ['PCB Design', 'Microcontroller Programming', 'Embedded Firmware'],
   },
   {
-    id: 'languages',
-    label: 'Languages',
-    indicator: 'var(--amber)',
-    items: [
-      'C / C++',
-      'Python',
-      'TypeScript / JavaScript',
-      'Dart',
-      'Kotlin',
-      'Java',
-    ],
+    label: 'languages',
+    color: 'var(--amber)',
+    items: ['C / C++', 'Python', 'Java'],
   },
   {
-    id: 'web-mobile',
-    label: 'Web & Mobile',
-    indicator: 'var(--green)',
-    items: [
-      'Astro · Next.js · React',
-      'Tailwind CSS',
-      'Node.js · REST API',
-      'Flutter (Dart)',
-      'Jetpack Compose (Kotlin)',
-      'Cloudflare Workers',
-      'Resend · Nodemailer',
-    ],
+    label: 'web',
+    color: 'var(--green)',
+    items: ['Next.js', 'Astro', 'Hono.js', 'React', 'Tailwind CSS'],
   },
   {
-    id: 'data-ml',
-    label: 'Data & ML',
-    indicator: '#c084fc',
-    items: [
-      'TensorFlow / Keras',
-      'PyTorch',
-      'RNN · LSTM (HAR)',
-      'Scikit-learn',
-      'Matplotlib · Seaborn',
-      'SPSS · Excel (data cleaning)',
-      'OpenCV',
-    ],
+    label: 'mobile',
+    color: '#c084fc',
+    items: ['Flutter', 'Kotlin / Jetpack Compose'],
   },
   {
-    id: 'tools',
-    label: 'Tools & Platforms',
-    indicator: 'var(--text-dim)',
-    items: [
-      'Git · GitHub',
-      'VSCode',
-      'Figma',
-      'Firebase',
-      'Docker',
-      'Linux',
-    ],
+    label: 'infra',
+    color: 'var(--text-muted)',
+    items: ['Cloudflare', 'Docker', 'Linux', 'VPS'],
   },
 ]
 ---
 
-<section id="skills" class="py-28" style="border-top: 1px solid var(--border);">
+<section id="skills" class="py-24" style="border-top: 1px solid var(--border);">
   <div class="max-w-5xl mx-auto px-6">
 
-    <p class="font-mono text-xs mb-12" style="color: var(--text-dim); letter-spacing: 0.1em;">
+    <p
+      class="font-mono text-xs mb-10"
+      data-reveal="fade"
+      style="color: var(--text-dim); letter-spacing: 0.1em;"
+    >
       02 / skills
     </p>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-      {groups.map((group, i) => (
+    <div
+      data-reveal="fade"
+      style="--reveal-delay: 0.1s; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;"
+    >
+      {rows.map((row, i) => (
         <div
-          class="p-6"
-          style={`background: var(--bg-surface); ${i === groups.length - 1 && groups.length % 3 !== 0 ? 'grid-column: span 1;' : ''}`}
+          data-reveal
+          style={`--reveal-delay: ${0.1 + i * 0.08}s; display: flex; align-items: baseline; gap: 2rem; padding: 1rem 1.5rem; background: var(--bg-surface); ${i > 0 ? 'border-top: 1px solid var(--border);' : ''}`}
+          class="flex-col sm:flex-row"
         >
-          <div class="flex items-center gap-2 mb-5">
-            <span
-              style={`width: 6px; height: 6px; border-radius: 50%; background: ${group.indicator}; display: inline-block; flex-shrink: 0;`}
-            ></span>
-            <span class="font-mono text-xs" style="color: var(--text-muted); letter-spacing: 0.06em;">
-              {group.label}
-            </span>
-          </div>
-
-          <ul class="space-y-2">
-            {group.items.map(item => (
-              <li
-                class="text-sm"
-                style="color: var(--text); line-height: 1.4;"
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
+          <span
+            class="font-mono text-xs flex-shrink-0"
+            style={`color: ${row.color}; width: 72px; letter-spacing: 0.06em;`}
+          >
+            {row.label}
+          </span>
+          <p class="text-sm" style="color: var(--text-muted); line-height: 1.6;">
+            {row.items.join('  ·  ')}
+          </p>
         </div>
       ))}
     </div>

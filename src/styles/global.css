@@ -59,25 +59,27 @@ html {
   50% { opacity: 0; }
 }
 
-/* Section divider */
-.section-divider {
-  border: none;
-  border-top: 1px solid var(--border);
+/* Waveform draw animations */
+.waveform-path {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: draw-wave 2.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.3s;
 }
 
-/* Waveform draw animation */
-.waveform-path {
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  animation: draw-wave 2.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  animation-delay: 0.3s;
+/* CH2 heartbeat — starts after CH1 begins drawing */
+.waveform-path-2 {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw-wave 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.9s;
 }
 
 @keyframes draw-wave {
   to { stroke-dashoffset: 0; }
 }
 
-/* Fade in up */
+/* Hero fade-up (immediate, on load) */
 .fade-up {
   opacity: 0;
   transform: translateY(16px);
@@ -92,13 +94,27 @@ html {
   to { opacity: 1; transform: none; }
 }
 
-/* Skill bar fill */
-.skill-bar-fill {
-  animation: fill-bar 1s ease forwards;
-  animation-delay: var(--delay, 0s);
-  width: 0;
+/* Scroll-triggered reveal */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition-delay: var(--reveal-delay, 0s);
 }
 
-@keyframes fill-bar {
-  to { width: var(--width); }
+[data-reveal="fade"] {
+  transform: none;
+}
+
+[data-reveal].revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* Mobile nav drawer */
+#mobile-menu {
+  display: none;
+}
+#mobile-menu.open {
+  display: flex;
 }

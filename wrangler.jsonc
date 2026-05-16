@@ -1,13 +1,21 @@
 {
-	"compatibility_date": "2026-05-16",
-	"compatibility_flags": ["global_fetch_strictly_public"],
-	"name": "deauport",
-	"main": "@astrojs/cloudflare/entrypoints/server",
-	"assets": {
-		"directory": "./dist",
-		"binding": "ASSETS"
-	},
-	"observability": {
-		"enabled": true
-	}
+  "name": "deauport",
+  "compatibility_date": "2026-05-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@astrojs/cloudflare/entrypoints/server",
+
+  // ganti dengan account ID kamu (CF Dashboard → kanan bawah)
+  "account_id": "REPLACE_WITH_YOUR_ACCOUNT_ID",
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+
+  // Secrets (set via: wrangler secret put RESEND_API_KEY)
+  // Jangan taruh API keys di sini
 }

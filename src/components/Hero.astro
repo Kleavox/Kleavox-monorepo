@@ -2,199 +2,473 @@
 ---
 
 <section
-  class="min-h-screen flex items-center dot-grid pt-14"
-  style="position: relative; overflow: hidden;"
+  id="hero"
+  class="h-screen flex flex-col relative"
+  style="height: 100svh; padding-top: 56px;"
 >
-  <!-- Subtle radial glow -->
-  <div
-    style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(34,211,238,0.04) 0%, transparent 70%); pointer-events: none;"
-  ></div>
+  <!-- Dot canvas: fills section, pointer-events none, sits behind everything -->
+  <canvas id="dot-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
 
-  <div class="max-w-5xl mx-auto px-6 py-24 w-full">
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
+  <!-- Radial glow -->
+  <div aria-hidden="true" style="position:absolute;top:40%;left:44%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(34,211,238,0.04) 0%,transparent 70%);pointer-events:none;"></div>
 
-      <!-- Left: Text -->
-      <div class="lg:col-span-3">
-        <p
-          class="font-mono text-xs mb-8 fade-up fade-up-1"
-          style="color: var(--text-dim); letter-spacing: 0.1em;"
-        >
-          ~ / vordeau
-        </p>
+  <!-- Content -->
+  <div class="flex-1 flex items-center min-h-0 w-full overflow-hidden" style="position:relative;">
+    <div class="max-w-5xl mx-auto px-6 py-6 w-full">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-10 lg:gap-14 items-center">
 
-        <h1
-          class="leading-none mb-6 fade-up fade-up-2"
-          style="font-size: clamp(3.5rem, 8vw, 6rem); font-weight: 700; letter-spacing: -0.03em; color: var(--text);"
-        >
-          Hafidh<br />
-          <span style="color: var(--accent);">Musyafa</span>
-        </h1>
-
-        <div
-          class="mb-8 fade-up fade-up-3"
-          style="height: 1px; width: 48px; background: var(--border-mid);"
-        ></div>
-
-        <p
-          class="text-base mb-3 fade-up fade-up-3"
-          style="color: var(--text-muted); font-weight: 400; line-height: 1.6; max-width: 420px;"
-        >
-          Computer Engineering student at UNNES.
-          Bridging sensor data to modern web interfaces —
-          from ESP32 prototypes to clean, accessible UIs.
-        </p>
-
-        <p
-          class="font-mono text-xs mb-10 fade-up fade-up-3"
-          style="color: var(--text-dim); letter-spacing: 0.06em;"
-        >
-          embedded · iot · web · mobile · ml
-        </p>
-
-        <div class="flex items-center gap-5 fade-up fade-up-4">
-          <a
-            href="#projects"
-            class="font-mono text-sm px-5 py-2.5 transition-all duration-200"
-            style="background: var(--accent); color: var(--bg); border-radius: 4px; font-weight: 600; letter-spacing: 0.02em;"
-          >
-            view work
-          </a>
-          <a
-            href="#contact"
-            class="font-mono text-sm px-5 py-2.5 transition-all duration-200"
-            style="border: 1px solid var(--border-mid); color: var(--text-muted); border-radius: 4px;"
-          >
-            get in touch
-          </a>
+        <!-- Left: Text — parallax layer A (subtle) -->
+        <div id="text-layer" class="lg:col-span-3" style="will-change:transform;">
+          <p class="font-mono text-xs mb-6 fade-up fade-up-1" style="color:var(--text-dim);letter-spacing:0.1em;">~ / vordeau</p>
+          <h1 class="leading-none mb-5 fade-up fade-up-2" style="font-size:clamp(2.8rem,6vw,4.8rem);font-weight:700;letter-spacing:-0.03em;color:var(--text);">
+            Hafidh<br /><span style="color:var(--accent);">Musyafa</span>
+          </h1>
+          <div class="mb-5 fade-up fade-up-3" style="height:1px;width:40px;background:var(--border-mid);"></div>
+          <p class="text-sm mb-2 fade-up fade-up-3" style="color:var(--text-muted);line-height:1.65;max-width:400px;">
+            Computer Engineering student at UNNES.
+            Bridging sensor data to modern web interfaces,
+            from ESP32 prototypes to clean, accessible UIs.
+          </p>
+          <p class="font-mono text-xs mb-8 fade-up fade-up-3" style="color:var(--text-dim);letter-spacing:0.06em;">embedded · iot · web · mobile</p>
+          <div class="flex items-center gap-4 fade-up fade-up-4">
+            <a href="#projects" class="font-mono text-sm px-4 py-2" style="background:var(--accent);color:var(--bg);border-radius:4px;font-weight:600;letter-spacing:0.02em;">view work</a>
+            <a href="#contact" class="font-mono text-sm px-4 py-2" style="border:1px solid var(--border-mid);color:var(--text-muted);border-radius:4px;">get in touch</a>
+          </div>
         </div>
-      </div>
 
-      <!-- Right: Oscilloscope -->
-      <div
-        class="lg:col-span-2 fade-up fade-up-4"
-        style="position: relative;"
-        aria-hidden="true"
-      >
-        <div
-          style="border: 1px solid var(--border); border-radius: 8px; background: var(--bg-surface); padding: 16px; position: relative; overflow: hidden;"
-        >
-          <!-- Scope header -->
-          <div
-            class="flex items-center justify-between mb-3"
-            style="border-bottom: 1px solid var(--border); padding-bottom: 10px;"
-          >
-            <span class="font-mono text-xs" style="color: var(--text-dim);">CH1: BMI270 accel</span>
-            <div class="flex items-center gap-2">
-              <span class="font-mono text-xs" style="color: var(--text-dim);">250Hz</span>
-              <span
-                style="width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; box-shadow: 0 0 6px var(--green);"
-              ></span>
+        <!-- Right: Sensor panels — parallax layer B (medium) -->
+        <div id="sensor-panels" class="hidden lg:flex lg:col-span-2 flex-col gap-2 fade-up fade-up-4" aria-hidden="true" style="will-change:transform;">
+
+          <!-- BMI270 3D -->
+          <div style="border:1px solid var(--border);border-radius:8px;background:var(--bg-surface);padding:10px;">
+            <div class="flex items-center justify-between mb-2" style="border-bottom:1px solid var(--border);padding-bottom:8px;">
+              <div class="flex items-center gap-1.5">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
+                <span class="font-mono text-xs" style="color:var(--text-dim);">BMI270 accel</span>
+              </div>
+              <span id="bmi-readout" class="font-mono text-xs" style="color:var(--text-dim);">x:+0.00 y:+0.00 z:+1.00</span>
+            </div>
+            <canvas id="bmi-canvas" style="display:block;width:100%;border-radius:3px;"></canvas>
+            <div class="flex items-center justify-between mt-2" style="border-top:1px solid var(--border);padding-top:6px;">
+              <span class="font-mono text-xs" style="color:var(--text-dim);">I2C 0x68</span>
+              <span class="font-mono text-xs" style="color:var(--text-dim);">move mouse</span>
             </div>
           </div>
 
-          <!-- Oscilloscope SVG -->
-          <svg
-            viewBox="0 0 380 100"
-            xmlns="http://www.w3.org/2000/svg"
-            style="width: 100%; display: block;"
-          >
-            <!-- Grid -->
-            <defs>
-              <pattern id="grid" width="38" height="20" patternUnits="userSpaceOnUse">
-                <path d="M 38 0 L 0 0 0 20" fill="none" stroke="var(--border)" stroke-width="0.5" />
-              </pattern>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="1.5" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <rect width="380" height="100" fill="url(#grid)" />
-
-            <!-- Zero line -->
-            <line x1="0" y1="50" x2="380" y2="50" stroke="var(--text-dim)" stroke-width="0.5" stroke-dasharray="3,4" />
-
-            <!-- Waveform: smooth bumps (motion) with spikes (impact events) -->
-            <path
-              class="waveform-path"
-              d="
-                M0,50
-                L8,50
-                C12,50 14,44 16,38 C18,32 20,30 22,32 C24,34 26,42 28,50
-                L34,50
-                L35,49 L36,18 L37,74 L38,50
-                L50,50
-                C54,50 56,44 58,38 C60,32 62,30 64,32 C66,34 68,42 70,50
-                L76,50
-                L77,49 L78,18 L79,74 L80,50
-                L92,50
-                C96,50 98,44 100,38 C102,32 104,30 106,32 C108,34 110,42 112,50
-                L118,50
-                L119,49 L120,18 L121,74 L122,50
-                L134,50
-                C138,50 140,44 142,38 C144,32 146,30 148,32 C150,34 152,42 154,50
-                L160,50
-                L161,49 L162,18 L163,74 L164,50
-                L176,50
-                C180,50 182,44 184,38 C186,32 188,30 190,32 C192,34 194,42 196,50
-                L202,50
-                L203,49 L204,18 L205,74 L206,50
-                L218,50
-                C222,50 224,44 226,38 C228,32 230,30 232,32 C234,34 236,42 238,50
-                L244,50
-                L245,49 L246,18 L247,74 L248,50
-                L260,50
-                C264,50 266,44 268,38 C270,32 272,30 274,32 C276,34 278,42 280,50
-                L286,50
-                L287,49 L288,18 L289,74 L290,50
-                L302,50
-                C306,50 308,44 310,38 C312,32 314,30 316,32 C318,34 320,42 322,50
-                L328,50
-                L329,49 L330,18 L331,74 L332,50
-                L344,50
-                C348,50 350,44 352,38 C354,32 356,30 358,32 C360,34 362,42 364,50
-                L370,50
-                L371,49 L372,18 L373,74 L374,50
-                L380,50
-              "
-              fill="none"
-              stroke="var(--accent)"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              filter="url(#glow)"
-            />
-          </svg>
-
-          <!-- Scope footer -->
-          <div class="flex items-center justify-between mt-3" style="border-top: 1px solid var(--border); padding-top: 10px;">
-            <span class="font-mono text-xs" style="color: var(--text-dim);">I2C 0x68 · ESP32-C3</span>
-            <span class="font-mono text-xs" style="color: var(--text-dim);">20ms/div</span>
+          <!-- MAX30102 PPG -->
+          <div style="border:1px solid var(--border);border-radius:8px;background:var(--bg-surface);padding:10px;">
+            <div class="flex items-center justify-between mb-2" style="border-bottom:1px solid var(--border);padding-bottom:8px;">
+              <div class="flex items-center gap-1.5">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 5px var(--green);"></span>
+                <span class="font-mono text-xs" style="color:var(--text-dim);">MAX30102 ppg</span>
+              </div>
+              <span id="bpm-readout" class="font-mono text-xs" style="color:var(--green);">62 BPM</span>
+            </div>
+            <canvas id="ppg-canvas" style="display:block;width:100%;border-radius:3px;"></canvas>
+            <div class="flex items-center justify-between mt-2" style="border-top:1px solid var(--border);padding-top:6px;">
+              <span class="font-mono text-xs" style="color:var(--text-dim);">I2C 0x57</span>
+              <span class="font-mono text-xs" style="color:var(--text-dim);">250Hz</span>
+            </div>
           </div>
-        </div>
 
-        <!-- Second channel label below -->
-        <div class="mt-3 flex items-center gap-3">
-          <div style="height: 1px; flex: 1; background: var(--border);"></div>
-          <span class="font-mono text-xs" style="color: var(--text-dim);">CH2: MAX30102 ppg</span>
-          <div style="height: 1px; flex: 1; background: var(--border);"></div>
         </div>
       </div>
-
-    </div>
-
-    <!-- Scroll hint -->
-    <div
-      class="absolute bottom-8 left-1/2 fade-up fade-up-4"
-      style="transform: translateX(-50%);"
-    >
-      <a href="#about" style="color: var(--text-dim);">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 4v12M5 11l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
     </div>
   </div>
+
+  <!-- Arrow — no parallax -->
+  <div class="flex justify-center pb-5 fade-up fade-up-4" style="position:relative;">
+    <a href="#about" id="scroll-arrow" style="color:var(--text-dim);transition:color 0.2s;">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <path d="M10 4v12M5 11l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
 </section>
+
+<script>
+(function () {
+
+  // ── Elements ──────────────────────────────────────────────
+  const hero       = document.getElementById('hero')
+  const dotCanvas  = document.getElementById('dot-canvas')
+  const bmiCanvas  = document.getElementById('bmi-canvas')
+  const ppgCanvas  = document.getElementById('ppg-canvas')
+  const bmiRead    = document.getElementById('bmi-readout')
+  const bpmRead    = document.getElementById('bpm-readout')
+  const textLayer  = document.getElementById('text-layer')
+  const panelLayer = document.getElementById('sensor-panels')
+  const arrow      = document.getElementById('scroll-arrow')
+
+  if (!hero || !dotCanvas) return
+
+  const isDesktop = window.matchMedia('(min-width: 1024px)').matches
+
+  // ── Canvas init ───────────────────────────────────────────
+  const dpr    = Math.min(window.devicePixelRatio || 1, 2)
+  const dotDpr = Math.min(window.devicePixelRatio || 1, 1.5)
+
+  function initCanvas(canvas, w, h, scale) {
+    canvas.width  = Math.round(w * scale)
+    canvas.height = Math.round(h * scale)
+    canvas.style.width  = w + 'px'
+    canvas.style.height = h + 'px'
+    const ctx = canvas.getContext('2d')
+    ctx.scale(scale, scale)
+    return ctx
+  }
+
+  // ── Mouse / pointer state ────────────────────────────────
+  let mx = 0, my = 0        // normalised -1..1 within hero
+  let dotMx = -999, dotMy = -999  // canvas-local px; starts off-screen
+  let rawVel = 0, smoothVel = 0
+  let lastEX = 0, lastEY = 0
+  let mouseInHero = false   // only apply effects while inside hero
+
+  function handlePointer(cx, cy) {
+    if (!mouseInHero) return
+    const r  = hero.getBoundingClientRect()
+    mx = ((cx - r.left) / r.width  - 0.5) * 2
+    my = ((cy - r.top)  / r.height - 0.5) * 2
+    const dr = dotCanvas.getBoundingClientRect()
+    dotMx = cx - dr.left
+    dotMy = cy - dr.top
+    const dx = cx - lastEX, dy = cy - lastEY
+    rawVel = Math.sqrt(dx * dx + dy * dy)
+    lastEX = cx; lastEY = cy
+  }
+
+  // Listen only on hero, not document
+  hero.addEventListener('mousemove', e => handlePointer(e.clientX, e.clientY))
+  hero.addEventListener('touchmove', e => {
+    handlePointer(e.touches[0].clientX, e.touches[0].clientY)
+  }, { passive: true })
+
+  hero.addEventListener('mouseenter', () => { mouseInHero = true })
+  hero.addEventListener('mouseleave', () => {
+    mouseInHero = false
+    // Push virtual cursor off-screen so dots spring back
+    dotMx = -999; dotMy = -999
+    // Center content parallax targets
+    mx = 0; my = 0
+  })
+
+  // ── Dot magnetic canvas ───────────────────────────────────
+  const DOT_SPACING = 28
+  const REPEL_R     = 125
+  const REPEL_R_SQ  = REPEL_R * REPEL_R
+  const REPEL_STR   = 14
+  const SPRING_K    = 0.055
+  const DAMPING     = 0.81
+
+  let DOT_W = 0, DOT_H = 0, dotCtx = null, dots = []
+
+  function buildDots(w, h) {
+    dots = []
+    const cols = Math.ceil(w / DOT_SPACING) + 2
+    const rows = Math.ceil(h / DOT_SPACING) + 2
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const ox = c * DOT_SPACING, oy = r * DOT_SPACING
+        dots.push({ ox, oy, x: ox, y: oy, vx: 0, vy: 0 })
+      }
+  }
+
+  function initDotCanvas() {
+    const r = hero.getBoundingClientRect()
+    DOT_W = Math.round(r.width)
+    DOT_H = Math.round(r.height)
+    dotCtx = initCanvas(dotCanvas, DOT_W, DOT_H, dotDpr)
+    buildDots(DOT_W, DOT_H)
+  }
+
+  function updateDotPhysics() {
+    for (const d of dots) {
+      const dx = d.x - dotMx, dy = d.y - dotMy
+      const dSq = dx * dx + dy * dy
+      if (dSq < REPEL_R_SQ && dSq > 0.01) {
+        const dist = Math.sqrt(dSq)
+        const t = 1 - dist / REPEL_R
+        const f = REPEL_STR * t * t
+        d.vx += (dx / dist) * f
+        d.vy += (dy / dist) * f
+      }
+      d.vx += (d.ox - d.x) * SPRING_K
+      d.vy += (d.oy - d.y) * SPRING_K
+      d.vx *= DAMPING; d.vy *= DAMPING
+      d.x  += d.vx;    d.y  += d.vy
+    }
+  }
+
+  function drawDots() {
+    if (!dotCtx) return
+    dotCtx.clearRect(0, 0, DOT_W, DOT_H)
+
+    // Pass 1: all dots
+    dotCtx.fillStyle = '#505090'
+    dotCtx.beginPath()
+    for (const d of dots) dotCtx.rect(d.x - 0.5, d.y - 0.5, 1, 1)
+    dotCtx.fill()
+
+    // Pass 2: displaced dots glow cyan (magnetic field visualization)
+    dotCtx.fillStyle = 'rgba(34, 211, 238, 0.58)'
+    dotCtx.beginPath()
+    for (const d of dots) {
+      const dx = d.x - d.ox, dy = d.y - d.oy
+      if (dx*dx + dy*dy > 9) dotCtx.rect(d.x - 0.5, d.y - 0.5, 1, 1)
+    }
+    dotCtx.fill()
+  }
+
+  initDotCanvas()
+
+  // ── Sensor canvases (desktop only) ───────────────────────
+  let bmiCtx = null, ppgCtx = null
+  let BMI_W = 0, BMI_H = 0, PPG_W = 0, PPG_H = 0
+
+  if (isDesktop && bmiCanvas && ppgCanvas) {
+    const pw = bmiCanvas.parentElement.clientWidth - 22
+    BMI_W = pw; BMI_H = 158; PPG_W = pw; PPG_H = 62
+    bmiCtx = initCanvas(bmiCanvas, BMI_W, BMI_H, dpr)
+    ppgCtx = initCanvas(ppgCanvas, PPG_W, PPG_H, dpr)
+  }
+
+  // ── 3D math ──────────────────────────────────────────────
+  const dot3 = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+
+  function rot3(x, y, z, rx, ry) {
+    const x1 =  x*Math.cos(ry) + z*Math.sin(ry)
+    const z1 = -x*Math.sin(ry) + z*Math.cos(ry)
+    const y2 = y*Math.cos(rx) - z1*Math.sin(rx)
+    const z2 = y*Math.sin(rx) + z1*Math.cos(rx)
+    return [x1, y2, z2]
+  }
+
+  // FOV=260: more dramatic perspective distortion
+  function proj3(p, cx, cy) {
+    const s = 260 / (260 + p[2] + 90)
+    return [cx + p[0]*s, cy + p[1]*s]
+  }
+
+  // ── BMI270 ────────────────────────────────────────────────
+  // Larger PCB for more visual impact
+  const HW = 64, HH = 5, HD = 42
+  let bRX = 0.28, bRY = -0.22
+  let bTX = 0.28, bTY = -0.22
+
+  const VRAW = [
+    [-HW,-HH,-HD],[HW,-HH,-HD],[HW,-HH,HD],[-HW,-HH,HD],
+    [-HW, HH,-HD],[HW, HH,-HD],[HW, HH,HD],[-HW, HH,HD],
+  ]
+  const FACES = [
+    [[0,1,2,3],[0,-1,0]], [[7,6,5,4],[0,1,0]],
+    [[4,5,1,0],[0,0,-1]], [[2,6,7,3],[0,0,1]],
+    [[1,5,6,2],[1,0,0]],  [[0,3,7,4],[-1,0,0]],
+  ]
+
+  function drawBMI() {
+    if (!bmiCtx) return
+    const W = BMI_W, H = BMI_H, cx = W/2, cy = H/2 + 5
+    bmiCtx.clearRect(0, 0, W, H)
+    bmiCtx.fillStyle = 'rgba(14,14,28,0.65)'
+    bmiCtx.fillRect(0, 0, W, H)
+
+    const rx = bRX, ry = bRY
+    const vRot  = VRAW.map(([x,y,z]) => rot3(x,y,z,rx,ry))
+    const vProj = vRot.map(v => proj3(v, cx, cy))
+
+    FACES.map(([idx, nRaw]) => ({
+      idx,
+      vis:  dot3(rot3(nRaw[0],nRaw[1],nRaw[2],rx,ry), [0,0,1]),
+      avgZ: idx.reduce((s,i) => s + vRot[i][2], 0) / 4,
+    })).sort((a,b) => b.avgZ - a.avgZ)
+      .forEach(({ idx, vis }) => {
+        if (vis > 0.02) return
+        bmiCtx.beginPath()
+        idx.forEach((vi,k) => {
+          const [px,py] = vProj[vi]
+          k === 0 ? bmiCtx.moveTo(px,py) : bmiCtx.lineTo(px,py)
+        })
+        bmiCtx.closePath()
+        bmiCtx.fillStyle   = 'rgba(34,211,238,0.04)';  bmiCtx.fill()
+        bmiCtx.lineWidth   = 3;    bmiCtx.strokeStyle = 'rgba(34,211,238,0.10)'; bmiCtx.stroke()
+        bmiCtx.lineWidth   = 0.8;  bmiCtx.strokeStyle = 'rgba(34,211,238,0.55)'; bmiCtx.stroke()
+      })
+
+    const AX_LEN = 80
+    const AXES = [
+      { d:[1,0,0],  col:'#22d3ee', label:'X' },
+      { d:[0,-1,0], col:'#fbbf24', label:'Y' },
+      { d:[0,0,1],  col:'#4ade80', label:'Z' },
+    ]
+    const [ox, oy] = proj3(rot3(0,0,0,rx,ry), cx, cy)
+
+    AXES.forEach(({ d, col, label }) => {
+      const tip = rot3(d[0]*AX_LEN, d[1]*AX_LEN, d[2]*AX_LEN, rx, ry)
+      const [tx, ty] = proj3(tip, cx, cy)
+      const ang = Math.atan2(ty-oy, tx-ox)
+
+      bmiCtx.beginPath(); bmiCtx.moveTo(ox,oy); bmiCtx.lineTo(tx,ty)
+      bmiCtx.lineWidth = 5; bmiCtx.strokeStyle = col + '28'; bmiCtx.stroke()
+      bmiCtx.beginPath(); bmiCtx.moveTo(ox,oy); bmiCtx.lineTo(tx,ty)
+      bmiCtx.lineWidth = 1.6; bmiCtx.strokeStyle = col; bmiCtx.stroke()
+
+      bmiCtx.beginPath()
+      bmiCtx.moveTo(tx, ty)
+      bmiCtx.lineTo(tx - 9*Math.cos(ang-0.42), ty - 9*Math.sin(ang-0.42))
+      bmiCtx.lineTo(tx - 9*Math.cos(ang+0.42), ty - 9*Math.sin(ang+0.42))
+      bmiCtx.closePath(); bmiCtx.fillStyle = col; bmiCtx.fill()
+
+      bmiCtx.font = 'bold 9px monospace'; bmiCtx.fillStyle = col
+      bmiCtx.fillText(label, tx + Math.cos(ang)*12, ty + Math.sin(ang)*12)
+    })
+
+    const gx =  Math.sin(ry)
+    const gy = -Math.sin(rx) * Math.cos(ry)
+    const gz =  Math.cos(rx) * Math.cos(ry)
+    const fmt = v => (v >= 0 ? '+' : '') + v.toFixed(2) + 'g'
+    if (bmiRead) bmiRead.textContent = `x:${fmt(gx)} y:${fmt(gy)} z:${fmt(gz)}`
+  }
+
+  // ── MAX30102 PPG — realistic PPG waveform ────────────────
+  // Baseline near bottom, smooth bump shape (not ECG spikes)
+  const PPG_CENTER = PPG_H * 0.78   // baseline near bottom
+  const PPG_AMP    = PPG_H * 0.62   // amplitude fills most of canvas height
+  const SPF        = 2
+
+  let ppgBuf   = PPG_W > 0 ? new Float32Array(PPG_W).fill(PPG_CENTER) : null
+  let ppgHead  = 0
+  let ppgPhase = 0.9   // start near end of cycle (at baseline)
+  let ppgBpm   = 62
+  let bpmFrame = 0     // tick counter: update DOM text once per second
+
+  // Returns 0 (baseline) to ~1 (systolic peak)
+  // Smooth PPG pulse: rise → systolic peak → dicrotic notch → diastolic bump → fall
+  function ppgWave(t) {
+    if (t < 0.30) {
+      const x = t / 0.30
+      return x * x * (3 - 2*x)          // cubic smooth-step rise: 0→1
+    }
+    if (t < 0.45) {
+      const x = (t - 0.30) / 0.15
+      return 1.0 - x * 0.38             // systolic descent: 1→0.62
+    }
+    if (t < 0.52) {
+      const x = (t - 0.45) / 0.07
+      return 0.62 - Math.sin(x * Math.PI) * 0.10  // dicrotic notch dip
+    }
+    if (t < 0.62) {
+      const x = (t - 0.52) / 0.10
+      return 0.60 + Math.sin(x * Math.PI) * 0.10  // diastolic secondary bump
+    }
+    if (t <= 1.0) {
+      const x = (t - 0.62) / 0.38
+      return 0.60 * (1 - x) * (1 - x)  // quadratic return to baseline
+    }
+    return 0
+  }
+
+  function updatePPG() {
+    if (!ppgCtx || !ppgBuf) return
+    const phaseStep = ppgBpm / (60 * SPF * 60)
+    for (let s = 0; s < SPF; s++) {
+      ppgPhase += phaseStep
+      if (ppgPhase >= 1) ppgPhase -= 1
+      // y = CENTER - wave * AMP → peak goes UP (lower y = higher on screen)
+      ppgBuf[ppgHead] = PPG_CENTER - ppgWave(ppgPhase) * PPG_AMP
+      ppgHead = (ppgHead + 1) % PPG_W
+    }
+
+    const W = PPG_W, H = PPG_H
+    ppgCtx.clearRect(0, 0, W, H)
+    ppgCtx.fillStyle = 'rgba(14,14,28,0.65)'
+    ppgCtx.fillRect(0, 0, W, H)
+
+    // Baseline dashed line
+    ppgCtx.beginPath(); ppgCtx.moveTo(0, PPG_CENTER); ppgCtx.lineTo(W, PPG_CENTER)
+    ppgCtx.setLineDash([3,5]); ppgCtx.lineWidth = 0.5
+    ppgCtx.strokeStyle = 'rgba(74,222,128,0.20)'; ppgCtx.stroke()
+    ppgCtx.setLineDash([])
+
+    // Glow trace
+    ppgCtx.beginPath()
+    for (let i = 0; i < W; i++) {
+      const y = ppgBuf[(ppgHead + i) % W]
+      i === 0 ? ppgCtx.moveTo(i, y) : ppgCtx.lineTo(i, y)
+    }
+    ppgCtx.lineWidth = 3.5; ppgCtx.strokeStyle = 'rgba(74,222,128,0.14)'; ppgCtx.stroke()
+
+    // Main trace
+    ppgCtx.beginPath()
+    for (let i = 0; i < W; i++) {
+      const y = ppgBuf[(ppgHead + i) % W]
+      i === 0 ? ppgCtx.moveTo(i, y) : ppgCtx.lineTo(i, y)
+    }
+    ppgCtx.lineWidth = 1.5; ppgCtx.strokeStyle = '#4ade80'; ppgCtx.stroke()
+  }
+
+  // ── Content parallax ─────────────────────────────────────
+  let pTX = 0, pTY = 0    // text layer
+  let pPX = 0, pPY = 0    // panel layer
+
+  const TEXT_DEPTH  = 10   // ±px max for text
+  const PANEL_DEPTH = 16   // ±px max for panels
+
+  function updateParallax() {
+    const tgt = mouseInHero ? 1 : 0   // scale toward 0 when outside hero
+    pTX += (mx * TEXT_DEPTH  * tgt - pTX) * 0.07
+    pTY += (my * TEXT_DEPTH  * tgt - pTY) * 0.07
+    pPX += (mx * PANEL_DEPTH * tgt - pPX) * 0.06
+    pPY += (my * PANEL_DEPTH * tgt - pPY) * 0.06
+    if (textLayer)  textLayer.style.transform  = `translate3d(${pTX.toFixed(2)}px,${pTY.toFixed(2)}px,0)`
+    if (panelLayer) panelLayer.style.transform = `translate3d(${pPX.toFixed(2)}px,${pPY.toFixed(2)}px,0)`
+  }
+
+  // ── Main loop ─────────────────────────────────────────────
+  function loop() {
+    // BMI270: track mouse only inside hero, else return to default tilt
+    if (mouseInHero && isDesktop) {
+      bTX = my * 1.05   // increased sensitivity (was 0.82)
+      bTY = mx * 1.05
+    } else {
+      bTX = 0.28        // drift back to default tilt when outside
+      bTY = -0.22
+    }
+    bRX += (bTX - bRX) * 0.08   // snappier lerp (was 0.055)
+    bRY += (bTY - bRY) * 0.08
+
+    // BPM: smoothVel reacts in ~0.3-0.5s, decays in ~1s — waveform follows in real time
+    smoothVel = smoothVel * 0.94 + rawVel * 0.06
+    rawVel   *= 0.82
+    ppgBpm    = 62 + Math.min(smoothVel * 4.0, 96)  // 62–158 BPM, human heart rate range
+
+    // DOM update: max once per second so digits are readable, matches waveform density
+    bpmFrame++
+    if (bpmFrame >= 60) {
+      if (bpmRead) bpmRead.textContent = `${Math.round(ppgBpm)} BPM`
+      bpmFrame = 0
+    }
+
+    if (isDesktop) { drawBMI(); updatePPG() }
+    updateDotPhysics()
+    drawDots()
+    updateParallax()
+
+    requestAnimationFrame(loop)
+  }
+
+  requestAnimationFrame(loop)
+
+  if (arrow) {
+    arrow.addEventListener('mouseenter', () => arrow.style.color = 'var(--accent)')
+    arrow.addEventListener('mouseleave', () => arrow.style.color = 'var(--text-dim)')
+  }
+
+  let resizeTimer
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(initDotCanvas, 200)
+  })
+
+})()
+</script>
