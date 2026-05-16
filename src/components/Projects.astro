@@ -1,66 +1,44 @@
 ---
 const projects = [
   {
-    id: 'sicermat',
-    name: 'SICermat',
-    tag: 'capstone · 2024—',
+    name: 'DeauBit',
+    tag: 'web · active',
     status: 'active',
-    category: 'Embedded · Mobile',
+    category: 'Web · CF Workers',
     description:
-      'Wearable health and motion monitoring system. ESP32-C3 mainboard with detachable BMI270 (IMU) and MAX30102 (PPG) sensor modules, on-device activity recognition via Edge Impulse, and a Flutter dashboard app for real-time data visualization.',
-    stack: ['ESP32-C3', 'BMI270', 'MAX30102', 'Edge Impulse', 'Flutter', 'BLE 5.0'],
-    repo: 'https://github.com/VorDeau/DeltaT32',
+      'Self-hosted URL shortener with click analytics, QR code generation, password-protected links, self-destruct expiry, and abuse reporting. Full-stack on Cloudflare — Next.js 16 frontend, Hono.js backend on CF Workers, D1 (SQLite) for storage, KV for sessions, and Resend for email.',
+    stack: ['Next.js 16', 'Hono.js', 'CF Workers', 'CF D1', 'TypeScript', 'Tailwind v4', 'Resend', 'Turnstile'],
+    repo: 'https://github.com/VorDeau/deaubit',
+    note: 'Still actively updated',
   },
   {
-    id: 'deltat32',
-    name: 'DeltaT32',
-    tag: 'pcb · 2025',
+    name: 'Doswall Mobile',
+    tag: 'mobile · 2024—2025',
     status: 'done',
-    category: 'Hardware · PCB',
+    category: 'Mobile · Flutter',
     description:
-      'Modular PCB system designed in KiCad 8. Comprises an ESP32-C3 Mini-1 mainboard and two hot-swappable sensor daughter boards (BMI270 and MPU9250). Designed for wearable applications with Rust (esp-rs) firmware compatibility in mind.',
+      'Lecturer wallboard app displaying real-time attendance status and campus announcements on TV screens. Originally built in Kotlin (DoGoes), fully rebuilt in Flutter/Dart for cross-platform support with REST API integration and real-time geolocation.',
+    stack: ['Flutter', 'Dart', 'REST API', 'Geolocation', 'Kotlin (prior)'],
+    repo: 'https://github.com/doswall/doswall-mobile',
+    repoAlt: { label: 'original (kotlin)', href: 'https://github.com/VorDeau/DoGoes' },
+    note: 'DoGoes → doswall-mobile migration',
+  },
+  {
+    name: 'DeltaT32',
+    tag: 'hardware · 2025',
+    status: 'done',
+    category: 'PCB · Embedded',
+    description:
+      'Modular hardware design built in KiCad 8, centered on the ESP32-C3 Mini-1. Comprises a main ESP unit and two hot-swappable sensor daughter boards — BMI270/BMI160 (IMU) and MPU9250 (9-axis) — intended for wearable and general-purpose embedded applications. Designed with esp-rs (Rust) firmware compatibility in mind.',
     stack: ['KiCad 8', 'ESP32-C3', 'BMI270', 'MPU9250', 'esp-rs'],
     repo: 'https://github.com/VorDeau/DeltaT32',
-  },
-  {
-    id: 'rnn-lstm-har',
-    name: 'RNN LSTM — Human Activity Recognition',
-    tag: 'ml · 2024',
-    status: 'done',
-    category: 'ML · Data',
-    description:
-      'Two-layer LSTM architecture for classifying human activities from IMU sensor data. 4-class output with dropout regularization. 461,124 trainable parameters. Built with TensorFlow/Keras.',
-    stack: ['TensorFlow', 'Keras', 'LSTM', 'Python', 'NumPy'],
-    repo: null,
-  },
-  {
-    id: 'doswall',
-    name: 'Doswall App Rebuild',
-    tag: 'mobile · 2024',
-    status: 'done',
-    category: 'Mobile',
-    description:
-      'Cross-platform rebuild of a geolocation-based app, migrating from native Kotlin (Dogoes) to Flutter/Dart. Integrated REST API and real-time geolocation services for broader device support.',
-    stack: ['Flutter', 'Dart', 'REST API', 'Geolocation'],
-    repo: null,
-  },
-  {
-    id: 'esp32s3-monitor',
-    name: 'ESP32-S3 Biometric Monitor',
-    tag: 'hardware · 2023',
-    status: 'done',
-    category: 'Embedded · PCB',
-    description:
-      'Compact PCB integrating ESP32-S3, MPU6050 (6-axis IMU), and MAX30102 (heart rate / SpO₂) for real-time wearable biometric monitoring. Designed for health and activity tracking research applications.',
-    stack: ['ESP32-S3', 'MPU6050', 'MAX30102', 'KiCad'],
-    repo: null,
+    note: null,
   },
 ]
 
 const statusStyle: Record<string, { color: string; label: string }> = {
-  active: { color: 'var(--green)',  label: 'active' },
+  active: { color: 'var(--green)',    label: 'active' },
   done:   { color: 'var(--text-dim)', label: 'done'   },
-  wip:    { color: 'var(--amber)',  label: 'wip'    },
 }
 ---
 
@@ -76,21 +54,24 @@ const statusStyle: Record<string, { color: string; label: string }> = {
         const s = statusStyle[p.status]
         return (
           <article
-            class="group p-6 transition-colors duration-150"
+            class="p-6 transition-colors duration-150"
             style="background: var(--bg-surface);"
             data-project
           >
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
               <div class="flex items-center gap-3 flex-wrap">
                 <h3 class="font-semibold text-base" style="color: var(--text);">{p.name}</h3>
-                <span
-                  class="flex items-center gap-1.5"
-                >
+                <span class="flex items-center gap-1.5">
                   <span
                     style={`width: 5px; height: 5px; border-radius: 50%; background: ${s.color}; display: inline-block;`}
                   ></span>
                   <span class="font-mono text-xs" style={`color: ${s.color};`}>{s.label}</span>
                 </span>
+                {p.note && (
+                  <span class="font-mono text-xs" style="color: var(--text-dim);">
+                    · {p.note}
+                  </span>
+                )}
               </div>
               <div class="flex items-center gap-3 flex-shrink-0">
                 <span class="font-mono text-xs" style="color: var(--text-dim);">{p.tag}</span>
@@ -103,7 +84,7 @@ const statusStyle: Record<string, { color: string; label: string }> = {
               </div>
             </div>
 
-            <p class="text-sm mb-4" style="color: var(--text-muted); line-height: 1.65; max-width: 660px;">
+            <p class="text-sm mb-4" style="color: var(--text-muted); line-height: 1.65; max-width: 680px;">
               {p.description}
             </p>
 
@@ -118,7 +99,18 @@ const statusStyle: Record<string, { color: string; label: string }> = {
                   </li>
                 ))}
               </ul>
-              {p.repo && (
+              <div class="flex items-center gap-4">
+                {'repoAlt' in p && p.repoAlt && (
+                  <a
+                    href={p.repoAlt.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="font-mono text-xs transition-colors"
+                    style="color: var(--text-dim);"
+                  >
+                    {p.repoAlt.label} ↗
+                  </a>
+                )}
                 <a
                   href={p.repo}
                   target="_blank"
@@ -128,7 +120,7 @@ const statusStyle: Record<string, { color: string; label: string }> = {
                 >
                   repo ↗
                 </a>
-              )}
+              </div>
             </div>
           </article>
         )
@@ -137,7 +129,7 @@ const statusStyle: Record<string, { color: string; label: string }> = {
 
     <div class="mt-8 text-center">
       <a
-        href="https://github.com/J58C"
+        href="https://github.com/VorDeau"
         target="_blank"
         rel="noopener noreferrer"
         class="font-mono text-xs"
@@ -151,7 +143,6 @@ const statusStyle: Record<string, { color: string; label: string }> = {
 </section>
 
 <script>
-  // Hover highlight for project rows
   document.querySelectorAll('[data-project]').forEach(el => {
     el.addEventListener('mouseenter', () => {
       (el as HTMLElement).style.background = 'var(--bg-elevated)'
