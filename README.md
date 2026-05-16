@@ -1,43 +1,63 @@
-# Astro Starter Kit: Minimal
+# deauport
 
-```sh
-npm create astro@latest -- --template minimal
+Personal portfolio of Hafidh Musyafa (VorDeau). Built with Astro and deployed on Cloudflare Workers.
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Astro 6 |
+| UI | React 19, Tailwind CSS v4 |
+| Runtime | Cloudflare Workers |
+| Email | Resend |
+| Bot protection | Cloudflare Turnstile |
+| Fonts | Inter Variable, JetBrains Mono Variable |
+
+## Local Development
+
+```bash
+npm install
+npm run dev          # Astro dev server at localhost:4321
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+To test with the actual Workers runtime (contact form, Turnstile):
 
-## 🚀 Project Structure
+```bash
+# 1. Create .env in root
+PUBLIC_TURNSTILE_SITE_KEY=your_site_key
 
-Inside of your Astro project, you'll see the following folders and files:
+# 2. Create .dev.vars in root
+RESEND_API_KEY=your_resend_key
+TURNSTILE_SECRET_KEY=your_turnstile_secret
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+# 3. Build and run with Wrangler
+npm run workers      # builds then runs at localhost:8787
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Deployment
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Deployed automatically via GitHub Actions on push to `main`.
 
-Any static assets, like images, can be placed in the `public/` directory.
+Required GitHub Secrets:
 
-## 🧞 Commands
+| Secret | Description |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | CF API token with Workers edit permission |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+| `PUBLIC_TURNSTILE_SITE_KEY` | Turnstile site key (injected at build time) |
 
-All commands are run from the root of the project, from a terminal:
+Required Wrangler Secrets (set once via CLI):
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+```bash
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put TURNSTILE_SECRET_KEY
+```
 
-## 👀 Want to learn more?
+## Commands
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+| Command | Action |
+|---|---|
+| `npm run dev` | Astro dev server (localhost:4321) |
+| `npm run build` | Build to ./dist |
+| `npm run workers` | Build + Wrangler dev (localhost:8787) |
+| `npm run generate-types` | Generate Wrangler type definitions |

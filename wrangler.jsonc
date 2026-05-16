@@ -4,8 +4,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@astrojs/cloudflare/entrypoints/server",
 
-  // ganti dengan account ID kamu (CF Dashboard → kanan bawah)
-  "account_id": "REPLACE_WITH_YOUR_ACCOUNT_ID",
+  "workers_dev": true,
+  "preview_urls": false,
 
   "assets": {
     "directory": "./dist",
@@ -15,7 +15,4 @@
   "observability": {
     "enabled": true
   }
-
-  // Secrets (set via: wrangler secret put RESEND_API_KEY)
-  // Jangan taruh API keys di sini
 }

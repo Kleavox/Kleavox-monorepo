@@ -50,7 +50,10 @@ import Contact from './Contact.tsx'
 
       <!-- Right: form -->
       <div>
-        <Contact client:load />
+        <Contact
+          client:load
+          siteKey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? ''}
+        />
       </div>
 
     </div>

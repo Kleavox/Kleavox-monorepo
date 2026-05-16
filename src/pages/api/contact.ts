@@ -1,16 +1,20 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
+import { env } from 'cloudflare:workers'
 import { Resend } from 'resend'
 import { z } from 'zod'
 
 const schema = z.object({
-  name:    z.string().min(1).max(100),
-  email:   z.string().email(),
-  message: z.string().min(10).max(2000),
+  name:           z.string().min(1).max(100),
+  email:          z.string().email(),
+  message:        z.string().min(10).max(2000),
+  turnstileToken: z.string().min(1),
 })
 
-export const POST: APIRoute = async ({ request, locals }) => {
+const cfEnv = env as Record<string, string | undefined>
+
+export const POST: APIRoute = async ({ request }) => {
   let body: unknown
   try {
     body = await request.json()
@@ -20,16 +24,38 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    const msg = parsed.error.errors[0]?.message ?? 'Invalid input'
+    const issues = parsed.error.issues ?? []
+    const msg = issues.length > 0
+      ? `${issues[0].path.join('.')}: ${issues[0].message}`.replace(/^: /, '')
+      : 'Invalid input'
     return new Response(JSON.stringify({ error: msg }), { status: 422 })
   }
 
-  const { name, email, message } = parsed.data
+  const { name, email, message, turnstileToken } = parsed.data
 
-  // RESEND_API_KEY bound via wrangler.jsonc secret / CF env variable
-  const apiKey = (locals.runtime?.env?.RESEND_API_KEY as string | undefined)
-    ?? import.meta.env.RESEND_API_KEY
+  // Verify Turnstile
+  const turnstileSecret = cfEnv.TURNSTILE_SECRET_KEY
+  if (!turnstileSecret) {
+    return new Response(JSON.stringify({ error: 'Verification not configured' }), { status: 503 })
+  }
 
+  const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      secret:   turnstileSecret,
+      response: turnstileToken,
+      remoteip: request.headers.get('CF-Connecting-IP') ?? undefined,
+    }),
+  })
+
+  const { success: verified } = await verifyRes.json() as { success: boolean }
+  if (!verified) {
+    return new Response(JSON.stringify({ error: 'Bot verification failed. Please try again.' }), { status: 400 })
+  }
+
+  // Send email
+  const apiKey = cfEnv.RESEND_API_KEY
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'Mail service not configured' }), { status: 503 })
   }

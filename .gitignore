@@ -26,10 +26,6 @@ pnpm-debug.log*
 # wrangler
 .wrangler/
 worker-configuration.d.ts
-
-# old versions (subfolders, tracked in their own branches)
-CapTeknik/
-portfolio-capteknik/
-portfolio/
+.dev.vars
 
 .vscode/
