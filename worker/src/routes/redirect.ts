@@ -9,7 +9,7 @@ const redirect = new Hono<HonoEnv>();
 const APP_PATHS = new Set([
   "dash", "admin", "register", "verify", "login", "forgot-password",
   "reset-password", "setup", "account-deleted", "terms", "privacy", "report",
-  "_next", "favicon.ico", "icon.svg", "api",
+  "_next", "favicon.ico", "favicon.svg", "api",
 ]);
 
 type LinkRow = {
