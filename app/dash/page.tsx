@@ -103,42 +103,47 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Create Link ── */}
-      <CreateShortlinkCard
-        targetUrl={targetUrl}
-        slug={slug}
-        password={password}
-        expiresAt={expiresAt}
-        loading={loading}
-        error={error}
-        onSubmit={handleCreate}
-        onChangeTarget={setTargetUrl}
-        onChangeSlug={setSlug}
-        onChangePassword={setPassword}
-        onChangeExpiresAt={setExpiresAt}
-      />
+      {/* ── Main Grid: form left | explorer right on desktop ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 lg:gap-8 items-start">
 
-      {/* ── Link Explorer ── */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between px-1">
-          <p className="nothing-label opacity-100">Shortlink_Explorer</p>
-          <p className="nothing-label opacity-30 normal-case tracking-normal">{totalItems} total</p>
-        </div>
-        <ExistingShortlinksCard
-          links={links}
-          loadingTable={loadingTable}
-          baseUrl={baseUrl}
-          getDomainLabel={getDomainLabel}
-          onDelete={(slugs) => setPendingDeleteSlugs(slugs)}
-          deletingSlugs={deletingSlugs}
-          onEdit={(link) => setEditingLink(link)}
-          onViewStats={(s) => setAnalyticsSlug(s)}
-          onViewQr={(s) => setQrSlug(s)}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          onPageChange={(p) => fetchLinks(p)}
+        {/* Create Link */}
+        <CreateShortlinkCard
+          targetUrl={targetUrl}
+          slug={slug}
+          password={password}
+          expiresAt={expiresAt}
+          loading={loading}
+          error={error}
+          onSubmit={handleCreate}
+          onChangeTarget={setTargetUrl}
+          onChangeSlug={setSlug}
+          onChangePassword={setPassword}
+          onChangeExpiresAt={setExpiresAt}
         />
+
+        {/* Link Explorer */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <p className="nothing-label opacity-100">Shortlink_Explorer</p>
+            <p className="nothing-label opacity-30 normal-case tracking-normal">{totalItems} total</p>
+          </div>
+          <ExistingShortlinksCard
+            links={links}
+            loadingTable={loadingTable}
+            baseUrl={baseUrl}
+            getDomainLabel={getDomainLabel}
+            onDelete={(slugs) => setPendingDeleteSlugs(slugs)}
+            deletingSlugs={deletingSlugs}
+            onEdit={(link) => setEditingLink(link)}
+            onViewStats={(s) => setAnalyticsSlug(s)}
+            onViewQr={(s) => setQrSlug(s)}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={(p) => fetchLinks(p)}
+          />
+        </div>
+
       </div>
 
       {/* ── Modals ── */}

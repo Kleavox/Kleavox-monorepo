@@ -13,4 +13,13 @@
     paint-order="stroke"
   >D</text>
   <circle cx="76" cy="79" r="6" fill="#0a0a0a" opacity="0.3"/>
+  <text
+    x="24" y="22"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="13"
+    font-weight="900"
+    fill="#0a0a0a"
+    opacity="0.3"
+  >v</text>
 </svg>
