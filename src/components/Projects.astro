@@ -9,6 +9,7 @@ const projects = [
       'Self-hosted URL shortener with click analytics, QR code generation, password-protected links, self-destruct expiry, and abuse reporting. Full-stack on Cloudflare: Next.js 16 frontend, Hono.js backend on CF Workers, D1 (SQLite) for storage, KV for sessions, and Resend for email.',
     stack: ['Next.js 16', 'Hono.js', 'CF Workers', 'CF D1', 'TypeScript', 'Tailwind v4', 'Resend', 'Turnstile'],
     repo: 'https://github.com/VorDeau/deaubit',
+    live: 'https://bit.deau.site',
     note: 'Still actively updated',
   },
   {
@@ -114,6 +115,17 @@ const statusStyle: Record<string, { color: string; label: string }> = {
                     style="color: var(--text-dim);"
                   >
                     {p.repoAlt.label} ↗
+                  </a>
+                )}
+                {'live' in p && p.live && (
+                  <a
+                    href={p.live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="font-mono text-xs transition-colors"
+                    style="color: var(--accent);"
+                  >
+                    live ↗
                   </a>
                 )}
                 <a
