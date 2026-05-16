@@ -1,4 +1,6 @@
 ---
+// src/components/Hero.astro
+
 ---
 
 <section
@@ -6,18 +8,14 @@
   class="h-screen flex flex-col relative"
   style="height: 100svh; padding-top: 56px;"
 >
-  <!-- Dot canvas: fills section, pointer-events none, sits behind everything -->
   <canvas id="dot-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
 
-  <!-- Radial glow -->
   <div aria-hidden="true" style="position:absolute;top:40%;left:44%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(34,211,238,0.04) 0%,transparent 70%);pointer-events:none;"></div>
 
-  <!-- Content -->
   <div class="flex-1 flex items-center min-h-0 w-full overflow-hidden" style="position:relative;">
     <div class="max-w-5xl mx-auto px-6 py-6 w-full">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-10 lg:gap-14 items-center">
 
-        <!-- Left: Text — parallax layer A (subtle) -->
         <div id="text-layer" class="lg:col-span-3" style="will-change:transform;">
           <p class="font-mono text-xs mb-6 fade-up fade-up-1" style="color:var(--text-dim);letter-spacing:0.1em;">~ / vordeau</p>
           <h1 class="leading-none mb-5 fade-up fade-up-2" style="font-size:clamp(2.8rem,6vw,4.8rem);font-weight:700;letter-spacing:-0.03em;color:var(--text);">
@@ -30,16 +28,14 @@
             from ESP32 prototypes to clean, accessible UIs.
           </p>
           <p class="font-mono text-xs mb-8 fade-up fade-up-3" style="color:var(--text-dim);letter-spacing:0.06em;">embedded · iot · web · mobile</p>
-          <div class="flex items-center gap-4 fade-up fade-up-4">
+          <div class="flex flex-wrap items-center gap-4 fade-up fade-up-4">
             <a href="#projects" class="font-mono text-sm px-4 py-2" style="background:var(--accent);color:var(--bg);border-radius:4px;font-weight:600;letter-spacing:0.02em;">view work</a>
             <a href="#contact" class="font-mono text-sm px-4 py-2" style="border:1px solid var(--border-mid);color:var(--text-muted);border-radius:4px;">get in touch</a>
           </div>
         </div>
 
-        <!-- Right: Sensor panels — parallax layer B (medium) -->
         <div id="sensor-panels" class="hidden lg:flex lg:col-span-2 flex-col gap-2 fade-up fade-up-4" aria-hidden="true" style="will-change:transform;">
 
-          <!-- BMI270 3D -->
           <div style="border:1px solid var(--border);border-radius:8px;background:var(--bg-surface);padding:10px;">
             <div class="flex items-center justify-between mb-2" style="border-bottom:1px solid var(--border);padding-bottom:8px;">
               <div class="flex items-center gap-1.5">
@@ -55,7 +51,6 @@
             </div>
           </div>
 
-          <!-- MAX30102 PPG -->
           <div style="border:1px solid var(--border);border-radius:8px;background:var(--bg-surface);padding:10px;">
             <div class="flex items-center justify-between mb-2" style="border-bottom:1px solid var(--border);padding-bottom:8px;">
               <div class="flex items-center gap-1.5">
@@ -76,7 +71,6 @@
     </div>
   </div>
 
-  <!-- Arrow — no parallax -->
   <div class="flex justify-center pb-5 fade-up fade-up-4" style="position:relative;">
     <a href="#about" id="scroll-arrow" style="color:var(--text-dim);transition:color 0.2s;">
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -89,7 +83,6 @@
 <script>
 (function () {
 
-  // ── Elements ──────────────────────────────────────────────
   const hero       = document.getElementById('hero')
   const dotCanvas  = document.getElementById('dot-canvas')
   const bmiCanvas  = document.getElementById('bmi-canvas')
@@ -104,7 +97,6 @@
 
   const isDesktop = window.matchMedia('(min-width: 1024px)').matches
 
-  // ── Canvas init ───────────────────────────────────────────
   const dpr    = Math.min(window.devicePixelRatio || 1, 2)
   const dotDpr = Math.min(window.devicePixelRatio || 1, 1.5)
 
@@ -118,12 +110,11 @@
     return ctx
   }
 
-  // ── Mouse / pointer state ────────────────────────────────
-  let mx = 0, my = 0        // normalised -1..1 within hero
-  let dotMx = -999, dotMy = -999  // canvas-local px; starts off-screen
+  let mx = 0, my = 0
+  let dotMx = -999, dotMy = -999
   let rawVel = 0, smoothVel = 0
   let lastEX = 0, lastEY = 0
-  let mouseInHero = false   // only apply effects while inside hero
+  let mouseInHero = false
 
   function handlePointer(cx, cy) {
     if (!mouseInHero) return
@@ -138,7 +129,6 @@
     lastEX = cx; lastEY = cy
   }
 
-  // Listen only on hero, not document
   hero.addEventListener('mousemove', e => handlePointer(e.clientX, e.clientY))
   hero.addEventListener('touchmove', e => {
     handlePointer(e.touches[0].clientX, e.touches[0].clientY)
@@ -147,13 +137,10 @@
   hero.addEventListener('mouseenter', () => { mouseInHero = true })
   hero.addEventListener('mouseleave', () => {
     mouseInHero = false
-    // Push virtual cursor off-screen so dots spring back
     dotMx = -999; dotMy = -999
-    // Center content parallax targets
     mx = 0; my = 0
   })
 
-  // ── Dot magnetic canvas ───────────────────────────────────
   const DOT_SPACING = 28
   const REPEL_R     = 125
   const REPEL_R_SQ  = REPEL_R * REPEL_R
@@ -204,13 +191,11 @@
     if (!dotCtx) return
     dotCtx.clearRect(0, 0, DOT_W, DOT_H)
 
-    // Pass 1: all dots
     dotCtx.fillStyle = '#505090'
     dotCtx.beginPath()
     for (const d of dots) dotCtx.rect(d.x - 0.5, d.y - 0.5, 1, 1)
     dotCtx.fill()
 
-    // Pass 2: displaced dots glow cyan (magnetic field visualization)
     dotCtx.fillStyle = 'rgba(34, 211, 238, 0.58)'
     dotCtx.beginPath()
     for (const d of dots) {
@@ -222,7 +207,6 @@
 
   initDotCanvas()
 
-  // ── Sensor canvases (desktop only) ───────────────────────
   let bmiCtx = null, ppgCtx = null
   let BMI_W = 0, BMI_H = 0, PPG_W = 0, PPG_H = 0
 
@@ -233,7 +217,6 @@
     ppgCtx = initCanvas(ppgCanvas, PPG_W, PPG_H, dpr)
   }
 
-  // ── 3D math ──────────────────────────────────────────────
   const dot3 = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
   function rot3(x, y, z, rx, ry) {
@@ -244,14 +227,11 @@
     return [x1, y2, z2]
   }
 
-  // FOV=260: more dramatic perspective distortion
   function proj3(p, cx, cy) {
     const s = 260 / (260 + p[2] + 90)
     return [cx + p[0]*s, cy + p[1]*s]
   }
 
-  // ── BMI270 ────────────────────────────────────────────────
-  // Larger PCB for more visual impact
   const HW = 64, HH = 5, HD = 42
   let bRX = 0.28, bRY = -0.22
   let bTX = 0.28, bTY = -0.22
@@ -330,40 +310,36 @@
     if (bmiRead) bmiRead.textContent = `x:${fmt(gx)} y:${fmt(gy)} z:${fmt(gz)}`
   }
 
-  // ── MAX30102 PPG — realistic PPG waveform ────────────────
-  // Baseline near bottom, smooth bump shape (not ECG spikes)
-  const PPG_CENTER = PPG_H * 0.78   // baseline near bottom
-  const PPG_AMP    = PPG_H * 0.62   // amplitude fills most of canvas height
+  const PPG_CENTER = PPG_H * 0.78
+  const PPG_AMP    = PPG_H * 0.62
   const SPF        = 2
 
   let ppgBuf   = PPG_W > 0 ? new Float32Array(PPG_W).fill(PPG_CENTER) : null
   let ppgHead  = 0
-  let ppgPhase = 0.9   // start near end of cycle (at baseline)
+  let ppgPhase = 0.9
   let ppgBpm   = 62
-  let bpmFrame = 0     // tick counter: update DOM text once per second
+  let bpmFrame = 0
 
-  // Returns 0 (baseline) to ~1 (systolic peak)
-  // Smooth PPG pulse: rise → systolic peak → dicrotic notch → diastolic bump → fall
   function ppgWave(t) {
     if (t < 0.30) {
       const x = t / 0.30
-      return x * x * (3 - 2*x)          // cubic smooth-step rise: 0→1
+      return x * x * (3 - 2*x)
     }
     if (t < 0.45) {
       const x = (t - 0.30) / 0.15
-      return 1.0 - x * 0.38             // systolic descent: 1→0.62
+      return 1.0 - x * 0.38
     }
     if (t < 0.52) {
       const x = (t - 0.45) / 0.07
-      return 0.62 - Math.sin(x * Math.PI) * 0.10  // dicrotic notch dip
+      return 0.62 - Math.sin(x * Math.PI) * 0.10
     }
     if (t < 0.62) {
       const x = (t - 0.52) / 0.10
-      return 0.60 + Math.sin(x * Math.PI) * 0.10  // diastolic secondary bump
+      return 0.60 + Math.sin(x * Math.PI) * 0.10
     }
     if (t <= 1.0) {
       const x = (t - 0.62) / 0.38
-      return 0.60 * (1 - x) * (1 - x)  // quadratic return to baseline
+      return 0.60 * (1 - x) * (1 - x)
     }
     return 0
   }
@@ -374,7 +350,6 @@
     for (let s = 0; s < SPF; s++) {
       ppgPhase += phaseStep
       if (ppgPhase >= 1) ppgPhase -= 1
-      // y = CENTER - wave * AMP → peak goes UP (lower y = higher on screen)
       ppgBuf[ppgHead] = PPG_CENTER - ppgWave(ppgPhase) * PPG_AMP
       ppgHead = (ppgHead + 1) % PPG_W
     }
@@ -384,13 +359,11 @@
     ppgCtx.fillStyle = 'rgba(14,14,28,0.65)'
     ppgCtx.fillRect(0, 0, W, H)
 
-    // Baseline dashed line
     ppgCtx.beginPath(); ppgCtx.moveTo(0, PPG_CENTER); ppgCtx.lineTo(W, PPG_CENTER)
     ppgCtx.setLineDash([3,5]); ppgCtx.lineWidth = 0.5
     ppgCtx.strokeStyle = 'rgba(74,222,128,0.20)'; ppgCtx.stroke()
     ppgCtx.setLineDash([])
 
-    // Glow trace
     ppgCtx.beginPath()
     for (let i = 0; i < W; i++) {
       const y = ppgBuf[(ppgHead + i) % W]
@@ -398,7 +371,6 @@
     }
     ppgCtx.lineWidth = 3.5; ppgCtx.strokeStyle = 'rgba(74,222,128,0.14)'; ppgCtx.stroke()
 
-    // Main trace
     ppgCtx.beginPath()
     for (let i = 0; i < W; i++) {
       const y = ppgBuf[(ppgHead + i) % W]
@@ -407,15 +379,14 @@
     ppgCtx.lineWidth = 1.5; ppgCtx.strokeStyle = '#4ade80'; ppgCtx.stroke()
   }
 
-  // ── Content parallax ─────────────────────────────────────
-  let pTX = 0, pTY = 0    // text layer
-  let pPX = 0, pPY = 0    // panel layer
+  let pTX = 0, pTY = 0
+  let pPX = 0, pPY = 0
 
-  const TEXT_DEPTH  = 10   // ±px max for text
-  const PANEL_DEPTH = 16   // ±px max for panels
+  const TEXT_DEPTH  = 10
+  const PANEL_DEPTH = 16
 
   function updateParallax() {
-    const tgt = mouseInHero ? 1 : 0   // scale toward 0 when outside hero
+    const tgt = mouseInHero ? 1 : 0
     pTX += (mx * TEXT_DEPTH  * tgt - pTX) * 0.07
     pTY += (my * TEXT_DEPTH  * tgt - pTY) * 0.07
     pPX += (mx * PANEL_DEPTH * tgt - pPX) * 0.06
@@ -424,25 +395,21 @@
     if (panelLayer) panelLayer.style.transform = `translate3d(${pPX.toFixed(2)}px,${pPY.toFixed(2)}px,0)`
   }
 
-  // ── Main loop ─────────────────────────────────────────────
   function loop() {
-    // BMI270: track mouse only inside hero, else return to default tilt
     if (mouseInHero && isDesktop) {
-      bTX = my * 1.05   // increased sensitivity (was 0.82)
+      bTX = my * 1.05
       bTY = mx * 1.05
     } else {
-      bTX = 0.28        // drift back to default tilt when outside
+      bTX = 0.28
       bTY = -0.22
     }
-    bRX += (bTX - bRX) * 0.08   // snappier lerp (was 0.055)
+    bRX += (bTX - bRX) * 0.08
     bRY += (bTY - bRY) * 0.08
 
-    // BPM: smoothVel reacts in ~0.3-0.5s, decays in ~1s — waveform follows in real time
     smoothVel = smoothVel * 0.94 + rawVel * 0.06
     rawVel   *= 0.82
-    ppgBpm    = 62 + Math.min(smoothVel * 4.0, 96)  // 62–158 BPM, human heart rate range
+    ppgBpm    = 62 + Math.min(smoothVel * 4.0, 96)
 
-    // DOM update: max once per second so digits are readable, matches waveform density
     bpmFrame++
     if (bpmFrame >= 60) {
       if (bpmRead) bpmRead.textContent = `${Math.round(ppgBpm)} BPM`

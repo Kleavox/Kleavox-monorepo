@@ -1,4 +1,6 @@
 ---
+// src/components/Skills.astro
+
 const rows = [
   {
     label: 'embedded',
@@ -28,7 +30,7 @@ const rows = [
 ]
 ---
 
-<section id="skills" class="py-24" style="border-top: 1px solid var(--border);">
+<section id="skills" class="py-16 sm:py-24" style="border-top: 1px solid var(--border);">
   <div class="max-w-5xl mx-auto px-6">
 
     <p
@@ -46,8 +48,8 @@ const rows = [
       {rows.map((row, i) => (
         <div
           data-reveal
-          style={`--reveal-delay: ${0.1 + i * 0.08}s; display: flex; align-items: baseline; gap: 2rem; padding: 1rem 1.5rem; background: var(--bg-surface); ${i > 0 ? 'border-top: 1px solid var(--border);' : ''}`}
-          class="flex-col sm:flex-row"
+          style={`--reveal-delay: ${0.1 + i * 0.08}s; display: flex; align-items: baseline; background: var(--bg-surface); ${i > 0 ? 'border-top: 1px solid var(--border);' : ''}`}
+          class="flex-col sm:flex-row gap-3 sm:gap-8 px-4 sm:px-6 py-4"
         >
           <span
             class="font-mono text-xs flex-shrink-0"

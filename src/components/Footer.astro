@@ -1,5 +1,6 @@
 ---
-const year = new Date().getFullYear()
+// src/components/Footer.astro
+
 ---
 
 <footer
@@ -8,7 +9,7 @@ const year = new Date().getFullYear()
 >
   <div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
     <span class="font-mono text-xs" style="color: var(--text-dim);">
-      Hafidh Musyafa · {year}
+      Hafidh Musyafa · <span id="footer-year"></span>
     </span>
     <div class="flex items-center gap-6">
       <a
@@ -29,7 +30,12 @@ const year = new Date().getFullYear()
       </a>
     </div>
     <span class="font-mono text-xs" style="color: var(--text-dim);">
-      built with astro · cf workers
+      Astro · React · Tailwind · CF Workers
     </span>
   </div>
 </footer>
+
+<script>
+  const el = document.getElementById('footer-year')
+  if (el) el.textContent = String(new Date().getFullYear())
+</script>

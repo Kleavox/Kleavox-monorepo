@@ -1,4 +1,6 @@
 ---
+// src/components/Projects.astro
+
 const projects = [
   {
     name: 'DeauBit',
@@ -43,7 +45,7 @@ const statusStyle: Record<string, { color: string; label: string }> = {
 }
 ---
 
-<section id="projects" class="py-28" style="border-top: 1px solid var(--border);">
+<section id="projects" class="py-16 sm:py-28" style="border-top: 1px solid var(--border);">
   <div class="max-w-5xl mx-auto px-6">
 
     <p
@@ -61,7 +63,7 @@ const statusStyle: Record<string, { color: string; label: string }> = {
           <article
             data-reveal
             style={`--reveal-delay: ${0.05 + idx * 0.1}s; background: var(--bg-surface);`}
-            class="p-6 transition-colors duration-150"
+            class="p-4 sm:p-6 transition-colors duration-150"
             data-project
           >
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">

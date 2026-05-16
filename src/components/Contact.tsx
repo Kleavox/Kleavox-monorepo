@@ -1,3 +1,5 @@
+// src/components/Contact.tsx
+
 import { useState, useRef } from 'react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import type { TurnstileInstance } from '@marsidev/react-turnstile'
@@ -71,11 +73,10 @@ export default function Contact({ siteKey }: Props) {
 
   return (
     <div>
-      {/* Invisible Turnstile — executes on submit */}
       <Turnstile
         ref={turnstileRef}
         siteKey={siteKey}
-        options={{ execution: 'execute', appearance: 'invisible' }}
+        options={{ execution: 'execute', appearance: 'interaction-only' }}
         onSuccess={onVerified}
         onError={() => { setState('error'); setError('Verification failed. Please try again.') }}
         onExpire={() => { if (state === 'pending-token') turnstileRef.current?.execute() }}
@@ -99,7 +100,7 @@ export default function Contact({ siteKey }: Props) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} noValidate>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: '12px', marginBottom: '12px' }}>
             <div>
               <label htmlFor="name" style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '6px', letterSpacing: '0.06em' }}>name</label>
               <input id="name" name="name" type="text" required placeholder="Your name"

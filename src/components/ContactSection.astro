@@ -1,8 +1,10 @@
 ---
+// src/components/ContactSection.astro
+
 import Contact from './Contact.tsx'
 ---
 
-<section id="contact" class="py-28" style="border-top: 1px solid var(--border);">
+<section id="contact" class="py-16 sm:py-28" style="border-top: 1px solid var(--border);">
   <div class="max-w-5xl mx-auto px-6">
 
     <p class="font-mono text-xs mb-12" style="color: var(--text-dim); letter-spacing: 0.1em;">
@@ -11,7 +13,6 @@ import Contact from './Contact.tsx'
 
     <div data-reveal style="--reveal-delay: 0.1s;" class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
 
-      <!-- Left: copy -->
       <div>
         <h2
           class="mb-6"
@@ -48,7 +49,6 @@ import Contact from './Contact.tsx'
         </div>
       </div>
 
-      <!-- Right: form -->
       <div>
         <Contact
           client:load

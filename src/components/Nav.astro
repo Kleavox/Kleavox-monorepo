@@ -1,4 +1,6 @@
 ---
+// src/components/Nav.astro
+
 const links = [
   { href: '#about',    label: 'about' },
   { href: '#projects', label: 'projects' },
@@ -20,7 +22,6 @@ const links = [
       ~/vordeau
     </a>
 
-    <!-- Desktop links -->
     <ul class="hidden sm:flex items-center gap-8">
       {links.map(l => (
         <li>
@@ -46,7 +47,6 @@ const links = [
       </li>
     </ul>
 
-    <!-- Mobile: github + hamburger -->
     <div class="flex sm:hidden items-center gap-4">
       <a
         href="https://github.com/VorDeau"
@@ -68,7 +68,6 @@ const links = [
     </div>
   </nav>
 
-  <!-- Mobile dropdown -->
   <div
     id="mobile-menu"
     class="sm:hidden flex-col px-6 pb-4 gap-1"
@@ -87,7 +86,6 @@ const links = [
 </header>
 
 <script>
-  // Desktop hover
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('mouseenter', () => {
       (link as HTMLElement).style.color = 'var(--accent)'
@@ -97,7 +95,6 @@ const links = [
     })
   })
 
-  // Mobile menu toggle
   const toggle = document.getElementById('menu-toggle')
   const menu   = document.getElementById('mobile-menu')
   const icon   = document.getElementById('menu-icon')
@@ -107,7 +104,6 @@ const links = [
     if (icon) icon.textContent = isOpen ? 'close' : 'menu'
   })
 
-  // Close on link click
   document.querySelectorAll('.mobile-nav-link').forEach(link => {
     link.addEventListener('click', () => {
       menu?.classList.remove('open')

@@ -1,3 +1,5 @@
+// src/pages/api/contact.ts
+
 export const prerender = false
 
 import type { APIRoute } from 'astro'
@@ -33,7 +35,6 @@ export const POST: APIRoute = async ({ request }) => {
 
   const { name, email, message, turnstileToken } = parsed.data
 
-  // Verify Turnstile
   const turnstileSecret = cfEnv.TURNSTILE_SECRET_KEY
   if (!turnstileSecret) {
     return new Response(JSON.stringify({ error: 'Verification not configured' }), { status: 503 })
@@ -54,7 +55,6 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Bot verification failed. Please try again.' }), { status: 400 })
   }
 
-  // Send email
   const apiKey = cfEnv.RESEND_API_KEY
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'Mail service not configured' }), { status: 503 })
