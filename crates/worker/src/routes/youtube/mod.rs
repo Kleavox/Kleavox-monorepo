@@ -19,7 +19,6 @@ pub async fn check_live(req: Request, ctx: RouteContext<()>) -> Result<Response>
     let handle_clean = handle.trim_start_matches('@').to_lowercase();
     let cache_key = format!("yt_channel_id:{handle_clean}");
 
-    // Ambil channel ID dari KV (cache), atau resolve dari API
     let channel_id = match kv.get(&cache_key).text().await? {
         Some(id) => id,
         None => {
@@ -29,7 +28,6 @@ pub async fn check_live(req: Request, ctx: RouteContext<()>) -> Result<Response>
         }
     };
 
-    // Check apakah channel sedang live
     let (is_live, video_id, title) = check_channel_live(&channel_id, &api_key).await?;
 
     Response::from_json(&serde_json::json!({
@@ -43,14 +41,11 @@ async fn resolve_channel_id(handle: &str, api_key: &str) -> Result<String> {
     let url = format!(
         "https://www.googleapis.com/youtube/v3/channels?part=id&forHandle={handle}&key={api_key}"
     );
-
     let mut init = RequestInit::new();
     init.with_method(Method::Get);
-
     let req = Request::new_with_init(&url, &init)?;
     let mut resp = Fetch::Request(req).send().await?;
     let json: serde_json::Value = resp.json().await?;
-
     json["items"][0]["id"]
         .as_str()
         .map(str::to_string)
@@ -64,21 +59,17 @@ async fn check_channel_live(
     let url = format!(
         "https://www.googleapis.com/youtube/v3/search?part=id,snippet&channelId={channel_id}&eventType=live&type=video&key={api_key}"
     );
-
     let mut init = RequestInit::new();
     init.with_method(Method::Get);
-
     let req = Request::new_with_init(&url, &init)?;
     let mut resp = Fetch::Request(req).send().await?;
     let json: serde_json::Value = resp.json().await?;
-
-    let items = json["items"].as_array();
-    match items.and_then(|arr| arr.first()) {
+    match json["items"].as_array().and_then(|a| a.first()) {
         None => Ok((false, None, None)),
-        Some(item) => {
-            let video_id = item["id"]["videoId"].as_str().map(str::to_string);
-            let title = item["snippet"]["title"].as_str().map(str::to_string);
-            Ok((true, video_id, title))
-        }
+        Some(item) => Ok((
+            true,
+            item["id"]["videoId"].as_str().map(str::to_string),
+            item["snippet"]["title"].as_str().map(str::to_string),
+        )),
     }
 }
