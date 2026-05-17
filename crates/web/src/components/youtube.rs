@@ -11,86 +11,80 @@ pub struct LiveStatus {
     pub title: Option<String>,
 }
 
-pub static LIVE_STATUS: std::sync::OnceLock<RwSignal<Option<LiveStatus>>> = std::sync::OnceLock::new();
+pub static LIVE: std::sync::OnceLock<RwSignal<Option<LiveStatus>>> = std::sync::OnceLock::new();
 pub static SHOW_PLAYER: std::sync::OnceLock<RwSignal<bool>> = std::sync::OnceLock::new();
 
-fn get_live_signal() -> RwSignal<Option<LiveStatus>> {
-    *LIVE_STATUS.get_or_init(|| RwSignal::new(None))
+pub fn live_signal() -> RwSignal<Option<LiveStatus>> {
+    *LIVE.get_or_init(|| RwSignal::new(None))
 }
-
-fn get_show_player_signal() -> RwSignal<bool> {
+pub fn show_player_signal() -> RwSignal<bool> {
     *SHOW_PLAYER.get_or_init(|| RwSignal::new(false))
 }
 
 #[component]
 pub fn YoutubeWatcher() -> impl IntoView {
-    let channel = RwSignal::new(
-        LocalStorage::get::<String>("yt_channel").unwrap_or_default()
-    );
+    let channel = RwSignal::new(LocalStorage::get::<String>("yt_channel").unwrap_or_default());
     let show_input = RwSignal::new(false);
     let input_val = RwSignal::new(channel.get_untracked());
-    let live = get_live_signal();
+    let live = live_signal();
 
-    let check = move || {
+    let do_check = move || {
         let ch = channel.get();
         if ch.is_empty() { return; }
         leptos::task::spawn_local(async move {
-            if let Ok(resp) = Request::get(&format!("/api/youtube/check?channel={ch}")).send().await {
-                if let Ok(s) = resp.json::<LiveStatus>().await {
+            if let Ok(r) = Request::get(&format!("/api/youtube/check?channel={ch}")).send().await {
+                if let Ok(s) = r.json::<LiveStatus>().await {
                     live.set(Some(s));
                 }
             }
         });
     };
 
-    Effect::new(move |_| {
-        if !channel.get().is_empty() { check(); }
-    });
+    Effect::new(move |_| { if !channel.get().is_empty() { do_check(); } });
 
-    let save_channel = move |val: String| {
+    let save = move |val: String| {
         let val = val.trim().to_string();
         channel.set(val.clone());
         let _ = LocalStorage::set("yt_channel", &val);
         show_input.set(false);
         live.set(None);
-        if !val.is_empty() { check(); }
+        if !val.is_empty() { do_check(); }
     };
 
     view! {
         <div class="flex items-center gap-2 relative">
             {move || {
-                let status = live.get();
                 let ch = channel.get();
-
+                let status = live.get();
                 if ch.is_empty() {
                     view! {
                         <button
                             class="mono text-xs text-db-muted hover:text-db-text transition-colors cursor-pointer"
                             on:click=move |_| show_input.update(|v| *v = !*v)
-                        >"+ watch channel"</button>
+                        >"[+ watch]"</button>
                     }.into_any()
                 } else {
                     match status.as_ref() {
                         Some(s) if s.live => view! {
                             <button
-                                class="flex items-center gap-1.5 cursor-pointer"
-                                on:click=move |_| get_show_player_signal().update(|v| *v = !*v)
+                                class="mono text-xs flex items-center gap-1.5 cursor-pointer"
+                                on:click=move |_| show_player_signal().update(|v| *v = !*v)
                             >
-                                <span class="w-1.5 h-1.5 rounded-full bg-live animate-pulse-dot"/>
-                                <span class="mono text-xs text-live font-medium">"LIVE"</span>
+                                <span class="inline-block w-1.5 h-1.5 rounded-full bg-live animate-pulse-slow"/>
+                                <span class="text-live font-bold">"LIVE"</span>
                                 {s.title.as_ref().map(|t| {
-                                    let t = if t.len() > 20 { format!("{}…", &t[..20]) } else { t.clone() };
-                                    view! { <span class="mono text-xs text-db-muted hidden md:block">{t}</span> }
+                                    let t = if t.len() > 22 { format!("{}…", &t[..22]) } else { t.clone() };
+                                    view! { <span class="text-db-muted hidden md:block">{t}</span> }
                                 })}
                             </button>
                         }.into_any(),
                         _ => view! {
                             <button
-                                class="flex items-center gap-1.5 cursor-pointer"
+                                class="mono text-xs flex items-center gap-1.5 cursor-pointer"
                                 on:click=move |_| show_input.update(|v| *v = !*v)
                             >
-                                <span class="w-1.5 h-1.5 rounded-full bg-db-border"/>
-                                <span class="mono text-xs text-db-muted">{ch}</span>
+                                <span class="inline-block w-1.5 h-1.5 rounded-full bg-db-border animate-pulse-slow"/>
+                                <span class="text-db-muted">{ch}</span>
                             </button>
                         }.into_any(),
                     }
@@ -98,28 +92,31 @@ pub fn YoutubeWatcher() -> impl IntoView {
             }}
 
             {move || show_input.get().then(|| view! {
-                <div class="absolute right-0 top-7 z-50 bg-db-surface border border-db-border rounded-sm p-2 shadow-sm w-48">
+                <div class="absolute right-0 top-8 z-50 bg-db-s2 border border-db-border rounded-sm p-2 shadow-2xl w-52">
+                    <p class="mono text-xs text-db-muted mb-1.5">"watch channel:"</p>
                     <input
-                        type="text"
-                        placeholder="@channel"
-                        class="mono text-xs w-full px-2 py-1 border border-db-border rounded-sm bg-db-bg focus:outline-none focus:border-db-text"
+                        type="text" placeholder="@handle"
+                        class="mono text-xs w-full px-2 py-1 border border-db-border rounded-sm bg-db-bg text-db-text focus:outline-none focus:border-sky"
                         prop:value=move || input_val.get()
                         on:input=move |ev| input_val.set(event_target_value(&ev))
                         on:keydown=move |ev| {
-                            if ev.key() == "Enter" { save_channel(input_val.get()); }
-                            if ev.key() == "Escape" { show_input.set(false); }
+                            match ev.key().as_str() {
+                                "Enter" => save(input_val.get()),
+                                "Escape" => show_input.set(false),
+                                _ => {}
+                            }
                         }
                         autofocus=true
                     />
-                    <div class="flex gap-1 mt-1.5">
+                    <div class="flex gap-1 mt-2">
                         <button
-                            class="flex-1 mono text-xs py-1 bg-db-text text-db-surface rounded-sm cursor-pointer hover:opacity-80"
-                            on:click=move |_| save_channel(input_val.get())
-                        >"Set"</button>
+                            class="flex-1 mono text-xs py-1 bg-db-text text-db-bg rounded-sm cursor-pointer hover:opacity-80"
+                            on:click=move |_| save(input_val.get())
+                        >"set"</button>
                         <button
-                            class="mono text-xs px-2 py-1 border border-db-border rounded-sm cursor-pointer hover:bg-db-subtle text-db-muted"
-                            on:click=move |_| { save_channel(String::new()); show_input.set(false); }
-                        >"Clear"</button>
+                            class="mono text-xs px-2 py-1 border border-db-border rounded-sm cursor-pointer hover:bg-db-dim text-db-muted"
+                            on:click=move |_| { save(String::new()); }
+                        >"clear"</button>
                     </div>
                 </div>
             })}
@@ -129,45 +126,39 @@ pub fn YoutubeWatcher() -> impl IntoView {
 
 #[component]
 pub fn LivePlayer() -> impl IntoView {
-    let live = get_live_signal();
-    let show = get_show_player_signal();
+    let live = live_signal();
+    let show = show_player_signal();
 
     move || {
-        let status = live.get();
-        let visible = show.get();
-        if !visible { return view! { <div/> }.into_any(); }
+        if !show.get() { return view! { <div/> }.into_any(); }
+        let Some(status) = live.get() else { return view! { <div/> }.into_any(); };
+        let Some(vid) = status.video_id else { return view! { <div/> }.into_any(); };
 
-        match status.as_ref().and_then(|s| s.video_id.as_ref()) {
-            None => view! { <div/> }.into_any(),
-            Some(vid) => {
-                let vid = vid.clone();
-                view! {
-                    <div class="fixed bottom-4 right-4 z-50 w-80 shadow-lg border border-db-border rounded-sm bg-db-surface overflow-hidden">
-                        <div class="flex items-center justify-between px-3 py-1.5 border-b border-db-border">
-                            <span class="mono text-xs text-live font-medium">"● LIVE"</span>
-                            <button
-                                class="mono text-xs text-db-muted hover:text-db-text cursor-pointer"
-                                on:click=move |_| show.set(false)
-                            >"✕"</button>
-                        </div>
-                        <div class="aspect-video">
-                            <iframe
-                                class="w-full h-full"
-                                src=format!("https://www.youtube.com/embed/{vid}?autoplay=1")
-                                allow="autoplay; encrypted-media"
-                                allowfullscreen=true
-                            />
-                        </div>
-                        <div class="px-3 py-1.5 border-t border-db-border">
-                            <a
-                                href=format!("https://www.youtube.com/watch?v={vid}")
-                                target="_blank"
-                                class="mono text-xs text-db-muted hover:text-db-text transition-colors"
-                            >"open in youtube →"</a>
-                        </div>
+        view! {
+            <div class="fixed bottom-4 right-4 z-50 w-72 border border-db-border bg-db-surface shadow-2xl rounded-sm overflow-hidden animate-fade-in">
+                <div class="flex items-center justify-between px-3 py-1.5 border-b border-db-border">
+                    <span class="mono text-xs text-live font-bold">"● LIVE"</span>
+                    <div class="flex items-center gap-3">
+                        <a
+                            href=format!("https://youtube.com/watch?v={vid}")
+                            target="_blank"
+                            class="mono text-xs text-db-muted hover:text-db-text"
+                        >"↗ open"</a>
+                        <button
+                            class="mono text-xs text-db-muted hover:text-down cursor-pointer"
+                            on:click=move |_| show.set(false)
+                        >"✕"</button>
                     </div>
-                }.into_any()
-            }
-        }
+                </div>
+                <div class="aspect-video">
+                    <iframe
+                        class="w-full h-full"
+                        src=format!("https://www.youtube.com/embed/{vid}?autoplay=1")
+                        allow="autoplay; encrypted-media"
+                        allowfullscreen=true
+                    />
+                </div>
+            </div>
+        }.into_any()
     }
 }

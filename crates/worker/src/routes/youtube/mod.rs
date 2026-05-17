@@ -7,40 +7,30 @@ pub async fn check_live(req: Request, ctx: RouteContext<()>) -> Result<Response>
     if let Some(err) = require_auth(&req, &ctx.env).await { return Ok(err); }
 
     let url = req.url()?;
-    let channel = url
+    let handle = url
         .query_pairs()
         .find(|(k, _)| k == "channel")
         .map(|(_, v)| v.into_owned())
-        .ok_or_else(|| Error::RustError("missing channel param".into()))?;
+        .ok_or_else(|| Error::RustError("missing channel".into()))?;
 
-    let channel_url = if channel.starts_with('@') {
-        format!("https://www.youtube.com/{channel}/live")
-    } else {
-        format!("https://www.youtube.com/@{channel}/live")
+    let api_key = ctx.env.secret("YOUTUBE_API_KEY")?.to_string();
+    let kv = ctx.env.kv("SESSIONS")?;
+
+    let handle_clean = handle.trim_start_matches('@').to_lowercase();
+    let cache_key = format!("yt_channel_id:{handle_clean}");
+
+    // Ambil channel ID dari KV (cache), atau resolve dari API
+    let channel_id = match kv.get(&cache_key).text().await? {
+        Some(id) => id,
+        None => {
+            let id = resolve_channel_id(&handle_clean, &api_key).await?;
+            let _ = kv.put(&cache_key, id.as_str())?.expiration_ttl(86400 * 30).execute().await;
+            id
+        }
     };
 
-    let headers = Headers::new();
-    headers.set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")?;
-    headers.set("Accept-Language", "en-US,en;q=0.9")?;
-
-    let fetch_req = Request::new_with_init(
-        &channel_url,
-        RequestInit::new()
-            .with_method(Method::Get)
-            .with_headers(headers),
-    )?;
-
-    let mut resp = Fetch::Request(fetch_req).send().await?;
-    let html = resp.text().await?;
-
-    // Cara paling reliable: kalau channel /live itu aktif,
-    // canonical URL-nya berubah jadi /watch?v=VIDEO_ID
-    let is_live = html.contains("\"isLiveNow\":true")
-        && (html.contains("\"canonical\":\"https://www.youtube.com/watch?v=")
-            || html.contains(r#"<link rel="canonical" href="https://www.youtube.com/watch?v="#));
-
-    let video_id = if is_live { extract_video_id(&html) } else { None };
-    let title = extract_title(&html);
+    // Check apakah channel sedang live
+    let (is_live, video_id, title) = check_channel_live(&channel_id, &api_key).await?;
 
     Response::from_json(&serde_json::json!({
         "live": is_live,
@@ -49,26 +39,46 @@ pub async fn check_live(req: Request, ctx: RouteContext<()>) -> Result<Response>
     }))
 }
 
-fn extract_video_id(html: &str) -> Option<String> {
-    let marker = "\"canonical\":\"https://www.youtube.com/watch?v=";
-    if let Some(start) = html.find(marker) {
-        let rest = &html[start + marker.len()..];
-        let end = rest.find('"')?;
-        return Some(rest[..end].to_string());
-    }
-    let marker2 = r#"<link rel="canonical" href="https://www.youtube.com/watch?v="#;
-    if let Some(start) = html.find(marker2) {
-        let rest = &html[start + marker2.len()..];
-        let end = rest.find('"')?;
-        return Some(rest[..end].to_string());
-    }
-    None
+async fn resolve_channel_id(handle: &str, api_key: &str) -> Result<String> {
+    let url = format!(
+        "https://www.googleapis.com/youtube/v3/channels?part=id&forHandle={handle}&key={api_key}"
+    );
+
+    let mut init = RequestInit::new();
+    init.with_method(Method::Get);
+
+    let req = Request::new_with_init(&url, &init)?;
+    let mut resp = Fetch::Request(req).send().await?;
+    let json: serde_json::Value = resp.json().await?;
+
+    json["items"][0]["id"]
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| Error::RustError(format!("Channel @{handle} tidak ditemukan")))
 }
 
-fn extract_title(html: &str) -> Option<String> {
-    let start = html.find("<title>")? + 7;
-    let end = html[start..].find("</title>")? + start;
-    let raw = html[start..end].replace(" - YouTube", "");
-    let clean = raw.trim().to_string();
-    if clean.is_empty() { None } else { Some(clean) }
+async fn check_channel_live(
+    channel_id: &str,
+    api_key: &str,
+) -> Result<(bool, Option<String>, Option<String>)> {
+    let url = format!(
+        "https://www.googleapis.com/youtube/v3/search?part=id,snippet&channelId={channel_id}&eventType=live&type=video&key={api_key}"
+    );
+
+    let mut init = RequestInit::new();
+    init.with_method(Method::Get);
+
+    let req = Request::new_with_init(&url, &init)?;
+    let mut resp = Fetch::Request(req).send().await?;
+    let json: serde_json::Value = resp.json().await?;
+
+    let items = json["items"].as_array();
+    match items.and_then(|arr| arr.first()) {
+        None => Ok((false, None, None)),
+        Some(item) => {
+            let video_id = item["id"]["videoId"].as_str().map(str::to_string);
+            let title = item["snippet"]["title"].as_str().map(str::to_string);
+            Ok((true, video_id, title))
+        }
+    }
 }
