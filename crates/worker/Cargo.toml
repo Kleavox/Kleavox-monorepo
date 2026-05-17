@@ -1,0 +1,13 @@
+[package]
+name = "deauboard-worker"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = "0.5"
+deauboard-shared = { path = "../shared" }
+serde = { workspace = true }
+serde_json = { workspace = true }
