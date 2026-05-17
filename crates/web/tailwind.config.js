@@ -4,40 +4,43 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans:  ["Inter", "system-ui", "sans-serif"],
-        mono:  ["'JetBrains Mono'", "'Fira Code'", "Consolas", "monospace"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["'JetBrains Mono'", "'Fira Code'", "Consolas", "monospace"],
       },
       colors: {
         db: {
-          bg:      "#F5F4F0",
-          surface: "#FFFFFF",
-          border:  "#CBC8BE",
-          text:    "#1A1A1A",
-          muted:   "#6B6860",
-          subtle:  "#EFEDE8",
+          bg:      "#0A0A0A",
+          surface: "#111111",
+          s2:      "#191919",
+          border:  "#242424",
+          text:    "#D4D0C8",
+          muted:   "#4A4742",
+          dim:     "#2A2725",
         },
-        up:   "#15803D",
-        down: "#B91C1C",
-        live: "#DC2626",
+        up:    "#2ECC71",
+        down:  "#E74C3C",
+        live:  "#E74C3C",
+        amber: "#E67E22",
+        sky:   "#3B8EDF",
       },
       keyframes: {
         "fade-in": {
-          "0%":   { opacity: "0", transform: "translateY(4px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "0%":   { opacity: "0" },
+          "100%": { opacity: "1" },
         },
-        "pulse-dot": {
+        "blink": {
+          "0%, 100%": { opacity: "1" },
+          "50%":      { opacity: "0" },
+        },
+        "pulse-slow": {
           "0%, 100%": { opacity: "1" },
           "50%":      { opacity: "0.3" },
         },
-        "live-pulse": {
-          "0%, 100%": { opacity: "1", transform: "scale(1)" },
-          "50%":      { opacity: "0.7", transform: "scale(0.97)" },
-        },
       },
       animation: {
-        "fade-in":    "fade-in 0.2s ease-out forwards",
-        "pulse-dot":  "pulse-dot 2s ease-in-out infinite",
-        "live-pulse": "live-pulse 1.5s ease-in-out infinite",
+        "fade-in":    "fade-in 0.15s ease-out",
+        "blink":      "blink 1s step-end infinite",
+        "pulse-slow": "pulse-slow 2s ease-in-out infinite",
       },
     },
   },

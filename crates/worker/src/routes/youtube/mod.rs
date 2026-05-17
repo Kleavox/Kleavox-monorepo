@@ -11,7 +11,7 @@ pub async fn check_live(req: Request, ctx: RouteContext<()>) -> Result<Response>
         .query_pairs()
         .find(|(k, _)| k == "channel")
         .map(|(_, v)| v.into_owned())
-        .ok_or_else(|| Error::RustError("missing channel param".into()))?;
+        .ok_or_else(|| Error::RustError("missing channel".into()))?;
 
     let channel_url = if channel.starts_with('@') {
         format!("https://www.youtube.com/{channel}/live")
@@ -20,55 +20,59 @@ pub async fn check_live(req: Request, ctx: RouteContext<()>) -> Result<Response>
     };
 
     let headers = Headers::new();
-    headers.set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")?;
+    headers.set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")?;
+    headers.set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")?;
     headers.set("Accept-Language", "en-US,en;q=0.9")?;
 
-    let fetch_req = Request::new_with_init(
-        &channel_url,
-        RequestInit::new()
-            .with_method(Method::Get)
-            .with_headers(headers),
-    )?;
+    // Manual redirect: kalau YouTube live, /live akan redirect ke /watch?v=VIDEO_ID
+    let mut init = RequestInit::new();
+    init.with_method(Method::Get)
+        .with_headers(headers)
+        .with_redirect(RequestRedirect::Manual);
 
-    let mut resp = Fetch::Request(fetch_req).send().await?;
-    let html = resp.text().await?;
+    let fetch_req = Request::new_with_init(&channel_url, &init)?;
+    let resp = Fetch::Request(fetch_req).send().await?;
+    let status = resp.status_code();
 
-    // Cara paling reliable: kalau channel /live itu aktif,
-    // canonical URL-nya berubah jadi /watch?v=VIDEO_ID
-    let is_live = html.contains("\"isLiveNow\":true")
-        && (html.contains("\"canonical\":\"https://www.youtube.com/watch?v=")
-            || html.contains(r#"<link rel="canonical" href="https://www.youtube.com/watch?v="#));
+    // 301/302 redirect ke /watch?v=... = live
+    if status == 301 || status == 302 {
+        let location = resp.headers().get("Location")?.unwrap_or_default();
+        if location.contains("watch?v=") {
+            let video_id = location
+                .split("watch?v=").nth(1)
+                .map(|s| s.split('&').next().unwrap_or(s).to_string())
+                .filter(|s| !s.is_empty());
 
-    let video_id = if is_live { extract_video_id(&html) } else { None };
-    let title = extract_title(&html);
+            let title = match video_id.as_ref() {
+                Some(vid) => fetch_video_title(vid).await,
+                None => None,
+            };
+
+            return Response::from_json(&serde_json::json!({
+                "live": true,
+                "video_id": video_id,
+                "title": title,
+            }));
+        }
+    }
 
     Response::from_json(&serde_json::json!({
-        "live": is_live,
-        "video_id": video_id,
-        "title": title,
+        "live": false,
+        "video_id": null,
+        "title": null,
     }))
 }
 
-fn extract_video_id(html: &str) -> Option<String> {
-    let marker = "\"canonical\":\"https://www.youtube.com/watch?v=";
-    if let Some(start) = html.find(marker) {
-        let rest = &html[start + marker.len()..];
-        let end = rest.find('"')?;
-        return Some(rest[..end].to_string());
-    }
-    let marker2 = r#"<link rel="canonical" href="https://www.youtube.com/watch?v="#;
-    if let Some(start) = html.find(marker2) {
-        let rest = &html[start + marker2.len()..];
-        let end = rest.find('"')?;
-        return Some(rest[..end].to_string());
-    }
-    None
-}
+async fn fetch_video_title(video_id: &str) -> Option<String> {
+    let url = format!("https://www.youtube.com/oembed?url=https://youtube.com/watch?v={video_id}&format=json");
+    let headers = Headers::new();
+    let _ = headers.set("User-Agent", "Deauboard/1.0");
 
-fn extract_title(html: &str) -> Option<String> {
-    let start = html.find("<title>")? + 7;
-    let end = html[start..].find("</title>")? + start;
-    let raw = html[start..end].replace(" - YouTube", "");
-    let clean = raw.trim().to_string();
-    if clean.is_empty() { None } else { Some(clean) }
+    let mut init = RequestInit::new();
+    init.with_method(Method::Get).with_headers(headers);
+
+    let req = Request::new_with_init(&url, &init).ok()?;
+    let mut resp = Fetch::Request(req).send().await.ok()?;
+    let json: serde_json::Value = resp.json().await.ok()?;
+    json["title"].as_str().map(str::to_string)
 }
