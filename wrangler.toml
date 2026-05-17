@@ -8,8 +8,4 @@ command = "worker-build --release"
 [[d1_databases]]
 binding = "DB"
 database_name = "deauboard"
-database_id = "placeholder-replace-after-cf-d1-create"
-
-[[kv_namespaces]]
-binding = "KV"
-id = "placeholder-replace-after-cf-kv-create"
+database_id = "285b9827-d8ea-4983-8ecf-39daefa3dbb2"

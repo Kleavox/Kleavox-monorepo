@@ -3,7 +3,7 @@ use worker::*;
 mod routes;
 
 #[event(fetch)]
-pub async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
+pub async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     Router::new()
         .get("/", |_, _| Response::ok("Deauboard"))
         .get_async("/api/health", routes::health)
