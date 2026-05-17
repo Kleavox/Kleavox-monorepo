@@ -1,9 +1,22 @@
 name = "deauboard"
 main = "crates/worker/build/worker/shim.mjs"
 compatibility_date = "2024-01-01"
+workers_dev = false
+
+routes = [
+  { pattern = "board.deau.site", custom_domain = true }
+]
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
 
 [build]
 command = "worker-build --release crates/worker"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "e136fc30950a4467b4267547037ce617"
 
 [[d1_databases]]
 binding = "DB"

@@ -1,0 +1,24 @@
+[package]
+name = "deauboard-agent"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "deauboard-agent"
+path = "src/main.rs"
+
+[dependencies]
+deauboard-shared = { path = "../shared" }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+sysinfo = "0.33"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+clap = { version = "4", features = ["derive"] }
+dialoguer = "0.11"
+colored = "2"
+anyhow = "1"
+dirs = "5"
+tokio-util = { version = "0.7", features = ["time"] }
+hostname = "0.4"

@@ -1,0 +1,6 @@
+[[proxy]]
+backend = "http://localhost:8787/api"
+
+[build]
+# dev: output ke dist lokal (crates/web/dist)
+# production: jalankan `trunk build --release --dist ../../dist`

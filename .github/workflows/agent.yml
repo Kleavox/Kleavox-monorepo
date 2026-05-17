@@ -1,0 +1,48 @@
+name: Release Agent
+
+on:
+  push:
+    tags:
+      - "agent-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.suffix }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            suffix: linux-x86_64
+          - target: aarch64-unknown-linux-musl
+            suffix: linux-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross
+        uses: taiki-e/install-action@cross
+
+      - name: Build
+        run: |
+          cross build -p deauboard-agent \
+            --target ${{ matrix.target }} \
+            --release
+
+      - name: Rename binary
+        run: |
+          cp target/${{ matrix.target }}/release/deauboard-agent \
+             deauboard-agent-${{ matrix.suffix }}
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: deauboard-agent-${{ matrix.suffix }}
+          generate_release_notes: true

@@ -1,40 +1,32 @@
+// crates/shared/src/lib.rs
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Project {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub status: String,
+    pub url: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UptimeCheck {
-    pub id: u32,
+    pub id: String,
     pub name: String,
     pub url: String,
-    pub status: CheckStatus,
+    pub node_name: String,
+    pub status: String,
+    pub response_ms: Option<i64>,
     pub last_checked: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CheckStatus {
-    Up,
-    Down,
-    Unknown,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Project {
-    pub id: u32,
-    pub name: String,
-    pub description: String,
-    pub status: ProjectStatus,
-    pub url: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ProjectStatus {
-    Todo,
-    InProgress,
-    Done,
+    pub created_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpsNode {
-    pub id: u32,
+    pub id: i64,
     pub name: String,
     pub ip: String,
     pub cpu_usage: f32,

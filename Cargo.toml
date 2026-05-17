@@ -1,10 +1,17 @@
+# Cargo.toml
+
 [workspace]
 resolver = "2"
 members = [
     "crates/shared",
     "crates/worker",
     "crates/web",
+    "crates/agent",
 ]
+
+[workspace.package]
+authors = ["VorDeau"]
+edition = "2021"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
