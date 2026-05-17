@@ -206,6 +206,10 @@ fn UptimeRow(check: UptimeCheck, on_delete: impl Fn() + 'static) -> impl IntoVie
                 <p class="text-xs text-db-muted truncate">{check.url}</p>
             </div>
             <div class="flex items-center gap-3 shrink-0">
+                {check.last_checked.as_ref().map(|t| {
+                    let t = t.replace('T', " ").chars().take(16).collect::<String>();
+                    view! { <span class="text-xs text-stone-300 hidden md:block">{t}</span> }
+                })}
                 {check.response_ms.map(|ms| view! {
                     <span class="text-xs text-db-muted hidden sm:block">{ms} "ms"</span>
                 })}
