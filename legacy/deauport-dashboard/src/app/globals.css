@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0b0b0c;
+  --surface: #111114;
+  --surface-2: #16161a;
+  --border: #26262b;
+  --text: #e7e7ea;
+  --subtle: #9a9aa3;
+  --muted: #b7b7bf;
+
+  --primary: #6ee7b7;
+  --primary-ink: #072a22;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  --ring: 0 0% 100% / 0.08;
+  --radius: 16px;
+}
+
+[data-theme="light"] {
+  --bg: #f7f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f1f3;
+  --border: #e6e6eb;
+  --text: #0c0c0d;
+  --subtle: #5c5c66;
+  --muted: #3b3b42;
+
+  --primary: #16a34a;
+  --primary-ink: #ffffff;
+  --warning: #d97706;
+  --danger: #dc2626;
+}
+
+html, body { height: 100%; }
+body { font-family: var(--font-inter), ui-sans-serif, system-ui; }
+
+.card {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow:
+    0 10px 30px -10px rgba(0,0,0,0.35),
+    0 6px 18px -12px rgba(0,0,0,0.25);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow:
+    0 14px 28px -12px rgba(0,0,0,0.4),
+    0 8px 18px -14px rgba(0,0,0,0.3);
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 text-sm font-medium;
+  border-radius: calc(var(--radius) - 6px);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 0.55rem 0.9rem;
+  transition: transform .06s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.btn:hover { background: color-mix(in srgb, var(--surface-2) 92%, white 8%); }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  color: var(--primary-ink);
+  background: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 70%, black 30%);
+}
+.btn-primary:hover { background: color-mix(in srgb, var(--primary) 88%, white 12%); }
+.btn-ghost { background: transparent; }
+.btn-danger {
+  color: color-mix(in srgb, var(--danger) 90%, white 10%);
+  background: color-mix(in srgb, var(--danger) 18%, transparent 82%);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent 70%);
+}
+.btn-danger:hover { background: color-mix(in srgb, var(--danger) 24%, transparent 76%); }
+
+.input {
+  @apply w-full text-sm;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  outline: none;
+}
+.input:focus {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border) 60%);
+  box-shadow: 0 0 0 4px hsl(var(--ring));
+}
+
+.text-subtle { color: var(--subtle); }
+.text-muted  { color: var(--muted);  }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  border-radius: 10px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--surface-2) 92%, white 8%) 0%,
+    color-mix(in srgb, var(--surface-2) 80%, white 20%) 50%,
+    color-mix(in srgb, var(--surface-2) 92%, white 8%) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite linear;
+}
+
+.toast-container {
+  position: fixed;
+  right: 16px;
+  top: 16px;
+  display: grid;
+  gap: 8px;
+  z-index: 60;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+}
+.toast--success { border-color: color-mix(in srgb, var(--primary) 40%, var(--border) 60%); }
+.toast--error   { border-color: color-mix(in srgb, var(--danger) 40%, var(--border) 60%); }
