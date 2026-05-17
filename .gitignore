@@ -3,3 +3,4 @@
 .wrangler
 .env
 *.local
+crates/worker/build/
