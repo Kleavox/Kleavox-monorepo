@@ -61,7 +61,7 @@ async fn run_monitor() -> Result<()> {
         println!("\n{}", "Menjalankan checks...".dimmed());
 
         for check in &config.checks {
-            let result = checker::check_http(&check.url).await;
+            let result = checker::check_url(&check.url).await;
             let status_icon = if result.status == "up" { "✓".green() } else { "✗".red() };
             println!(
                 "  {} {} — {}{}",

@@ -2,10 +2,10 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths-ignore:
       - "**.md"
-      - ".github/workflows/agent-release.yml"
+      - ".github/workflows/agent.yml"
       - "crates/agent/**"
       - "migrations/**"
 
@@ -38,7 +38,9 @@ jobs:
         working-directory: crates/web
 
       - name: Copy static files
-        run: cp install.sh dist/install.sh
+        run: |
+          mkdir -p dist
+          cp install.sh dist/install.sh
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3

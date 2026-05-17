@@ -86,6 +86,7 @@ pub async fn create(mut req: Request, ctx: RouteContext<()>) -> Result<Response>
 }
 
 pub async fn update(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(err) = require_auth(&req, &ctx.env).await { return Ok(err); }
     let id = match get_id(&ctx) {
         Some(id) => id,
         None => return Response::error("ID tidak valid", 400),
@@ -138,7 +139,8 @@ pub async fn update(mut req: Request, ctx: RouteContext<()>) -> Result<Response>
     }
 }
 
-pub async fn delete(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
+pub async fn delete(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(err) = require_auth(&req, &ctx.env).await { return Ok(err); }
     let id = match get_id(&ctx) {
         Some(id) => id,
         None => return Response::error("ID tidak valid", 400),

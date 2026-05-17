@@ -8,7 +8,22 @@ pub struct CheckResult {
     pub response_ms: Option<u32>,
 }
 
-pub async fn check_http(url: &str) -> CheckResult {
+pub async fn check_url(url: &str) -> CheckResult {
+    if url.starts_with("tcp://") {
+        let addr = url.strip_prefix("tcp://").unwrap_or(url);
+        let mut parts = addr.splitn(2, ':');
+        let host = parts.next().unwrap_or("localhost");
+        let port = parts.next().and_then(|p| p.parse::<u16>().ok()).unwrap_or(80);
+        let is_up = check_tcp(host, port).await.unwrap_or(false);
+        return CheckResult {
+            status: if is_up { "up" } else { "down" },
+            response_ms: None,
+        };
+    }
+    check_http(url).await
+}
+
+async fn check_http(url: &str) -> CheckResult {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .danger_accept_invalid_certs(true)

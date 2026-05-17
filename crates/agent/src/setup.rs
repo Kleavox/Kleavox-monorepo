@@ -166,7 +166,10 @@ pub async fn run_edit() -> Result<()> {
                         .interact()?;
                     for i in selected.into_iter().rev() {
                         let removed = config.checks.remove(i);
-                        println!("{} {} dihapus dari config", "✓".green(), removed.name);
+                        if let Err(e) = reporter.delete_check(&removed.id).await {
+                            println!("{} Gagal hapus dari API: {e}", "!".yellow());
+                        }
+                        println!("{} {} dihapus", "✓".green(), removed.name);
                     }
                 }
             }

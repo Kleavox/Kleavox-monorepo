@@ -61,6 +61,22 @@ impl Reporter {
         Ok(check.id)
     }
 
+    pub async fn delete_check(&self, check_id: &str) -> Result<()> {
+        let resp = self
+            .client
+            .delete(format!("{}/api/uptime/{}", self.api_url, check_id))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .send()
+            .await
+            .context("Gagal connect ke API")?;
+
+        if !resp.status().is_success() {
+            let text = resp.text().await.unwrap_or_default();
+            anyhow::bail!("API error: {text}");
+        }
+        Ok(())
+    }
+
     pub async fn report(&self, report: &CheckReport) -> Result<()> {
         self.client
             .post(format!("{}/api/uptime/report", self.api_url))
