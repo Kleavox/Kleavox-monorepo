@@ -12,7 +12,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Build & Deploy to Cloudflare
+    name: Build & Deploy
 
     steps:
       - uses: actions/checkout@v4
@@ -22,18 +22,31 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Cache Rust
+      - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+
+      - name: Cache cargo tools
+        id: cache-tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/trunk
+            ~/.cargo/bin/worker-build
+          key: cargo-tools-${{ runner.os }}-trunk-0.21-workerbuild-0.8
 
       - name: Install trunk
-        uses: jetli/trunk-action@v0.5.0
-        with:
-          version: latest
+        if: steps.cache-tools.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL https://github.com/trunk-rs/trunk/releases/download/v0.21.14/trunk-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz -C ~/.cargo/bin
 
       - name: Install worker-build
-        run: cargo install worker-build --locked
+        if: steps.cache-tools.outputs.cache-hit != 'true'
+        run: cargo install worker-build --version 0.8.3 --locked
 
-      - name: Build frontend (Leptos → WASM)
+      - name: Build frontend
         run: trunk build --release --dist ../../dist
         working-directory: crates/web
 
@@ -42,7 +55,7 @@ jobs:
           mkdir -p dist
           cp install.sh dist/install.sh
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

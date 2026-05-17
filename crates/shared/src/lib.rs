@@ -25,6 +25,15 @@ pub struct UptimeCheck {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Note {
+    pub id: String,
+    pub content: String,
+    pub pinned: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpsNode {
     pub id: i64,
     pub name: String,

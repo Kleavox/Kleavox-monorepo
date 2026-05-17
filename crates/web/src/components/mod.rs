@@ -1,1 +1,4 @@
-// Components will be added here
+// crates/web/src/components/mod.rs
+
+pub mod header;
+pub mod youtube;

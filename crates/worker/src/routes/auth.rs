@@ -57,6 +57,9 @@ pub async fn github_callback(req: Request, ctx: RouteContext<()>) -> Result<Resp
 }
 
 pub async fn me(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if ctx.env.var("SKIP_AUTH").map(|v| v.to_string() == "true").unwrap_or(false) {
+        return Response::from_json(&serde_json::json!({ "login": "dev" }));
+    }
     match get_session_user(&req, &ctx.env).await {
         Some(login) => Response::from_json(&serde_json::json!({ "login": login })),
         None => Response::error("Unauthorized", 401),

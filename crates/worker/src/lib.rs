@@ -9,7 +9,7 @@ pub async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     if req.method() == Method::Options {
         let headers = Headers::new();
         headers.set("Access-Control-Allow-Origin", "*")?;
-        headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")?;
+        headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")?;
         headers.set("Access-Control-Allow-Headers", "Content-Type")?;
         return Ok(Response::empty()?.with_headers(headers));
     }
@@ -28,6 +28,11 @@ pub async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .post_async("/api/uptime", routes::uptime::create)
         .delete_async("/api/uptime/:id", routes::uptime::delete)
         .post_async("/api/uptime/report", routes::uptime::report)
+        .get_async("/api/notes", routes::notes::list)
+        .post_async("/api/notes", routes::notes::create)
+        .patch_async("/api/notes/:id", routes::notes::update)
+        .delete_async("/api/notes/:id", routes::notes::delete)
+        .get_async("/api/youtube/check", routes::youtube::check_live)
         .get_async("/api/nodes", routes::nodes::list)
         .run(req, env)
         .await
