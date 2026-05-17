@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="dots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="14" cy="14" r="0.8" fill="#1e1e38"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="#08080f"/>
+  <rect width="1200" height="630" fill="url(#dots)"/>
+
+  <!-- Left: text content -->
+  <rect x="80" y="100" width="44" height="3" rx="1.5" fill="#22d3ee"/>
+
+  <text x="80" y="235" font-family="system-ui,-apple-system,sans-serif" font-size="88" font-weight="700" fill="#eeeef6" letter-spacing="-3">Hafidh</text>
+  <text x="80" y="335" font-family="system-ui,-apple-system,sans-serif" font-size="88" font-weight="700" fill="#22d3ee" letter-spacing="-3">Musyafa</text>
+
+  <rect x="80" y="360" width="56" height="1.5" fill="#252542"/>
+
+  <text x="80" y="405" font-family="'Courier New',monospace" font-size="20" fill="#6a6a98" letter-spacing="1">Computer Engineering</text>
+  <text x="80" y="440" font-family="system-ui,sans-serif" font-size="19" fill="#6a6a98">Embedded · IoT · Web · Mobile</text>
+
+  <text x="80" y="555" font-family="'Courier New',monospace" font-size="15" fill="#35354e">deau.site</text>
+
+  <!-- Right: mini oscilloscope panel -->
+  <rect x="680" y="130" width="440" height="310" rx="8" fill="#0e0e1c" stroke="#1c1c32" stroke-width="1"/>
+  <rect x="680" y="130" width="440" height="46" rx="8" fill="#151528"/>
+  <rect x="680" y="155" width="440" height="21" fill="#151528"/>
+
+  <circle cx="705" cy="153" r="4" fill="#22d3ee"/>
+  <text x="717" y="158" font-family="'Courier New',monospace" font-size="11" fill="#35354e">CH1 BMI270</text>
+  <circle cx="820" cy="153" r="4" fill="#4ade80"/>
+  <text x="832" y="158" font-family="'Courier New',monospace" font-size="11" fill="#35354e">CH2 MAX30102</text>
+  <text x="1040" y="158" font-family="'Courier New',monospace" font-size="11" fill="#35354e">250Hz</text>
+
+  <!-- Grid lines -->
+  <line x1="690" y1="220" x2="1110" y2="220" stroke="#1c1c32" stroke-width="0.5"/>
+  <line x1="690" y1="252" x2="1110" y2="252" stroke="#1c1c32" stroke-width="0.5"/>
+  <line x1="690" y1="284" x2="1110" y2="284" stroke="#1c1c32" stroke-width="0.5"/>
+  <line x1="690" y1="316" x2="1110" y2="316" stroke="#1c1c32" stroke-width="0.5"/>
+  <line x1="795" y1="182" x2="795" y2="415" stroke="#1c1c32" stroke-width="0.5"/>
+  <line x1="900" y1="182" x2="900" y2="415" stroke="#1c1c32" stroke-width="0.5"/>
+  <line x1="1005" y1="182" x2="1005" y2="415" stroke="#1c1c32" stroke-width="0.5"/>
+
+  <!-- Zero lines -->
+  <line x1="690" y1="252" x2="1110" y2="252" stroke="#22d3ee" stroke-width="0.4" stroke-dasharray="3,5" opacity="0.3"/>
+  <line x1="690" y1="352" x2="1110" y2="352" stroke="#4ade80" stroke-width="0.4" stroke-dasharray="3,5" opacity="0.3"/>
+
+  <!-- CH1: BMI270 accelerometer (smooth sine) -->
+  <path d="M690,252 C710,252 720,228 736,218 C752,208 762,214 778,224 C794,234 804,252 824,252 C844,252 854,276 870,286 C886,296 896,290 912,280 C928,270 938,252 958,252 C978,252 988,228 1004,218 C1020,208 1030,214 1046,224 C1062,234 1072,252 1100,252"
+        fill="none" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- CH2: MAX30102 PPG (heartbeat) -->
+  <path d="M690,352 L760,352 L763,352 L766,332 L769,372 L772,352 L840,352 L843,352 L846,332 L849,372 L852,352 L940,352 L943,352 L946,332 L949,372 L952,352 L1050,352 L1053,352 L1056,332 L1059,372 L1062,352 L1110,352"
+        fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- Panel footer -->
+  <text x="698" y="428" font-family="'Courier New',monospace" font-size="10" fill="#35354e">I2C 0x68 · 0x57</text>
+  <text x="1060" y="428" font-family="'Courier New',monospace" font-size="10" fill="#35354e">20ms/div</text>
+
+  <!-- Corner brackets -->
+  <path d="M690,195 L690,182 L703,182" fill="none" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  <path d="M1097,182 L1110,182 L1110,195" fill="none" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  <path d="M690,425 L690,438 L703,438" fill="none" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  <path d="M1097,438 L1110,438 L1110,425" fill="none" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+</svg>

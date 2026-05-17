@@ -16,7 +16,26 @@ const schema = z.object({
 
 const cfEnv = env as Record<string, string | undefined>
 
+const rateMap = new Map<string, { count: number; resetAt: number }>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + 60_000 })
+    return false
+  }
+  if (entry.count >= 3) return true
+  entry.count++
+  return false
+}
+
 export const POST: APIRoute = async ({ request }) => {
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+  if (isRateLimited(ip)) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Please wait a moment.' }), { status: 429 })
+  }
+
   let body: unknown
   try {
     body = await request.json()
