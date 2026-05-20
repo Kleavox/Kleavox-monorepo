@@ -12,6 +12,7 @@ export interface Env {
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
   RESEND_API_KEY: string;
+  SERVICE_SECRET: string;
   ENVIRONMENT: string;
   BASE_URL: string;
   COOKIE_DOMAIN: string;
@@ -91,6 +92,9 @@ export default {
       }
       if (method === 'GET' && path === '/oauth/callback/github') {
         return handleOAuthCallback(request, env, 'github');
+      }
+      if (method === 'POST' && path === '/email/send') {
+        return handleEmailSend(request, env, corsHeaders);
       }
 
       return json({ error: 'not found' }, 404, corsHeaders);
@@ -358,15 +362,35 @@ async function handleResetPassword(request: Request, env: Env, cors: Record<stri
   return json({ ok: true, message: 'password berhasil direset, silakan login' }, 200, cors);
 }
 
+async function sendEmail(env: Env, to: string | string[], subject: string, html: string, from?: string): Promise<void> {
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: from ?? env.FROM_EMAIL, to, subject, html }),
+  });
+}
+
 async function sendOTPEmail(env: Env, to: string, name: string, code: string, type: 'verify' | 'reset'): Promise<void> {
   const subject = type === 'verify' ? 'Verify your account' : 'Reset your password';
   const html = type === 'verify'
     ? `<p>Hi ${name},</p><p>Your verification code: <strong>${code}</strong></p><p>Valid for 15 minutes.</p>`
     : `<p>Hi ${name},</p><p>Your password reset code: <strong>${code}</strong></p><p>Valid for 15 minutes.</p>`;
+  await sendEmail(env, to, subject, html);
+}
 
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.FROM_EMAIL, to, subject, html }),
-  });
+async function handleEmailSend(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
+  const serviceKey = request.headers.get('X-Service-Key');
+  if (!serviceKey || serviceKey !== env.SERVICE_SECRET) {
+    return json({ error: 'unauthorized' }, 401, cors);
+  }
+
+  const body = await request.json<{ to: string | string[]; subject: string; html: string; from?: string }>();
+
+  if (!body.to || !body.subject || !body.html) {
+    return json({ error: 'to, subject, dan html wajib diisi' }, 400, cors);
+  }
+
+  await sendEmail(env, body.to, body.subject, body.html, body.from);
+
+  return json({ ok: true }, 200, cors);
 }
