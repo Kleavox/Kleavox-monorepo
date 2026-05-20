@@ -33,7 +33,10 @@ jobs:
 
       - name: Inject config into wrangler.toml
         run: |
+<<<<<<< HEAD
           AUTH_DOMAIN=$(echo "${{ secrets.BASE_URL }}" | sed 's|https://||')
+=======
+>>>>>>> 1dbff84d9a172362673f2d88efac22c6a841463f
           sed -i "s|YOUR_ACCOUNT_ID|${{ secrets.CLOUDFLARE_ACCOUNT_ID }}|g" wrangler.toml
           sed -i "s|YOUR_D1_DATABASE_ID|${{ secrets.D1_DATABASE_ID }}|g" wrangler.toml
           sed -i "s|YOUR_KV_NAMESPACE_ID|${{ secrets.KV_NAMESPACE_ID }}|g" wrangler.toml
