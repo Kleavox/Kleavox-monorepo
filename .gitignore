@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+
+src/main.wasm
+src/wasm_exec.js
+
+*.env
+.env*

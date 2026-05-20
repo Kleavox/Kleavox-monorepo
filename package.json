@@ -1,0 +1,18 @@
+{
+  "name": "deauone",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build:wasm": "cross-env GOOS=js GOARCH=wasm go build -C go -ldflags=\"-s -w\" -o ../src/main.wasm .",
+    "deploy": "npm run build:wasm && wrangler deploy",
+    "db:create": "wrangler d1 create deauone",
+    "db:migrate:prod": "wrangler d1 execute deauone --file=./schema.sql",
+    "db:migrate:preview": "wrangler d1 execute deauone --local --file=./schema.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "cross-env": "^10.1.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.0.0"
+  }
+}

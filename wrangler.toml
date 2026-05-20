@@ -1,0 +1,26 @@
+name = "deauone"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+workers_dev = false
+
+[build]
+command = "npm run build:wasm"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "deauone"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "YOUR_KV_NAMESPACE_ID"
+
+[vars]
+ENVIRONMENT = "production"
+BASE_URL = "https://auth.yourdomain.com"
+COOKIE_DOMAIN = ".yourdomain.com"
+FROM_EMAIL = "noreply@yourdomain.com"
+
+[[rules]]
+type = "CompiledWasm"
+globs = ["**/*.wasm"]
