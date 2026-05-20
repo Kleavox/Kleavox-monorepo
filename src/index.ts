@@ -13,6 +13,7 @@ export interface Env {
   GITHUB_CLIENT_SECRET: string;
   RESEND_API_KEY: string;
   SERVICE_SECRET: string;
+  ADMIN_EMAIL: string;
   ENVIRONMENT: string;
   BASE_URL: string;
   COOKIE_DOMAIN: string;
@@ -44,7 +45,7 @@ export default {
     const corsHeaders = {
       'Access-Control-Allow-Origin': isAllowedOrigin(requestOrigin, env.COOKIE_DOMAIN) ? requestOrigin : '',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Service-Key',
       'Access-Control-Allow-Credentials': 'true',
       'Vary': 'Origin',
     };
@@ -132,6 +133,10 @@ function getTokenFromRequest(request: Request): string | null {
   return cookie[COOKIE_NAME] ?? request.headers.get('Authorization')?.replace('Bearer ', '') ?? null;
 }
 
+function resolveRole(email: string, dbRole: string, adminEmail: string): string {
+  return email.toLowerCase() === adminEmail.toLowerCase() ? 'ADMIN' : dbRole;
+}
+
 function buildJWTPayload(user: { id: string; email: string; name: string; role: string }, exp: number): string {
   return JSON.stringify({ sub: user.id, email: user.email, name: user.name, role: user.role, iss: 'deauone', exp });
 }
@@ -140,7 +145,7 @@ async function handleLogin(request: Request, env: Env, cors: Record<string, stri
   const body = await request.json<{ email: string; password: string }>();
 
   if (!body.email || !body.password) {
-    return json({ error: 'email dan password wajib diisi' }, 400, cors);
+    return json({ error: 'email and password are required' }, 400, cors);
   }
 
   const user = await env.DB.prepare(
@@ -149,26 +154,31 @@ async function handleLogin(request: Request, env: Env, cors: Record<string, stri
     id: string; email: string; name: string; role: string; password_hash: string; verified: number;
   }>();
 
-  if (!user || !user.password_hash) {
-    return json({ error: 'email atau password salah' }, 401, cors);
+  if (!user) {
+    return json({ error: 'invalid email or password' }, 401, cors);
+  }
+
+  if (!user.password_hash) {
+    return json({ error: 'this account uses OAuth login' }, 403, cors);
   }
 
   if (!verifyPassword(user.password_hash, body.password)) {
-    return json({ error: 'email atau password salah' }, 401, cors);
+    return json({ error: 'invalid email or password' }, 401, cors);
   }
 
   if (!user.verified) {
-    return json({ error: 'akun belum diverifikasi, cek email kamu' }, 403, cors);
+    return json({ error: 'account not verified' }, 403, cors);
   }
 
+  const role = resolveRole(user.email, user.role, env.ADMIN_EMAIL);
   const exp = Math.floor(Date.now() / 1000) + SESSION_TTL;
-  const token = signJWT(buildJWTPayload(user, exp), env.DEAUONE_JWT_SECRET);
+  const token = signJWT(buildJWTPayload({ ...user, role }, exp), env.DEAUONE_JWT_SECRET);
 
   await env.SESSIONS.put(`sessions:${token}`, JSON.stringify({ user_id: user.id, expires_at: exp }), {
     expirationTtl: SESSION_TTL,
   });
 
-  return new Response(JSON.stringify({ ok: true, user: { id: user.id, email: user.email, name: user.name, role: user.role } }), {
+  return new Response(JSON.stringify({ ok: true, user: { id: user.id, email: user.email, name: user.name, role } }), {
     status: 200,
     headers: { 'Content-Type': 'application/json', 'Set-Cookie': makeSessionCookie(token, env.COOKIE_DOMAIN), ...cors },
   });
@@ -178,18 +188,18 @@ async function handleRegister(request: Request, env: Env, cors: Record<string, s
   const body = await request.json<{ email: string; name: string; password: string }>();
 
   if (!body.email || !body.name || !body.password) {
-    return json({ error: 'semua field wajib diisi' }, 400, cors);
+    return json({ error: 'all fields are required' }, 400, cors);
   }
 
   if (body.password.length < 8) {
-    return json({ error: 'password minimal 8 karakter' }, 400, cors);
+    return json({ error: 'password must be at least 8 characters' }, 400, cors);
   }
 
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
     .bind(body.email.toLowerCase()).first();
 
   if (existing) {
-    return json({ error: 'email sudah terdaftar' }, 409, cors);
+    return json({ error: 'email already registered' }, 409, cors);
   }
 
   const id = generateID();
@@ -209,21 +219,21 @@ async function handleRegister(request: Request, env: Env, cors: Record<string, s
 
   await sendOTPEmail(env, body.email, body.name, otpCode, 'verify');
 
-  return json({ ok: true, message: 'cek email kamu untuk kode verifikasi' }, 201, cors);
+  return json({ ok: true }, 201, cors);
 }
 
 async function handleVerify(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
   const body = await request.json<{ email: string; code: string }>();
 
   if (!body.email || !body.code) {
-    return json({ error: 'email dan code wajib diisi' }, 400, cors);
+    return json({ error: 'email and code are required' }, 400, cors);
   }
 
   const user = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
     .bind(body.email.toLowerCase()).first<{ id: string }>();
 
   if (!user) {
-    return json({ error: 'user tidak ditemukan' }, 404, cors);
+    return json({ error: 'user not found' }, 404, cors);
   }
 
   const otp = await env.DB.prepare(
@@ -231,7 +241,7 @@ async function handleVerify(request: Request, env: Env, cors: Record<string, str
   ).bind(user.id, body.code).first<{ id: string }>();
 
   if (!otp) {
-    return json({ error: 'kode tidak valid atau sudah kadaluarsa' }, 400, cors);
+    return json({ error: 'invalid code' }, 400, cors);
   }
 
   await env.DB.batch([
@@ -239,7 +249,7 @@ async function handleVerify(request: Request, env: Env, cors: Record<string, str
     env.DB.prepare('DELETE FROM otp_tokens WHERE id = ?').bind(otp.id),
   ]);
 
-  return json({ ok: true, message: 'akun berhasil diverifikasi, silakan login' }, 200, cors);
+  return json({ ok: true }, 200, cors);
 }
 
 async function handleLogout(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
@@ -260,29 +270,28 @@ async function handleMe(request: Request, env: Env, cors: Record<string, string>
   if (!token) return json({ error: 'unauthorized' }, 401, cors);
 
   const session = await env.SESSIONS.get(`sessions:${token}`);
-  if (!session) return json({ error: 'session tidak valid atau sudah logout' }, 401, cors);
+  if (!session) return json({ error: 'unauthorized' }, 401, cors);
 
   try {
     const payload = JSON.parse(verifyJWT(token, env.DEAUONE_JWT_SECRET));
     return json({ ok: true, user: { id: payload.sub, email: payload.email, name: payload.name, role: payload.role } }, 200, cors);
   } catch {
-    return json({ error: 'token tidak valid' }, 401, cors);
+    return json({ error: 'unauthorized' }, 401, cors);
   }
 }
 
 async function handleVerifyToken(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
   const token = getTokenFromRequest(request);
-  if (!token) return json({ error: 'unauthorized' }, 401, cors);
+  if (!token) return json({ valid: false }, 401, cors);
 
   const session = await env.SESSIONS.get(`sessions:${token}`);
-  if (!session) return json({ valid: false, error: 'session tidak aktif' }, 401, cors);
+  if (!session) return json({ valid: false }, 401, cors);
 
   try {
     const payload = JSON.parse(verifyJWT(token, env.DEAUONE_JWT_SECRET));
     return json({ valid: true, payload }, 200, cors);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'invalid';
-    return json({ valid: false, error: msg }, 401, cors);
+  } catch {
+    return json({ valid: false }, 401, cors);
   }
 }
 
@@ -290,14 +299,14 @@ async function handleForgotPassword(request: Request, env: Env, cors: Record<str
   const body = await request.json<{ email: string }>();
 
   if (!body.email) {
-    return json({ error: 'email wajib diisi' }, 400, cors);
+    return json({ error: 'email is required' }, 400, cors);
   }
 
   const user = await env.DB.prepare('SELECT id, name FROM users WHERE email = ?')
     .bind(body.email.toLowerCase()).first<{ id: string; name: string }>();
 
   if (!user) {
-    return json({ ok: true, message: 'kalau email terdaftar, kode reset akan dikirim' }, 200, cors);
+    return json({ ok: true }, 200, cors);
   }
 
   await env.DB.prepare("DELETE FROM otp_tokens WHERE user_id = ? AND type = 'reset'").bind(user.id).run();
@@ -312,25 +321,25 @@ async function handleForgotPassword(request: Request, env: Env, cors: Record<str
 
   await sendOTPEmail(env, body.email, user.name, otpCode, 'reset');
 
-  return json({ ok: true, message: 'kalau email terdaftar, kode reset akan dikirim' }, 200, cors);
+  return json({ ok: true }, 200, cors);
 }
 
 async function handleResetPassword(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
   const body = await request.json<{ email: string; code: string; password: string }>();
 
   if (!body.email || !body.code || !body.password) {
-    return json({ error: 'semua field wajib diisi' }, 400, cors);
+    return json({ error: 'all fields are required' }, 400, cors);
   }
 
   if (body.password.length < 8) {
-    return json({ error: 'password minimal 8 karakter' }, 400, cors);
+    return json({ error: 'password must be at least 8 characters' }, 400, cors);
   }
 
   const user = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
     .bind(body.email.toLowerCase()).first<{ id: string }>();
 
   if (!user) {
-    return json({ error: 'email atau kode tidak valid' }, 400, cors);
+    return json({ error: 'invalid code' }, 400, cors);
   }
 
   const otp = await env.DB.prepare(
@@ -338,7 +347,7 @@ async function handleResetPassword(request: Request, env: Env, cors: Record<stri
   ).bind(user.id, body.code).first<{ id: string }>();
 
   if (!otp) {
-    return json({ error: 'kode tidak valid atau sudah kadaluarsa' }, 400, cors);
+    return json({ error: 'invalid code' }, 400, cors);
   }
 
   const newHash = await hashPassword(body.password);
@@ -359,7 +368,7 @@ async function handleResetPassword(request: Request, env: Env, cors: Record<stri
     }
   }
 
-  return json({ ok: true, message: 'password berhasil direset, silakan login' }, 200, cors);
+  return json({ ok: true }, 200, cors);
 }
 
 async function sendEmail(env: Env, to: string | string[], subject: string, html: string, from?: string): Promise<void> {
@@ -387,7 +396,7 @@ async function handleEmailSend(request: Request, env: Env, cors: Record<string, 
   const body = await request.json<{ to: string | string[]; subject: string; html: string; from?: string }>();
 
   if (!body.to || !body.subject || !body.html) {
-    return json({ error: 'to, subject, dan html wajib diisi' }, 400, cors);
+    return json({ error: 'missing required fields' }, 400, cors);
   }
 
   await sendEmail(env, body.to, body.subject, body.html, body.from);

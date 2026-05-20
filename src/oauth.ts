@@ -240,12 +240,13 @@ export async function handleOAuthCallback(
     return oauthErrorPage('failed to create account, please try again');
   }
 
+  const role = user.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase() ? 'ADMIN' : user.role;
   const exp = Math.floor(Date.now() / 1000) + SESSION_TTL;
   const token = signJWT(JSON.stringify({
     sub: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    role,
     iss: 'deauone',
     exp,
   }), env.DEAUONE_JWT_SECRET);
