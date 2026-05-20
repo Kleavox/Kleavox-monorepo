@@ -2,9 +2,7 @@ name = "deauone"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 workers_dev = false
-
-[build]
-command = "npm run build:wasm"
+account_id = "YOUR_ACCOUNT_ID"
 
 [[d1_databases]]
 binding = "DB"

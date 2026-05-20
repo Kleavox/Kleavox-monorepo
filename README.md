@@ -1,55 +1,22 @@
 # DeauOne
 
-Central auth service built on Cloudflare Workers. Provides SSO via a shared cookie across subdomains, supporting email/password and OAuth (Google, GitHub).
+Central auth service built on Cloudflare Workers. Provides SSO across subdomains via a shared secure cookie, supporting email/password and OAuth.
 
 ## Stack
 
 - **Runtime**: Cloudflare Workers
 - **Language**: Go (compiled to WASM) + TypeScript
-- **Database**: Cloudflare D1 (SQLite)
+- **Database**: Cloudflare D1
 - **Sessions**: Cloudflare KV
 - **Email**: Resend
 
 ## Features
 
-- Email/password registration with OTP email verification
+- Email/password registration with OTP verification
 - Password reset via OTP
-- Google OAuth (popup flow)
-- GitHub OAuth (popup flow)
-- JWT signed with HMAC-SHA256
-- SSO via `HttpOnly` cookie shared across subdomains
-- Session invalidation on logout (KV blocklist)
-
-## Endpoints
-
-```
-GET  /                       → health check
-POST /auth/register          → register + send verification OTP
-POST /auth/verify            → verify OTP, activate account
-POST /auth/login             → email/password → JWT + set cookie
-POST /auth/logout            → invalidate session + clear cookie
-POST /auth/forgot-password   → send password reset OTP
-POST /auth/reset-password    → verify OTP + set new password
-GET  /auth/me                → return user from session
-GET  /auth/verify-token      → validate JWT (for other workers)
-GET  /oauth/google           → start Google OAuth (popup)
-GET  /oauth/github           → start GitHub OAuth (popup)
-GET  /oauth/callback/google  → Google OAuth callback
-GET  /oauth/callback/github  → GitHub OAuth callback
-```
-
-## JWT Payload
-
-```json
-{
-  "sub":   "user-id",
-  "email": "user@example.com",
-  "name":  "User Name",
-  "role":  "USER",
-  "iss":   "deauone",
-  "exp":   1234567890
-}
-```
+- Google and GitHub OAuth
+- JWT-based sessions with server-side invalidation
+- SSO via shared HttpOnly cookie across subdomains
 
 ## Setup
 
@@ -59,7 +26,7 @@ GET  /oauth/callback/github  → GitHub OAuth callback
 npm install
 ```
 
-### 2. Create D1 database and KV namespace
+### 2. Create Cloudflare resources
 
 ```bash
 wrangler d1 create deauone
@@ -85,7 +52,7 @@ wrangler secret put GITHUB_CLIENT_ID
 wrangler secret put GITHUB_CLIENT_SECRET
 ```
 
-### 5. Update wrangler.toml
+### 5. Configure wrangler.toml
 
 ```toml
 [vars]
@@ -100,42 +67,25 @@ FROM_EMAIL = "noreply@yourdomain.com"
 npm run deploy
 ```
 
-## OAuth Redirect URIs
+## OAuth Setup
 
-Register these in Google Console and GitHub:
+Register these callback URLs in Google Console and GitHub OAuth app:
 
 ```
 https://auth.yourdomain.com/oauth/callback/google
 https://auth.yourdomain.com/oauth/callback/github
 ```
 
-## Popup Flow (client side)
+## CI/CD
 
-```javascript
-function loginWithOAuth(provider) {
-  const popup = window.open(
-    `https://auth.yourdomain.com/oauth/${provider}?origin=${encodeURIComponent(window.location.origin)}`,
-    'oauth',
-    'width=500,height=600'
-  );
+Deployment via GitHub Actions on push to `master`. Required GitHub Secrets:
 
-  window.addEventListener('message', (e) => {
-    if (e.data?.type === 'deauone:oauth:done') {
-      popup.close();
-      // cookie is now set, reload or redirect
-    }
-  });
-}
 ```
-
-## Verifying JWT in other workers
-
-```typescript
-const cookie = parseCookie(request.headers.get('Cookie'))['sid'];
-const res = await fetch('https://auth.yourdomain.com/auth/verify-token', {
-  headers: { Authorization: `Bearer ${cookie}` }
-});
-const { valid, payload } = await res.json();
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+D1_DATABASE_ID
+KV_NAMESPACE_ID
+BASE_URL
+COOKIE_DOMAIN
+FROM_EMAIL
 ```
-
-Or verify locally with the shared `DEAUONE_JWT_SECRET` using HMAC-SHA256.
