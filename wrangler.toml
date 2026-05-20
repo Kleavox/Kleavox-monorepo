@@ -2,9 +2,7 @@ name = "deauone"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 workers_dev = false
-
-[build]
-command = "npm run build:wasm"
+account_id = "YOUR_ACCOUNT_ID"
 
 [[d1_databases]]
 binding = "DB"
@@ -21,6 +19,11 @@ BASE_URL = "https://auth.yourdomain.com"
 COOKIE_DOMAIN = ".yourdomain.com"
 FROM_EMAIL = "noreply@yourdomain.com"
 
+[[routes]]
+pattern = "YOUR_AUTH_DOMAIN"
+custom_domain = true
+
 [[rules]]
 type = "CompiledWasm"
 globs = ["**/*.wasm"]
+fallthrough = false

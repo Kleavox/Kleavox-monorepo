@@ -7,3 +7,5 @@ src/wasm_exec.js
 
 *.env
 .env*
+
+ENDPOINTS.md

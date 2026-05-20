@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build:wasm": "cross-env GOOS=js GOARCH=wasm go build -C go -ldflags=\"-s -w\" -o ../src/main.wasm .",
-    "deploy": "npm run build:wasm && wrangler deploy",
+    "deploy": "wrangler deploy",
     "db:create": "wrangler d1 create deauone",
     "db:migrate:prod": "wrangler d1 execute deauone --file=./schema.sql",
     "db:migrate:preview": "wrangler d1 execute deauone --local --file=./schema.sql"
