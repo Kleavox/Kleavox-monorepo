@@ -1,0 +1,974 @@
+:root {
+  color: #151712;
+  background: #f1f2ed;
+  font-family: "Arial Nova", "Helvetica Neue", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-width: 320px;
+  min-height: 100dvh;
+  background: #f1f2ed;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #151712;
+  outline-offset: 3px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+}
+
+.drop-page {
+  --ink: #151712;
+  --muted: #62665d;
+  --line: #c9ccc2;
+  --paper: #f1f2ed;
+  --panel: #fafbf7;
+  --accent: #b8f34b;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.drop-header,
+.drop-footer {
+  width: min(100% - 40px, 1380px);
+  margin-inline: auto;
+}
+
+.drop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  border-bottom: 1px solid var(--line);
+}
+
+.drop-brand {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  text-decoration: none;
+}
+
+.drop-brand span {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.drop-header nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.drop-header nav a,
+.drop-ledger-heading > a {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.drop-header nav a:hover,
+.drop-ledger-heading > a:hover {
+  color: var(--ink);
+}
+
+.drop-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(520px, 0.78fr);
+  gap: clamp(54px, 9vw, 148px);
+  width: min(100% - 40px, 1380px);
+  min-height: calc(100dvh - 72px);
+  margin-inline: auto;
+  padding: clamp(64px, 10vh, 112px) 0 72px;
+}
+
+.drop-hero-copy {
+  align-self: start;
+  padding-top: 24px;
+}
+
+.drop-kicker {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.drop-hero h1,
+.drop-receive h1,
+.drop-gone h1 {
+  margin: 0;
+  max-width: 9ch;
+  font-size: clamp(4.3rem, 8.2vw, 8.9rem);
+  font-weight: 650;
+  letter-spacing: -0.078em;
+  line-height: 0.84;
+}
+
+.drop-intro {
+  max-width: 31rem;
+  margin: 38px 0 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  line-height: 1.55;
+}
+
+.drop-station {
+  align-self: start;
+  border: 1px solid var(--ink);
+  background: var(--panel);
+}
+
+.drop-zone {
+  position: relative;
+  min-height: 236px;
+  border-bottom: 1px solid var(--ink);
+  background:
+    linear-gradient(90deg, rgb(21 23 18 / 5%) 1px, transparent 1px),
+    linear-gradient(rgb(21 23 18 / 5%) 1px, transparent 1px), var(--panel);
+  background-size: 24px 24px;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.drop-zone.is-dragging {
+  background-color: var(--accent);
+  box-shadow: inset 0 0 0 6px var(--accent);
+}
+
+.drop-zone > input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drop-zone-action {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  min-height: 236px;
+  padding: 42px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.drop-zone-action:disabled {
+  opacity: 0.48;
+}
+
+.drop-zone-mark {
+  display: grid;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid var(--ink);
+  background: var(--accent);
+  font-size: 2.15rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.drop-zone-action strong,
+.drop-zone-action small {
+  display: block;
+}
+
+.drop-zone-action strong {
+  font-size: 1.28rem;
+  letter-spacing: -0.025em;
+}
+
+.drop-zone-action small {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.drop-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 236px;
+  padding: 42px;
+}
+
+.drop-file-name {
+  max-width: 18ch;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  font-weight: 650;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.drop-file-meta {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.76rem;
+}
+
+.drop-text-button {
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.drop-options {
+  display: grid;
+  grid-template-columns: 1fr 0.72fr;
+}
+
+.drop-options label,
+.drop-unlock {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 20px 22px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.drop-options label:nth-child(2) {
+  border-right: 0;
+}
+
+.drop-options .drop-password {
+  grid-column: 1 / -1;
+  border-right: 0;
+}
+
+.drop-options label > span,
+.drop-unlock > span {
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.drop-options label i {
+  color: #8a8e84;
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.drop-options input,
+.drop-options select,
+.drop-unlock input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.96rem;
+  font-weight: 650;
+  outline: none;
+}
+
+.drop-options input::placeholder,
+.drop-unlock input::placeholder {
+  color: #969990;
+  font-weight: 500;
+}
+
+.drop-challenge {
+  padding: 17px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.drop-challenge p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.drop-progress {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.drop-progress > div {
+  height: 6px;
+  overflow: hidden;
+  background: #dde0d7;
+}
+
+.drop-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 140ms ease;
+}
+
+.drop-progress p {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.7rem;
+}
+
+.drop-primary,
+.drop-secondary {
+  width: 100%;
+  min-height: 60px;
+  border: 0;
+  background: var(--accent);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 800;
+  transition:
+    background-color 140ms ease,
+    transform 100ms ease;
+}
+
+.drop-primary:hover:not(:disabled),
+.drop-secondary:hover:not(:disabled) {
+  background: #a9e541;
+}
+
+.drop-primary:active:not(:disabled),
+.drop-secondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.drop-primary:disabled {
+  background: #d9dcd3;
+  color: #7d8177;
+}
+
+.drop-rule {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--ink);
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.drop-message {
+  margin: 0;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.drop-message.is-error {
+  background: #ffe2dd;
+  color: #7a1f13;
+}
+
+.drop-result,
+.drop-ledger {
+  width: min(100% - 40px, 1380px);
+  margin-inline: auto;
+}
+
+.drop-result {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(440px, 1.15fr);
+  gap: 80px;
+  align-items: end;
+  padding: 72px 0;
+  border-top: 1px solid var(--ink);
+}
+
+.drop-result h2,
+.drop-ledger h2,
+.drop-report-form h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 4.5rem);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+}
+
+.drop-result p:not(.drop-kicker) {
+  max-width: 33rem;
+  margin: 18px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.drop-delete-result {
+  margin-top: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-decoration: underline;
+}
+
+.drop-share-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  border: 1px solid var(--ink);
+  background: var(--panel);
+}
+
+.drop-share-line input {
+  min-width: 0;
+  padding: 18px;
+  border: 0;
+  background: transparent;
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.drop-share-line button {
+  min-width: 120px;
+  border: 0;
+  border-left: 1px solid var(--ink);
+  background: var(--accent);
+  font-weight: 800;
+}
+
+.drop-ledger {
+  padding: 96px 0 112px;
+  border-top: 1px solid var(--line);
+}
+
+.drop-ledger-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+.drop-list {
+  border-top: 1px solid var(--ink);
+}
+
+.drop-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.75fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.drop-row-main p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 750;
+}
+
+.drop-row-main span,
+.drop-row-state time {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.7rem;
+}
+
+.drop-row-state {
+  justify-self: start;
+}
+
+.drop-status {
+  font-family: "Courier New", monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.drop-status.is-active {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 5px;
+}
+
+.drop-status.is-deleted,
+.drop-status.is-failed,
+.drop-status.is-exhausted {
+  color: var(--muted);
+}
+
+.drop-row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.drop-row-actions button,
+.drop-report > button,
+.drop-report-form > div button {
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.drop-row-actions button:hover,
+.drop-report > button:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.drop-empty {
+  margin: 0;
+  padding: 54px 0;
+  border-top: 1px solid var(--ink);
+  color: var(--muted);
+}
+
+.drop-principles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--ink);
+}
+
+.drop-principles p {
+  margin: 0;
+  padding: 28px 32px 28px 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.drop-principles p + p {
+  padding-left: 32px;
+  border-left: 1px solid var(--line);
+}
+
+.drop-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 24px 0 38px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.drop-footer p {
+  margin: 0;
+}
+
+.drop-footer div {
+  display: flex;
+  gap: 22px;
+}
+
+.drop-receive {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(410px, 0.55fr);
+  gap: clamp(60px, 10vw, 160px);
+  align-items: center;
+  width: min(100% - 40px, 1380px);
+  min-height: calc(100dvh - 144px);
+  margin-inline: auto;
+  padding: 80px 0;
+}
+
+.drop-receive-copy h1 {
+  max-width: 12ch;
+  overflow-wrap: anywhere;
+  font-size: clamp(3.5rem, 7vw, 7.5rem);
+  line-height: 0.9;
+}
+
+.drop-receive-copy > p:last-child,
+.drop-gone > p {
+  max-width: 35rem;
+  margin: 32px 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.drop-receipt {
+  border: 1px solid var(--ink);
+  background: var(--panel);
+}
+
+.drop-receipt dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0;
+}
+
+.drop-receipt dl div {
+  padding: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.drop-receipt dl div:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+
+.drop-receipt dt {
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.drop-receipt dd {
+  margin: 9px 0 0;
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.drop-unlock {
+  border-right: 0;
+}
+
+.drop-download-note {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--ink);
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 0.64rem;
+  text-align: center;
+}
+
+.drop-gone {
+  grid-column: 1 / -1;
+  align-self: center;
+}
+
+.drop-gone a {
+  display: inline-block;
+  margin-top: 30px;
+  padding: 15px 20px;
+  background: var(--accent);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.drop-receive-loading {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 16px;
+  width: min(100%, 640px);
+}
+
+.drop-receive-loading span {
+  display: block;
+  height: 42px;
+  background: #e1e3dc;
+  animation: drop-pulse 1.25s ease-in-out infinite alternate;
+}
+
+.drop-receive-loading span:first-child {
+  width: 24%;
+}
+
+.drop-receive-loading span:nth-child(2) {
+  width: 100%;
+  height: 120px;
+}
+
+.drop-receive-loading span:last-child {
+  width: 62%;
+}
+
+.drop-report {
+  width: min(100% - 40px, 1380px);
+  margin: 0 auto 70px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.drop-report > button {
+  float: right;
+}
+
+.drop-report-form {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+  margin-left: auto;
+}
+
+.drop-report-form > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.drop-report-form h2 {
+  font-size: 2rem;
+}
+
+.drop-report-form select,
+.drop-report-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--panel);
+}
+
+.drop-report-form select {
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.drop-report-form textarea {
+  min-height: 120px;
+  padding: 14px;
+  resize: vertical;
+}
+
+.drop-secondary {
+  min-height: 48px;
+}
+
+@keyframes drop-pulse {
+  to {
+    opacity: 0.42;
+  }
+}
+
+@media (max-width: 980px) {
+  .drop-hero,
+  .drop-receive {
+    grid-template-columns: 1fr;
+  }
+
+  .drop-hero {
+    gap: 56px;
+    padding-top: 56px;
+  }
+
+  .drop-hero-copy {
+    padding-top: 0;
+  }
+
+  .drop-station {
+    width: min(100%, 640px);
+  }
+
+  .drop-result {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+
+  .drop-receive {
+    gap: 56px;
+    align-items: start;
+  }
+
+  .drop-receipt {
+    width: min(100%, 560px);
+  }
+}
+
+@media (max-width: 680px) {
+  .drop-header,
+  .drop-footer,
+  .drop-hero,
+  .drop-result,
+  .drop-ledger,
+  .drop-receive,
+  .drop-report {
+    width: min(100% - 28px, 1380px);
+  }
+
+  .drop-header {
+    min-height: 62px;
+  }
+
+  .drop-header nav {
+    gap: 16px;
+  }
+
+  .drop-header nav a:first-child {
+    display: none;
+  }
+
+  .drop-hero {
+    min-height: auto;
+    padding: 48px 0 64px;
+  }
+
+  .drop-hero h1 {
+    font-size: clamp(3.8rem, 20vw, 6.2rem);
+  }
+
+  .drop-intro {
+    margin-top: 28px;
+  }
+
+  .drop-zone,
+  .drop-zone-action,
+  .drop-file {
+    min-height: 190px;
+  }
+
+  .drop-zone-action,
+  .drop-file {
+    padding: 28px 22px;
+  }
+
+  .drop-zone-mark {
+    flex-basis: 50px;
+    width: 50px;
+    height: 50px;
+  }
+
+  .drop-options {
+    grid-template-columns: 1fr 0.7fr;
+  }
+
+  .drop-options label {
+    padding: 17px;
+  }
+
+  .drop-rule {
+    justify-content: flex-start;
+  }
+
+  .drop-result {
+    padding: 58px 0;
+  }
+
+  .drop-share-line {
+    grid-template-columns: 1fr;
+  }
+
+  .drop-share-line button {
+    min-height: 48px;
+    border-top: 1px solid var(--ink);
+    border-left: 0;
+  }
+
+  .drop-ledger {
+    padding: 70px 0 80px;
+  }
+
+  .drop-ledger-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .drop-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .drop-row-state {
+    justify-self: end;
+    text-align: right;
+  }
+
+  .drop-row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .drop-principles {
+    grid-template-columns: 1fr;
+  }
+
+  .drop-principles p,
+  .drop-principles p + p {
+    padding: 22px 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .drop-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .drop-receive {
+    min-height: calc(100dvh - 124px);
+    padding: 52px 0 70px;
+  }
+
+  .drop-receive-copy h1 {
+    font-size: clamp(3.2rem, 16vw, 5rem);
+  }
+
+  .drop-receipt dl {
+    grid-template-columns: 1fr;
+  }
+
+  .drop-receipt dl div:nth-child(odd) {
+    border-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

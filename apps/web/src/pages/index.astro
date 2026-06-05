@@ -1,0 +1,245 @@
+---
+import "../styles/global.css";
+
+const products = [
+  {
+    name: "Link",
+    number: "01",
+    href: "https://link.zarkiv.com",
+    image: "/products/link.png",
+    alt: "Zarkiv Link dashboard showing short-link management",
+    statement: "Short links that remain yours.",
+    detail:
+      "Create memorable routes, protect sensitive destinations, and understand traffic without retaining visitor IP addresses.",
+    capabilities: ["Custom slugs", "Private analytics", "Expiry and access control"],
+  },
+  {
+    name: "Pass",
+    number: "02",
+    href: "https://pass.zarkiv.com",
+    image: "/products/pass.png",
+    alt: "Zarkiv Pass sign-in interface",
+    statement: "One identity across every system.",
+    detail:
+      "A single account boundary for Zarkiv, built around opaque sessions, verified email, and product-owned authorization.",
+    capabilities: ["Shared session", "Account recovery", "Service-bound verification"],
+  },
+  {
+    name: "Pulse",
+    number: "03",
+    href: "https://pulse.zarkiv.com",
+    image: "/products/pulse.png",
+    alt: "Zarkiv Pulse infrastructure monitoring dashboard",
+    statement: "Know what your servers are doing.",
+    detail:
+      "Monitor hosts, services, and HTTP checks with a compact Go agent designed to stay out of the way.",
+    capabilities: ["Host metrics", "Health checks", "Incident history"],
+  },
+  {
+    name: "Drop",
+    number: "04",
+    href: "https://drop.zarkiv.com",
+    image: "/products/drop.png",
+    alt: "Zarkiv Drop temporary file sharing interface",
+    statement: "Send a file. Let it disappear.",
+    detail:
+      "Temporary file delivery with explicit expiry, download limits, optional passwords, and bounded storage quotas.",
+    capabilities: ["Multipart upload", "Automatic expiry", "Guest and account quotas"],
+  },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Zarkiv is a focused ecosystem for links, identity, infrastructure monitoring, and temporary file delivery."
+    />
+    <meta name="theme-color" content="#0b0d0c" />
+    <meta property="og:title" content="Zarkiv | Four focused systems" />
+    <meta
+      property="og:description"
+      content="Links, identity, infrastructure monitoring, and temporary file delivery under one quiet system."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://zarkiv.com" />
+    <link rel="canonical" href="https://zarkiv.com" />
+    <title>Zarkiv | Four focused systems</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="/" aria-label="Zarkiv home">Zarkiv</a>
+      <nav aria-label="Primary navigation">
+        <a href="#products">Products</a>
+        <a href="#system">System</a>
+        <a class="nav-action" href="https://pass.zarkiv.com">Sign in</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Independent tools. One system.</p>
+          <h1 id="hero-title">One name.<br />Four systems.</h1>
+          <p class="hero-lede">
+            Zarkiv keeps links, identity, infrastructure, and file delivery
+            useful, bounded, and understandable.
+          </p>
+          <a class="primary-action" href="#products">
+            Explore the system
+            <span aria-hidden="true">↘</span>
+          </a>
+        </div>
+
+        <div class="product-mosaic" aria-label="Zarkiv product previews">
+          {products.map((product, index) => (
+            <a
+              class={`mosaic-item mosaic-item-${index + 1}`}
+              href={product.href}
+              aria-label={`Open Zarkiv ${product.name}`}
+            >
+              <img src={product.image} alt={product.alt} loading={index > 1 ? "lazy" : "eager"} />
+              <span>{product.name}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section class="statement-band" aria-label="Zarkiv purpose">
+        <p>
+          Software should explain itself, respect its limits, and leave room for
+          the person using it.
+        </p>
+      </section>
+
+      <section id="products" class="products shell" aria-labelledby="products-title">
+        <div class="section-heading">
+          <p class="section-label">Product index</p>
+          <h2 id="products-title">Each tool owns one job.</h2>
+        </div>
+
+        <div class="product-index">
+          {products.map((product) => (
+            <article class="product-row reveal">
+              <div class="product-id">
+                <span>{product.number}</span>
+                <strong>{product.name}</strong>
+              </div>
+              <div class="product-copy">
+                <h3>{product.statement}</h3>
+                <p>{product.detail}</p>
+              </div>
+              <ul aria-label={`${product.name} capabilities`}>
+                {product.capabilities.map((capability) => <li>{capability}</li>)}
+              </ul>
+              <a class="product-link" href={product.href} aria-label={`Open Zarkiv ${product.name}`}>
+                Open {product.name}
+                <span aria-hidden="true">↗</span>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="system" class="system shell" aria-labelledby="system-title">
+        <div class="system-title">
+          <p class="section-label">The system underneath</p>
+          <h2 id="system-title">Unified outside.<br />Independent inside.</h2>
+        </div>
+
+        <div class="architecture" aria-label="Zarkiv architecture">
+          <div class="architecture-domain">
+            <span>Public edge</span>
+            <strong>zarkiv.com</strong>
+            <p>Website and short-link resolution at the root domain.</p>
+          </div>
+          <div class="architecture-route" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="architecture-products">
+            {products.map((product) => (
+              <a href={product.href}>
+                <strong>{product.name}</strong>
+                <span>{product.name.toLowerCase()}.zarkiv.com</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div class="principles">
+          <article>
+            <span>01</span>
+            <h3>Clear boundaries</h3>
+            <p>
+              Every product deploys independently and owns its own data.
+            </p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Shared identity</h3>
+            <p>
+              Pass establishes who you are. Each product decides what you may do.
+            </p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Measured complexity</h3>
+            <p>
+              TypeScript at the edge, Go on hosts, and Rust only when evidence
+              earns it.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="closing shell" aria-labelledby="closing-title">
+        <p class="section-label">Start somewhere useful</p>
+        <h2 id="closing-title">A smaller surface.<br />A more dependable system.</h2>
+        <div class="closing-actions">
+          <a class="primary-action" href="https://pass.zarkiv.com">
+            Create your account
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a class="text-action" href="https://link.zarkiv.com">Open Link</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer shell">
+      <a class="wordmark" href="/">Zarkiv</a>
+      <p>Focused infrastructure for ordinary work.</p>
+      <div>
+        <a href="https://link.zarkiv.com">Link</a>
+        <a href="https://pass.zarkiv.com">Pass</a>
+        <a href="https://pulse.zarkiv.com">Pulse</a>
+        <a href="https://drop.zarkiv.com">Drop</a>
+      </div>
+      <span>© {new Date().getFullYear()} Zarkiv</span>
+    </footer>
+
+    <script>
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!reducedMotion && "IntersectionObserver" in window) {
+        document.documentElement.classList.add("motion-ready");
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+              }
+            }
+          },
+          { threshold: 0.12 },
+        );
+        document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+      }
+    </script>
+  </body>
+</html>

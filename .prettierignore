@@ -1,0 +1,14 @@
+.agents/
+.cache/
+.turbo/
+node_modules/
+**/.wrangler/
+**/dist/
+**/bin/
+
+# Legacy repositories are migration references and remain untouched.
+deaubit/
+deauboard/
+deauone/
+deauport/
+deauvault/

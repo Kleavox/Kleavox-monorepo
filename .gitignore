@@ -1,0 +1,38 @@
+node_modules/
+.turbo/
+.wrangler/
+.cache/
+.pnpm-store/
+.agents/
+.dev.vars
+.env
+.env.*
+!.env.example
+.migration/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Legacy working trees are imported as namespaced Git branches before removal.
+/deaubit/
+/deauboard/
+/deauone/
+/deauport/
+/deauvault/
+
+# Framework output
+.astro/
+.vite/
+
+# Go
+bin/
+coverage.out
+
+# Rust
+target/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

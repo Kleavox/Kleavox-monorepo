@@ -1,0 +1,37 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "zarkiv-pass",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-05",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "ENVIRONMENT": "development",
+    "PUBLIC_ORIGIN": "http://127.0.0.1:8787",
+    "ROOT_DOMAIN": "zarkiv.com",
+    "FROM_EMAIL": "Zarkiv <no-reply@zarkiv.com>",
+  },
+  "assets": {
+    "directory": "../../apps/pass/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/internal/*", "/health"],
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "00000000000000000000000000000000",
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zarkiv-pass",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "observability": {
+    "enabled": true,
+  },
+}

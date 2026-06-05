@@ -1,0 +1,658 @@
+import { verifySession } from "@zarkiv/auth";
+import type { SessionIdentity } from "@zarkiv/core";
+import { Hono } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
+import { z } from "zod";
+
+import type { Env } from "./env";
+import {
+  nextFailureCount,
+  shouldOpenIncident,
+  shouldResolveIncident,
+  validateCheckTarget,
+  type CheckKind,
+  type CheckStatus,
+} from "./lib/checks";
+import { randomToken, readBearerToken, sha256 } from "./lib/crypto";
+import { heartbeatSchema, hostSchema, resultSchema } from "./schemas";
+
+interface Variables {
+  session: SessionIdentity;
+}
+
+type PulseContext = Context<{ Bindings: Env; Variables: Variables }>;
+
+interface AgentNode {
+  id: string;
+  interval_seconds: number;
+}
+
+interface CheckRow {
+  id: string;
+  node_id: string | null;
+  name: string;
+  kind: CheckKind;
+  target: string;
+  enabled: number;
+  status: string;
+  timeout_seconds: number;
+  latency_ms: number | null;
+  last_checked_at: string | null;
+  consecutive_failures: number;
+  last_message: string | null;
+}
+
+const app = new Hono<{ Bindings: Env; Variables: Variables }>();
+
+app.use("*", async (context, next) => {
+  await next();
+  context.header("Referrer-Policy", "same-origin");
+  context.header("X-Content-Type-Options", "nosniff");
+  context.header("X-Frame-Options", "DENY");
+});
+
+app.get("/health", (context) =>
+  context.json({ service: "pulse", status: "ok" }),
+);
+
+const requireSession: MiddlewareHandler<{
+  Bindings: Env;
+  Variables: Variables;
+}> = async (context, next) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  if (!session) {
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Sign in with Zarkiv Pass." },
+      401,
+    );
+  }
+  context.set("session", session);
+  await next();
+};
+
+app.get("/api/session", requireSession, (context) =>
+  context.json(context.get("session")),
+);
+
+app.get("/api/overview", requireSession, async (context) => {
+  const ownerId = context.get("session").identity.id;
+  const [nodes, checks, incidents, projects, notes] = await Promise.all([
+    context.env.DB.prepare(
+      `SELECT id, name, hostname, architecture, operating_system, agent_version,
+              last_seen_at, enrolled_at, disabled_at, interval_seconds,
+              cpu_percent, memory_used_bytes, memory_total_bytes,
+              disk_used_bytes, disk_total_bytes, load_1, uptime_seconds,
+              created_at
+       FROM nodes WHERE owner_user_id = ? ORDER BY created_at DESC`,
+    )
+      .bind(ownerId)
+      .all(),
+    context.env.DB.prepare(
+      `SELECT c.id, c.node_id, c.name, c.kind, c.target, c.enabled,
+              c.status, c.timeout_seconds, c.latency_ms, c.last_checked_at,
+              c.consecutive_failures, c.last_message
+       FROM checks c
+       JOIN nodes n ON n.id = c.node_id
+       WHERE n.owner_user_id = ?
+       ORDER BY c.created_at DESC`,
+    )
+      .bind(ownerId)
+      .all(),
+    context.env.DB.prepare(
+      `SELECT i.id, i.check_id, i.status, i.started_at, i.resolved_at,
+              i.summary, c.name AS check_name, n.name AS node_name
+       FROM incidents i
+       JOIN checks c ON c.id = i.check_id
+       JOIN nodes n ON n.id = c.node_id
+       WHERE n.owner_user_id = ?
+       ORDER BY i.started_at DESC LIMIT 50`,
+    )
+      .bind(ownerId)
+      .all(),
+    context.env.DB.prepare(
+      `SELECT id, name, description, status, url, created_at, updated_at
+       FROM projects WHERE owner_user_id = ?
+       ORDER BY updated_at DESC`,
+    )
+      .bind(ownerId)
+      .all(),
+    context.env.DB.prepare(
+      `SELECT id, project_id, content, pinned, created_at, updated_at
+       FROM notes WHERE owner_user_id = ?
+       ORDER BY pinned DESC, updated_at DESC LIMIT 100`,
+    )
+      .bind(ownerId)
+      .all(),
+  ]);
+
+  return context.json({
+    nodes: nodes.results,
+    checks: checks.results,
+    incidents: incidents.results,
+    projects: projects.results,
+    notes: notes.results,
+  });
+});
+
+app.post("/api/nodes", requireSession, async (context) => {
+  const body = z
+    .object({
+      name: z.string().trim().min(1).max(100),
+      intervalSeconds: z.number().int().min(15).max(3600).default(60),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  const nodeId = crypto.randomUUID();
+  const enrollmentToken = randomToken();
+  const enrollmentHash = await sha256(enrollmentToken);
+  const enrollmentExpiresAt = new Date(Date.now() + 30 * 60_000).toISOString();
+
+  await context.env.DB.prepare(
+    `INSERT INTO nodes (
+       id, owner_user_id, name, agent_token_hash, enrollment_token_hash,
+       enrollment_expires_at, interval_seconds
+     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      nodeId,
+      context.get("session").identity.id,
+      body.data.name,
+      `pending:${crypto.randomUUID()}`,
+      enrollmentHash,
+      enrollmentExpiresAt,
+      body.data.intervalSeconds,
+    )
+    .run();
+
+  return context.json(
+    {
+      id: nodeId,
+      enrollmentToken,
+      enrollmentExpiresAt,
+      command: `sudo zarkiv-agent enroll --endpoint ${context.env.PUBLIC_ORIGIN} --token ${enrollmentToken}`,
+    },
+    201,
+  );
+});
+
+app.post("/api/nodes/:id/enrollment", requireSession, async (context) => {
+  const node = await ownedNode(context);
+  if (!node) return context.json({ code: "NOT_FOUND" }, 404);
+
+  const enrollmentToken = randomToken();
+  const enrollmentExpiresAt = new Date(Date.now() + 30 * 60_000).toISOString();
+  await context.env.DB.prepare(
+    `UPDATE nodes
+     SET enrollment_token_hash = ?, enrollment_expires_at = ?,
+         updated_at = datetime('now')
+     WHERE id = ?`,
+  )
+    .bind(
+      await sha256(enrollmentToken),
+      enrollmentExpiresAt,
+      context.req.param("id"),
+    )
+    .run();
+  return context.json({
+    enrollmentToken,
+    enrollmentExpiresAt,
+    command: `sudo zarkiv-agent enroll --endpoint ${context.env.PUBLIC_ORIGIN} --token ${enrollmentToken}`,
+  });
+});
+
+app.delete("/api/nodes/:id", requireSession, async (context) => {
+  const node = await ownedNode(context);
+  if (!node) return context.json({ code: "NOT_FOUND" }, 404);
+  await context.env.DB.prepare("DELETE FROM nodes WHERE id = ?")
+    .bind(context.req.param("id"))
+    .run();
+  return context.body(null, 204);
+});
+
+app.get("/api/nodes/:id/metrics", requireSession, async (context) => {
+  const node = await ownedNode(context);
+  if (!node) return context.json({ code: "NOT_FOUND" }, 404);
+  const hours = Math.min(
+    168,
+    Math.max(1, Number.parseInt(context.req.query("hours") ?? "24")),
+  );
+  const since = new Date(Date.now() - hours * 3_600_000).toISOString();
+  const metrics = await context.env.DB.prepare(
+    `SELECT cpu_percent, memory_used_bytes, memory_total_bytes,
+            disk_used_bytes, disk_total_bytes, load_1, load_5, load_15,
+            uptime_seconds, recorded_at
+     FROM node_metrics
+     WHERE node_id = ? AND datetime(recorded_at) >= datetime(?)
+     ORDER BY recorded_at`,
+  )
+    .bind(context.req.param("id"), since)
+    .all();
+  return context.json({ data: metrics.results });
+});
+
+app.post("/api/checks", requireSession, async (context) => {
+  const body = z
+    .object({
+      nodeId: z.string().uuid(),
+      name: z.string().trim().min(1).max(100),
+      kind: z.enum(["HTTP", "TCP", "SERVICE"]),
+      target: z.string().trim().min(1).max(2048),
+      timeoutSeconds: z.number().int().min(1).max(30).default(10),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  const node = await findOwnedNode(
+    context.env.DB,
+    body.data.nodeId,
+    context.get("session").identity.id,
+  );
+  if (!node) return context.json({ code: "NOT_FOUND" }, 404);
+
+  const target = validateCheckTarget(body.data.kind, body.data.target);
+  if (!target) {
+    return context.json(
+      { code: "INVALID_TARGET", message: "The check target is invalid." },
+      400,
+    );
+  }
+
+  const id = crypto.randomUUID();
+  await context.env.DB.prepare(
+    `INSERT INTO checks
+     (id, node_id, name, kind, target, timeout_seconds)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      body.data.nodeId,
+      body.data.name,
+      body.data.kind,
+      target,
+      body.data.timeoutSeconds,
+    )
+    .run();
+  return context.json({ id }, 201);
+});
+
+app.patch("/api/checks/:id", requireSession, async (context) => {
+  const check = await ownedCheck(context);
+  if (!check) return context.json({ code: "NOT_FOUND" }, 404);
+  const body = z
+    .object({
+      enabled: z.boolean().optional(),
+      name: z.string().trim().min(1).max(100).optional(),
+      timeoutSeconds: z.number().int().min(1).max(30).optional(),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  if (body.data.enabled !== undefined) {
+    updates.push("enabled = ?");
+    values.push(body.data.enabled ? 1 : 0);
+  }
+  if (body.data.name !== undefined) {
+    updates.push("name = ?");
+    values.push(body.data.name);
+  }
+  if (body.data.timeoutSeconds !== undefined) {
+    updates.push("timeout_seconds = ?");
+    values.push(body.data.timeoutSeconds);
+  }
+  if (updates.length > 0) {
+    updates.push("updated_at = datetime('now')");
+    values.push(check.id);
+    await context.env.DB.prepare(
+      `UPDATE checks SET ${updates.join(", ")} WHERE id = ?`,
+    )
+      .bind(...values)
+      .run();
+  }
+  return context.json({ ok: true });
+});
+
+app.delete("/api/checks/:id", requireSession, async (context) => {
+  const check = await ownedCheck(context);
+  if (!check) return context.json({ code: "NOT_FOUND" }, 404);
+  await context.env.DB.prepare("DELETE FROM checks WHERE id = ?")
+    .bind(check.id)
+    .run();
+  return context.body(null, 204);
+});
+
+app.post("/api/projects", requireSession, async (context) => {
+  const body = z
+    .object({
+      name: z.string().trim().min(1).max(100),
+      description: z.string().max(1000).optional(),
+      url: z.string().url().optional(),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+  const id = crypto.randomUUID();
+  await context.env.DB.prepare(
+    `INSERT INTO projects (id, owner_user_id, name, description, url)
+     VALUES (?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      context.get("session").identity.id,
+      body.data.name,
+      body.data.description ?? null,
+      body.data.url ?? null,
+    )
+    .run();
+  return context.json({ id }, 201);
+});
+
+app.post("/api/notes", requireSession, async (context) => {
+  const body = z
+    .object({
+      projectId: z.string().uuid().nullable().optional(),
+      content: z.string().trim().min(1).max(4000),
+      pinned: z.boolean().default(false),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  if (body.data.projectId) {
+    const project = await context.env.DB.prepare(
+      "SELECT id FROM projects WHERE id = ? AND owner_user_id = ?",
+    )
+      .bind(body.data.projectId, context.get("session").identity.id)
+      .first();
+    if (!project) return context.json({ code: "NOT_FOUND" }, 404);
+  }
+
+  const id = crypto.randomUUID();
+  await context.env.DB.prepare(
+    `INSERT INTO notes (id, owner_user_id, project_id, content, pinned)
+     VALUES (?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      context.get("session").identity.id,
+      body.data.projectId ?? null,
+      body.data.content,
+      body.data.pinned ? 1 : 0,
+    )
+    .run();
+  return context.json({ id }, 201);
+});
+
+app.post("/api/agent/enroll", async (context) => {
+  const token = readBearerToken(context.req.header("authorization"));
+  const host = hostSchema.safeParse(await readJson(context));
+  if (!token || !host.success) {
+    return context.json({ code: "INVALID_ENROLLMENT" }, 400);
+  }
+
+  const node = await context.env.DB.prepare(
+    `SELECT id, interval_seconds FROM nodes
+     WHERE enrollment_token_hash = ?
+       AND datetime(enrollment_expires_at) > datetime('now')
+       AND disabled_at IS NULL
+     LIMIT 1`,
+  )
+    .bind(await sha256(token))
+    .first<AgentNode>();
+  if (!node) return context.json({ code: "INVALID_ENROLLMENT" }, 401);
+
+  const agentToken = randomToken();
+  await context.env.DB.prepare(
+    `UPDATE nodes
+     SET agent_token_hash = ?, enrollment_token_hash = NULL,
+         enrollment_expires_at = NULL, enrolled_at = datetime('now'),
+         hostname = ?, operating_system = ?, architecture = ?,
+         agent_version = ?, last_seen_at = datetime('now'),
+         updated_at = datetime('now')
+     WHERE id = ?`,
+  )
+    .bind(
+      await sha256(agentToken),
+      host.data.hostname,
+      host.data.operatingSystem,
+      host.data.architecture,
+      host.data.agentVersion,
+      node.id,
+    )
+    .run();
+
+  return context.json({
+    nodeId: node.id,
+    token: agentToken,
+    intervalSeconds: node.interval_seconds,
+  });
+});
+
+app.post("/api/agent/heartbeat", async (context) => {
+  const authorization = await authenticateAgent(context);
+  if (!authorization) return context.json({ code: "UNAUTHORIZED" }, 401);
+  const heartbeat = heartbeatSchema.safeParse(await readJson(context));
+  if (!heartbeat.success || heartbeat.data.nodeId !== authorization.id) {
+    return context.json({ code: "INVALID_HEARTBEAT" }, 400);
+  }
+
+  const metrics = heartbeat.data.metrics;
+  await context.env.DB.batch([
+    context.env.DB.prepare(
+      `UPDATE nodes
+       SET hostname = ?, architecture = ?, operating_system = ?,
+           agent_version = ?, last_seen_at = datetime('now'),
+           cpu_percent = ?, memory_used_bytes = ?, memory_total_bytes = ?,
+           disk_used_bytes = ?, disk_total_bytes = ?, load_1 = ?,
+           uptime_seconds = ?, updated_at = datetime('now')
+       WHERE id = ?`,
+    ).bind(
+      heartbeat.data.hostname,
+      heartbeat.data.architecture,
+      heartbeat.data.operatingSystem,
+      heartbeat.data.agentVersion,
+      metrics.cpuPercent,
+      metrics.memoryUsedBytes,
+      metrics.memoryTotalBytes,
+      metrics.diskUsedBytes,
+      metrics.diskTotalBytes,
+      metrics.load1,
+      metrics.uptimeSeconds,
+      authorization.id,
+    ),
+    context.env.DB.prepare(
+      `INSERT INTO node_metrics (
+         node_id, cpu_percent, memory_used_bytes, memory_total_bytes,
+         disk_used_bytes, disk_total_bytes, load_1, load_5, load_15,
+         uptime_seconds
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      authorization.id,
+      metrics.cpuPercent,
+      metrics.memoryUsedBytes,
+      metrics.memoryTotalBytes,
+      metrics.diskUsedBytes,
+      metrics.diskTotalBytes,
+      metrics.load1,
+      metrics.load5,
+      metrics.load15,
+      metrics.uptimeSeconds,
+    ),
+  ]);
+
+  return context.json({
+    ok: true,
+    intervalSeconds: authorization.interval_seconds,
+  });
+});
+
+app.get("/api/agent/config", async (context) => {
+  const node = await authenticateAgent(context);
+  if (!node) return context.json({ code: "UNAUTHORIZED" }, 401);
+  const checks = await context.env.DB.prepare(
+    `SELECT id, name, kind, target, timeout_seconds
+     FROM checks WHERE node_id = ? AND enabled = 1
+     ORDER BY created_at`,
+  )
+    .bind(node.id)
+    .all();
+  return context.json({
+    nodeId: node.id,
+    intervalSeconds: node.interval_seconds,
+    checks: checks.results,
+  });
+});
+
+app.post("/api/agent/results", async (context) => {
+  const node = await authenticateAgent(context);
+  if (!node) return context.json({ code: "UNAUTHORIZED" }, 401);
+  const payload = resultSchema.safeParse(await readJson(context));
+  if (!payload.success || payload.data.nodeId !== node.id) {
+    return context.json({ code: "INVALID_RESULTS" }, 400);
+  }
+
+  for (const result of payload.data.results) {
+    await applyCheckResult(context.env.DB, node.id, result);
+  }
+  return context.json({ ok: true });
+});
+
+app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
+
+async function authenticateAgent(
+  context: PulseContext,
+): Promise<AgentNode | null> {
+  const token = readBearerToken(context.req.header("authorization"));
+  if (!token) return null;
+  return context.env.DB.prepare(
+    `SELECT id, interval_seconds FROM nodes
+     WHERE agent_token_hash = ? AND enrolled_at IS NOT NULL
+       AND disabled_at IS NULL LIMIT 1`,
+  )
+    .bind(await sha256(token))
+    .first<AgentNode>();
+}
+
+async function applyCheckResult(
+  db: D1Database,
+  nodeId: string,
+  result: {
+    checkId: string;
+    status: CheckStatus;
+    latencyMs: number | null;
+    message: string | null;
+    checkedAt?: string;
+  },
+): Promise<void> {
+  const check = await db
+    .prepare(
+      `SELECT id, node_id, name, kind, target, enabled, status,
+              timeout_seconds, latency_ms, last_checked_at,
+              consecutive_failures, last_message
+       FROM checks WHERE id = ? AND node_id = ? AND enabled = 1`,
+    )
+    .bind(result.checkId, nodeId)
+    .first<CheckRow>();
+  if (!check) return;
+
+  const failureCount = nextFailureCount(
+    check.consecutive_failures,
+    result.status,
+  );
+  const checkedAt = result.checkedAt ?? new Date().toISOString();
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO check_results
+         (check_id, status, latency_ms, message, checked_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        check.id,
+        result.status,
+        result.latencyMs,
+        result.message,
+        checkedAt,
+      ),
+    db
+      .prepare(
+        `UPDATE checks
+         SET status = ?, latency_ms = ?, last_checked_at = ?,
+             consecutive_failures = ?, last_message = ?,
+             updated_at = datetime('now')
+         WHERE id = ?`,
+      )
+      .bind(
+        result.status,
+        result.latencyMs,
+        checkedAt,
+        failureCount,
+        result.message,
+        check.id,
+      ),
+  ]);
+
+  if (shouldOpenIncident(result.status, failureCount)) {
+    await db
+      .prepare(
+        `INSERT INTO incidents
+         (id, check_id, status, started_at, summary)
+         VALUES (?, ?, 'OPEN', ?, ?)`,
+      )
+      .bind(
+        crypto.randomUUID(),
+        check.id,
+        checkedAt,
+        `${check.name} is down${result.message ? `: ${result.message}` : ""}`,
+      )
+      .run();
+  } else if (shouldResolveIncident(check.status, result.status)) {
+    await db
+      .prepare(
+        `UPDATE incidents SET status = 'RESOLVED', resolved_at = ?
+         WHERE check_id = ? AND status = 'OPEN'`,
+      )
+      .bind(checkedAt, check.id)
+      .run();
+  }
+}
+
+async function readJson(context: PulseContext): Promise<unknown> {
+  return context.req.json().catch(() => null);
+}
+
+function invalidRequest(context: PulseContext) {
+  return context.json(
+    { code: "INVALID_REQUEST", message: "Check the submitted fields." },
+    400,
+  );
+}
+
+async function ownedNode(context: PulseContext) {
+  return findOwnedNode(
+    context.env.DB,
+    context.req.param("id") ?? "",
+    context.get("session").identity.id,
+  );
+}
+
+function findOwnedNode(db: D1Database, id: string, ownerId: string) {
+  return db
+    .prepare("SELECT id FROM nodes WHERE id = ? AND owner_user_id = ? LIMIT 1")
+    .bind(id, ownerId)
+    .first<{ id: string }>();
+}
+
+async function ownedCheck(context: PulseContext): Promise<CheckRow | null> {
+  return context.env.DB.prepare(
+    `SELECT c.id, c.node_id, c.name, c.kind, c.target, c.enabled,
+            c.status, c.timeout_seconds, c.latency_ms, c.last_checked_at,
+            c.consecutive_failures, c.last_message
+     FROM checks c JOIN nodes n ON n.id = c.node_id
+     WHERE c.id = ? AND n.owner_user_id = ? LIMIT 1`,
+  )
+    .bind(context.req.param("id"), context.get("session").identity.id)
+    .first<CheckRow>();
+}
+
+export { app };

@@ -1,0 +1,35 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "zarkiv-link",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-05",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "ENVIRONMENT": "development",
+    "PUBLIC_SHORT_ORIGIN": "http://127.0.0.1:8786",
+  },
+  "assets": {
+    "directory": "../../apps/link/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/internal/*", "/health"],
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zarkiv-link",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "services": [
+    {
+      "binding": "PASS",
+      "service": "zarkiv-pass",
+    },
+  ],
+  "observability": {
+    "enabled": true,
+  },
+}

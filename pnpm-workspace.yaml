@@ -1,0 +1,23 @@
+packages:
+  - "apps/*"
+  - "workers/*"
+  - "packages/*"
+  - "tooling/*"
+
+catalog:
+  "@astrojs/check": "^0.9.4"
+  "@marsidev/react-turnstile": "^1.5.2"
+  "@types/react": "^19.2.7"
+  "@types/react-dom": "^19.2.3"
+  "@vitejs/plugin-react": "^5.0.4"
+  "astro": "^6.3.3"
+  "@cloudflare/workers-types": "^4.20250430.0"
+  "@types/node": "^22.15.0"
+  "hono": "^4.10.7"
+  "react": "^19.2.1"
+  "react-dom": "^19.2.1"
+  "typescript": "^5.9.3"
+  "vite": "^7.2.6"
+  "vitest": "^3.2.4"
+  "wrangler": "^4.92.0"
+  "zod": "^4.4.3"

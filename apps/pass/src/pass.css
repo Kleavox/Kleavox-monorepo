@@ -1,0 +1,394 @@
+:root {
+  color: #11151c;
+  background: #eef1f5;
+  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.pass-layout {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-columns: minmax(0, 1.08fr) minmax(28rem, 0.92fr);
+}
+
+.pass-intro {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(1.5rem, 4vw, 4.5rem);
+  background: #11151c;
+  color: #f8fafc;
+}
+
+.pass-wordmark {
+  width: fit-content;
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.pass-intro-copy {
+  max-width: 47rem;
+  padding: 4rem 0;
+}
+
+.pass-kicker,
+.pass-section-label {
+  margin: 0 0 1.25rem;
+  color: #246bfd;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pass-intro h1 {
+  max-width: 10ch;
+  margin: 0;
+  font-size: clamp(3.5rem, 8vw, 8rem);
+  font-weight: 590;
+  letter-spacing: -0.065em;
+  line-height: 0.88;
+}
+
+.pass-intro-copy > p:last-child {
+  max-width: 34rem;
+  margin: 2rem 0 0;
+  color: #b8c0cd;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.65;
+}
+
+.pass-assurance {
+  max-width: 32rem;
+  margin: 0;
+  color: #858f9e;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.pass-panel {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: clamp(1.5rem, 6vw, 6rem);
+}
+
+.pass-panel-inner {
+  width: min(100%, 29rem);
+}
+
+.pass-form,
+.pass-account,
+.pass-result {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pass-form-heading {
+  margin-bottom: 0.75rem;
+}
+
+.pass-form-heading h2,
+.pass-account h2,
+.pass-result h2 {
+  margin: 0;
+  color: #11151c;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 620;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.pass-form-heading > p:last-child {
+  max-width: 34rem;
+  margin: 1rem 0 0;
+  color: #5d6673;
+  line-height: 1.6;
+}
+
+.pass-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pass-field {
+  display: grid;
+  gap: 0.5rem;
+  color: #272e38;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.pass-field span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pass-field small {
+  color: #737d8a;
+  font-size: 0.72rem;
+  font-weight: 450;
+}
+
+.pass-field input {
+  width: 100%;
+  min-height: 3.15rem;
+  border: 1px solid #c5ccd5;
+  border-radius: 0.35rem;
+  outline: none;
+  background: #f8fafc;
+  color: #11151c;
+  padding: 0.8rem 0.9rem;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.pass-field input:hover {
+  border-color: #9ba5b2;
+}
+
+.pass-field input:focus {
+  border-color: #246bfd;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(36 107 253 / 0.14);
+}
+
+.pass-primary,
+.pass-secondary,
+.pass-primary-link {
+  display: inline-flex;
+  min-height: 3.15rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.35rem;
+  padding: 0.8rem 1rem;
+  font-weight: 720;
+  text-decoration: none;
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.pass-primary,
+.pass-primary-link {
+  border: 1px solid #175ce5;
+  background: #246bfd;
+  color: #fff;
+}
+
+.pass-primary:hover,
+.pass-primary-link:hover {
+  background: #175ce5;
+}
+
+.pass-secondary {
+  border: 1px solid #b7c0cb;
+  background: transparent;
+  color: #202731;
+}
+
+.pass-secondary:hover {
+  border-color: #7f8a97;
+  background: #e5e9ee;
+}
+
+.pass-primary:active,
+.pass-secondary:active,
+.pass-primary-link:active {
+  transform: translateY(1px);
+}
+
+.pass-primary:disabled,
+.pass-secondary:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.pass-text-action,
+.pass-switch button {
+  border: 0;
+  background: none;
+  color: #175ce5;
+  padding: 0;
+  font-weight: 670;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+}
+
+.pass-text-action:hover,
+.pass-switch button:hover {
+  text-decoration-color: currentColor;
+}
+
+.pass-align-right {
+  align-self: flex-end;
+}
+
+.pass-switch {
+  margin: 0.25rem 0 0;
+  color: #5d6673;
+  font-size: 0.86rem;
+}
+
+.pass-status {
+  margin: 0;
+  border-left: 3px solid;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.pass-status-error {
+  border-color: #c93434;
+  background: #fff0f0;
+  color: #7e2020;
+}
+
+.pass-status-success {
+  border-color: #197246;
+  background: #eaf8f0;
+  color: #145335;
+}
+
+.pass-dev-note {
+  margin: 0;
+  color: #6d7682;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.pass-turnstile {
+  min-height: 65px;
+}
+
+.pass-account dl {
+  margin: 1rem 0;
+}
+
+.pass-account dl > div {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid #cbd1d9;
+}
+
+.pass-account dt {
+  color: #6d7682;
+}
+
+.pass-account dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 620;
+}
+
+.pass-account-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.pass-loading-lines {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pass-loading-lines span {
+  display: block;
+  height: 1rem;
+  border-radius: 0.2rem;
+  background: #d8dde4;
+  animation: pass-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.pass-loading-lines span:nth-child(2) {
+  width: 72%;
+}
+
+.pass-loading-lines span:nth-child(3) {
+  width: 42%;
+}
+
+@keyframes pass-pulse {
+  to {
+    opacity: 0.45;
+  }
+}
+
+@media (max-width: 860px) {
+  .pass-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pass-intro {
+    min-height: auto;
+    gap: 4rem;
+    padding: 1.5rem;
+  }
+
+  .pass-intro-copy {
+    padding: 2rem 0 0;
+  }
+
+  .pass-intro h1 {
+    max-width: 12ch;
+    font-size: clamp(3rem, 16vw, 5.5rem);
+  }
+
+  .pass-assurance {
+    display: none;
+  }
+
+  .pass-panel {
+    min-height: auto;
+    place-items: start center;
+    padding: 3rem 1.5rem 5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pass-account-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pass-field span {
+    display: grid;
+    gap: 0.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

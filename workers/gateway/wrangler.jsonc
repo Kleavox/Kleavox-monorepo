@@ -1,0 +1,23 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "zarkiv-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-05",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../../apps/web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": true,
+  },
+  "services": [
+    {
+      "binding": "LINK",
+      "service": "zarkiv-link",
+    },
+  ],
+  "observability": {
+    "enabled": true,
+  },
+}

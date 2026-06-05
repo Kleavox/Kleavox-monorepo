@@ -1,0 +1,86 @@
+name: Deploy Zarkiv
+
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: Domain attachment stage
+        required: true
+        type: choice
+        default: none
+        options:
+          - none
+          - canonical
+          - legacy
+      apply_migrations:
+        description: Apply pending D1 migrations before deployment
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-zarkiv-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ZARKIV_PASS_D1_ID: ${{ secrets.ZARKIV_PASS_D1_ID }}
+      ZARKIV_PASS_KV_ID: ${{ secrets.ZARKIV_PASS_KV_ID }}
+      ZARKIV_LINK_D1_ID: ${{ secrets.ZARKIV_LINK_D1_ID }}
+      ZARKIV_PULSE_D1_ID: ${{ secrets.ZARKIV_PULSE_D1_ID }}
+      ZARKIV_DROP_D1_ID: ${{ secrets.ZARKIV_DROP_D1_ID }}
+      ZARKIV_DROP_BUCKET: ${{ vars.ZARKIV_DROP_BUCKET || 'zarkiv-drop' }}
+      ZARKIV_PASS_RESEND_API_KEY: ${{ secrets.ZARKIV_PASS_RESEND_API_KEY }}
+      ZARKIV_TURNSTILE_SECRET_KEY: ${{ secrets.ZARKIV_TURNSTILE_SECRET_KEY }}
+      ZARKIV_PASS_IP_HASH_SECRET: ${{ secrets.ZARKIV_PASS_IP_HASH_SECRET }}
+      ZARKIV_DROP_GUEST_HASH_SECRET: ${{ secrets.ZARKIV_DROP_GUEST_HASH_SECRET }}
+      ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET: ${{ secrets.ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET }}
+      ZARKIV_DROP_PASSWORD_HASH_SECRET: ${{ secrets.ZARKIV_DROP_PASSWORD_HASH_SECRET }}
+      VITE_TURNSTILE_SITE_KEY: ${{ secrets.ZARKIV_TURNSTILE_SITE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: node tooling/deploy/dist/cli.js render --domains "${{ inputs.domains }}"
+      - run: node tooling/deploy/dist/cli.js secrets
+
+      - name: Apply D1 migrations
+        if: inputs.apply_migrations
+        run: |
+          pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/pass.json
+          pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/link.json
+          pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/pulse.json
+          pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/drop.json
+
+      - name: Deploy Pass
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pass.json --secrets-file .wrangler/deploy/pass.secrets.json
+
+      - name: Deploy Link
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/link.json
+
+      - name: Deploy Pulse
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pulse.json
+
+      - name: Deploy Drop
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/drop.json --secrets-file .wrangler/deploy/drop.secrets.json
+
+      - name: Deploy Gateway
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/gateway.json
