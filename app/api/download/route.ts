@@ -1,6 +1,7 @@
 //app/api/download/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; 
 import { cos, BUCKET, REGION } from "@/lib/cos";
 
 export async function GET(req: NextRequest) {
@@ -10,6 +11,20 @@ export async function GET(req: NextRequest) {
   if (!key) return NextResponse.json({ error: "No key provided" }, { status: 400 });
 
   try {
+    const file = await prisma.file.findUnique({
+      where: { key },
+      select: { id: true } 
+    });
+
+    if (!file) {
+      return NextResponse.json({ error: "File not found or expired" }, { status: 404 });
+    }
+
+    await prisma.file.update({
+      where: { id: file.id },
+      data: { downloads: { increment: 1 } }
+    });
+
     const url = await new Promise<string>((resolve, reject) => {
       cos.getObjectUrl(
         {

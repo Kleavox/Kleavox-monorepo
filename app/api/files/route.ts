@@ -26,12 +26,12 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ...file, size: file.size.toString() }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to save data" }, { status: 500 });
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getSession();
     let where = {};
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json(serialized);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Fetch error" }, { status: 500 });
   }
 }
@@ -63,9 +63,8 @@ export async function DELETE(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  const key = searchParams.get("key");
 
-  if (!id || !key) return NextResponse.json({ error: "Missing ID/Key" }, { status: 400 });
+  if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 
   const file = await prisma.file.findUnique({ where: { id } });
   if (!file) return NextResponse.json({ error: "File not found" }, { status: 404 });
@@ -76,7 +75,7 @@ export async function DELETE(req: NextRequest) {
 
   try {
     await new Promise<void>((resolve, reject) => {
-      cos.deleteObject({ Bucket: BUCKET, Region: REGION, Key: key }, (err) => {
+      cos.deleteObject({ Bucket: BUCKET, Region: REGION, Key: file.key }, (err) => {
         if (err) reject(err);
         else resolve();
       });

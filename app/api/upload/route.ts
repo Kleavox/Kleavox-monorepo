@@ -3,9 +3,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cos, BUCKET, REGION } from "@/lib/cos";
 import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 
 const GB = 1024 * 1024 * 1024;
+const MAX_STORAGE_LIMIT = Number(process.env.MAX_STORAGE_LIMIT_GB || 50) * GB;
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +19,18 @@ export async function POST(req: NextRequest) {
     }
 
     const fileSize = Number(size);
+
+    const usage = await prisma.file.aggregate({
+      _sum: { size: true }
+    });
+    const currentTotalSize = Number(usage._sum.size || 0);
+
+    if (currentTotalSize + fileSize > MAX_STORAGE_LIMIT) {
+      return NextResponse.json({ 
+        error: "Penyimpanan server penuh (Limit Tercapai). Hubungi Admin." 
+      }, { status: 507 });
+    }
+
     let expiresAt: Date | null = null;
 
     if (!session) {
@@ -29,7 +43,7 @@ export async function POST(req: NextRequest) {
       if (fileSize > 5 * GB) {
         return NextResponse.json({ error: "User limit: Max 5GB" }, { status: 403 });
       }
-      expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
     } 
 
     const ext = name.split(".").pop();
