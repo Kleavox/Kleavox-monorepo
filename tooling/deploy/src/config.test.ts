@@ -40,6 +40,15 @@ describe("production deployment config", () => {
       ),
     ).toThrow(/ZARKIV_LINK_D1_ID/u);
   });
+
+  it("ignores unrelated GitHub runner environment variables", () => {
+    const runnerEnvironment = {
+      ...env,
+      DOTNET_MULTILEVEL_LOOKUP: "0",
+    };
+
+    expect(() => productionConfigs(runnerEnvironment, "none")).not.toThrow();
+  });
 });
 
 describe("production secrets", () => {

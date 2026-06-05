@@ -223,8 +223,17 @@ function rateLimit(name: string, namespaceId: string, limit: number) {
 }
 
 function validateEnvironment(env: DeployEnvironment) {
-  for (const [key, value] of Object.entries(env)) {
-    if (key === "ZARKIV_DROP_BUCKET") continue;
+  const requiredKeys = [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "ZARKIV_PASS_D1_ID",
+    "ZARKIV_PASS_KV_ID",
+    "ZARKIV_LINK_D1_ID",
+    "ZARKIV_PULSE_D1_ID",
+    "ZARKIV_DROP_D1_ID",
+  ] as const satisfies readonly (keyof DeployEnvironment)[];
+
+  for (const key of requiredKeys) {
+    const value = env[key];
     if (!value || /^0+$|00000000-0000-0000-0000-000000000000$/u.test(value)) {
       throw new Error(`Missing or placeholder deployment value: ${key}`);
     }
