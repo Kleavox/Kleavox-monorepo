@@ -90,6 +90,18 @@ The final `validate` job is intentionally stable even when JavaScript or Go
 checks are skipped by path filtering. Use this final job as the required status
 check; do not require the conditional `javascript` or `agent` jobs directly.
 
+GitHub decorates the check in the pull request as
+`Validate / validate (pull_request)`, but its required-check context is only
+the job name `validate`:
+
+```text
+Validate          = workflow name
+validate          = required status-check context
+(pull_request)    = event label
+```
+
+Do not type the combined display label into the ruleset.
+
 ### 4.2 Set `main` as the Default Branch
 
 1. Open **Settings**.
@@ -122,7 +134,9 @@ targeting and effective rules are easier to inspect.
 11. Set required approvals to `0` for a solo repository or `1` when another
     maintainer can review changes.
 12. Enable **Require status checks to pass**.
-13. Search for and add `Validate / validate`.
+13. Search for `validate`, then select the recent check supplied by
+    **GitHub Actions**. The stored required-check name must be exactly
+    lowercase `validate`.
 14. Enable **Require branches to be up to date before merging**.
 15. Leave **Require deployments to succeed before merging** disabled.
     Production deployment happens after merge and must not gate the merge.
@@ -196,7 +210,8 @@ manual through `workflow_dispatch` and restrict the environment to `main`.
 2. Open the repository URL ending in `/rules` to inspect effective rules.
 3. Create a temporary branch and pull request.
 4. Confirm direct or force pushes to `main` are rejected.
-5. Confirm the pull request waits for `Validate / validate`.
+5. Confirm the pull request requires `validate`; GitHub may display the
+   successful run as `Validate / validate (pull_request)`.
 6. Run **Actions** -> **Deploy Zarkiv** only after environment secrets exist.
 7. Confirm the production job waits for approval when required reviewers are
    enabled.
