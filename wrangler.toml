@@ -14,7 +14,7 @@ run_worker_first = true
 [[d1_databases]]
 binding = "DB"
 database_name = "deaubit-db"
-database_id = "YOUR_DB_ID"
+database_id = "048d8311-80ae-47f2-a7bd-49f80acd56a7"
 migrations_dir = "migrations"
 
 [[kv_namespaces]]

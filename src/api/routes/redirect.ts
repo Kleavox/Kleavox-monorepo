@@ -2,6 +2,10 @@ import { Hono } from "hono";
 import type { Env } from "../lib/env";
 import { UAParser } from "ua-parser-js";
 
+function serveApp(env: Env): Promise<Response> {
+  return env.ASSETS.fetch(new Request("https://app/index.html"));
+}
+
 type HonoEnv = { Bindings: Env };
 const redirect = new Hono<HonoEnv>();
 
@@ -30,7 +34,7 @@ redirect.get("/:slug", async (c) => {
     }
   } else {
     if (isAppPath) {
-      return c.env.ASSETS.fetch(c.req.raw);
+      return serveApp(c.env);
     }
   }
 
@@ -44,7 +48,7 @@ redirect.get("/:slug", async (c) => {
     if (isShortDomain) {
       return c.html(errorPage("NOT_FOUND", "This link does not exist or has been removed."), 404);
     }
-    return c.env.ASSETS.fetch(c.req.raw);
+    return serveApp(c.env);
   }
 
   if (link.expires_at && new Date(link.expires_at) < new Date()) {

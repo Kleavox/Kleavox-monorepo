@@ -44,13 +44,11 @@ app.get("/", (c) => {
   if (host === c.env.SHORT_HOST) {
     return c.redirect(`https://${c.env.REDIRECT_HOST}`, 301);
   }
-  return c.env.ASSETS.fetch(c.req.raw);
+  return serveApp(c.env);
 });
 
-// ─── Shortlink Redirect ───────────────────────────────
-app.route("/", redirectRoutes);            // /:slug
+app.route("/", redirectRoutes);
 
-// ─── Fallback ─────────────────────────────────────────
 app.all("*", async (c) => {
   const host = c.req.header("host") ?? "";
   if (host === c.env.SHORT_HOST) {
@@ -59,8 +57,12 @@ app.all("*", async (c) => {
     url.protocol = "https:";
     return c.redirect(url.toString(), 301);
   }
-  return c.env.ASSETS.fetch(c.req.raw);
+  return serveApp(c.env);
 });
+
+function serveApp(env: Env): Promise<Response> {
+  return env.ASSETS.fetch(new Request("https://app/index.html"));
+}
 
 // ─── Export (Workers + Cron) ─────────────────────────
 export default {
