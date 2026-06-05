@@ -20,15 +20,18 @@ Zarkiv is a Cloudflare-first product ecosystem built as a scalable monorepo.
 - Cloudflare Workers, D1, R2, KV, Queues, and Service Bindings
 - pnpm workspaces and Turborepo for JavaScript orchestration
 
-The legacy `deau*` directories remain untouched while their useful behavior is
-migrated into the new workspace.
+The legacy `deau*` working directories have been removed. Their complete Git
+histories remain available under namespaced `legacy/*` branches and are
+connected to `main` without replacing the current monorepo tree.
 
 See [docs/architecture.md](docs/architecture.md),
 [docs/roadmap.md](docs/roadmap.md), and the
 [Pass](docs/pass.md), [Link](docs/link.md), [Pulse](docs/pulse.md), and
 [Drop](docs/drop.md) operations guides. Production transition is documented in
 [docs/production.md](docs/production.md) and
-[docs/migration.md](docs/migration.md).
+[docs/migration.md](docs/migration.md). See
+[docs/git-history.md](docs/git-history.md) for the imported repository graph
+and [docs/github.md](docs/github.md) for owner-operated publishing.
 
 ## Workspace Commands
 

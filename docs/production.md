@@ -3,6 +3,23 @@
 Production deployment is intentionally split into resource bootstrap, Worker
 staging, canonical domain attachment, data migration, and legacy cutover.
 
+## Credential Boundary
+
+Repository code and documentation contain placeholders only. Authentication,
+resource creation, secret entry, GitHub publishing, and Cloudflare deployment
+are performed by the repository owner.
+
+Never place credentials in:
+
+- committed `.env` or `.dev.vars` files
+- Wrangler configuration committed to the repository
+- shell history shared with another person
+- issues, pull requests, screenshots, or chat
+
+Use your own local Wrangler session for interactive work. Use GitHub's
+`production` environment for automated deployment. The deployment renderer
+reads environment variable names but does not contain their values.
+
 ## 1. Authenticate and Create Resources
 
 Restore Wrangler authentication:
@@ -11,6 +28,9 @@ Restore Wrangler authentication:
 pnpm exec wrangler login
 pnpm exec wrangler whoami
 ```
+
+These commands open or inspect your local Cloudflare session. Run them
+yourself. No credential value needs to be copied into this repository.
 
 Create fresh resources and record their IDs:
 
@@ -52,6 +72,9 @@ Optionally set environment variable `ZARKIV_DROP_BUCKET`; it defaults to
 The Cloudflare token needs Worker Scripts, D1, Workers KV, R2, and zone route
 permissions for the two owned zones. Use the narrowest account and zone scope
 that permits those operations.
+
+Enter the token directly into the GitHub `production` environment as
+`CLOUDFLARE_API_TOKEN`.
 
 ## 3. Stage on workers.dev
 
@@ -123,3 +146,52 @@ the validation window.
    traffic.
 
 Generated configs and secret files live under ignored `.wrangler/deploy/`.
+
+## Direct CLI Alternative
+
+GitHub Actions is the recommended repeatable path. To deploy from your own
+machine instead, export the required placeholder-named environment values in
+your private shell session, then render:
+
+```powershell
+$env:CLOUDFLARE_ACCOUNT_ID = "<ACCOUNT_ID>"
+$env:ZARKIV_PASS_D1_ID = "<PASS_D1_ID>"
+$env:ZARKIV_PASS_KV_ID = "<PASS_KV_ID>"
+$env:ZARKIV_LINK_D1_ID = "<LINK_D1_ID>"
+$env:ZARKIV_PULSE_D1_ID = "<PULSE_D1_ID>"
+$env:ZARKIV_DROP_D1_ID = "<DROP_D1_ID>"
+
+pnpm build
+pnpm deploy:render --domains none
+```
+
+Set Worker secrets interactively so they are never written to a command:
+
+```powershell
+pnpm exec wrangler secret put RESEND_API_KEY --config .wrangler\deploy\pass.json
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler\deploy\pass.json
+pnpm exec wrangler secret put IP_HASH_SECRET --config .wrangler\deploy\pass.json
+
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler\deploy\drop.json
+pnpm exec wrangler secret put GUEST_HASH_SECRET --config .wrangler\deploy\drop.json
+pnpm exec wrangler secret put DOWNLOAD_SIGNING_SECRET --config .wrangler\deploy\drop.json
+pnpm exec wrangler secret put PASSWORD_HASH_SECRET --config .wrangler\deploy\drop.json
+```
+
+Apply migrations and deploy in dependency order:
+
+```powershell
+pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\pass.json
+pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\link.json
+pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\pulse.json
+pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\drop.json
+
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\pass.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\link.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\pulse.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\drop.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\gateway.json
+```
+
+Render again with `--domains canonical` only after workers.dev validation.
+Render with `--domains legacy` only after migration parity checks.
