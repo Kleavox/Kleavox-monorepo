@@ -75,3 +75,22 @@ jobs:
 
       - run: go build -o bin/zarkiv-agent ./cmd/agent
         working-directory: services/agent
+
+  validate:
+    name: validate
+    if: always()
+    needs:
+      - changes
+      - javascript
+      - agent
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm required checks passed
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          JAVASCRIPT_RESULT: ${{ needs.javascript.result }}
+          AGENT_RESULT: ${{ needs.agent.result }}
+        run: |
+          test "$CHANGES_RESULT" = "success"
+          test "$JAVASCRIPT_RESULT" = "success" || test "$JAVASCRIPT_RESULT" = "skipped"
+          test "$AGENT_RESULT" = "success" || test "$AGENT_RESULT" = "skipped"
