@@ -1,6 +1,7 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
+import "@zarkiv/ui/styles.css";
 import "./pulse.css";
 
 interface Identity {

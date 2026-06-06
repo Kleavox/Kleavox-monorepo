@@ -1,6 +1,8 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
+import "@zarkiv/ui/styles.css";
+import { FilesApp } from "./files";
 import "./link.css";
 
 interface Identity {
@@ -30,12 +32,22 @@ type LoadState =
   | { status: "error"; message: string };
 
 function App() {
+  if (
+    window.location.pathname === "/files" ||
+    window.location.pathname.startsWith("/d/")
+  ) {
+    return <FilesApp />;
+  }
+
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   const refresh = async () => {
     try {
       const session = await request<{ identity: Identity }>("/api/session");
       const links = await request<{ data: LinkRecord[] }>("/api/links");
+      if (!isIdentity(session.identity) || !Array.isArray(links.data)) {
+        throw new Error("Link received an invalid response from its API.");
+      }
       setState({
         status: "ready",
         identity: session.identity,
@@ -82,7 +94,11 @@ function Header({ state }: { state: LoadState }) {
         ZARKIV <span>LINK</span>
       </a>
       <nav aria-label="Product navigation">
-        <a href="https://zarkiv.com">Products</a>
+        <a className="link-nav-active" href="/">
+          Routes
+        </a>
+        <a href="/files">Files</a>
+        <a href="https://zarkiv.com">System</a>
         <a href="https://pass.zarkiv.com">
           {state.status === "ready"
             ? state.identity.name || state.identity.email
@@ -407,9 +423,15 @@ async function request<T = unknown>(
     },
   });
   if (response.status === 204) return undefined as T;
-  const data = (await response.json().catch(() => ({}))) as {
-    message?: string;
-  };
+  let data: { message?: string };
+  try {
+    data = (await response.json()) as { message?: string };
+  } catch {
+    throw new ApiError(
+      "Link received an invalid response from its API.",
+      response.status,
+    );
+  }
   if (!response.ok) {
     throw new ApiError(
       data.message ?? "The request could not be completed.",
@@ -421,6 +443,17 @@ async function request<T = unknown>(
 
 function messageFrom(error: unknown): string {
   return error instanceof Error ? error.message : "The request failed.";
+}
+
+function isIdentity(value: unknown): value is Identity {
+  if (!value || typeof value !== "object") return false;
+  const identity = value as Partial<Identity>;
+  return (
+    typeof identity.id === "string" &&
+    typeof identity.email === "string" &&
+    (typeof identity.name === "string" || identity.name === null) &&
+    (identity.role === "ADMIN" || identity.role === "USER")
+  );
 }
 
 createRoot(document.getElementById("root")!).render(

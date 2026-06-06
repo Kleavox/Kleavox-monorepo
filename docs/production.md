@@ -145,12 +145,13 @@ Omitting it is safe because the workflow defaults to `zarkiv-drop`.
 
 ### Turnstile Keys
 
-One production widget is shared by Pass and Drop:
+One production widget is shared by Pass and Link Files:
 
 1. In Cloudflare, open **Turnstile**.
 2. Click **Add widget**.
 3. Name it `zarkiv-production`.
-4. Add hostnames `pass.zarkiv.com` and `drop.zarkiv.com`.
+4. Add hostnames `pass.zarkiv.com`, `link.zarkiv.com`, and
+   `drop.zarkiv.com`. The last hostname is retained only for compatibility.
 5. Select **Managed** mode.
 6. Create the widget.
 7. Copy both generated values.
@@ -255,7 +256,7 @@ apply_migrations: true
 
 This deploys all five Workers without attaching public domains. Verify every
 `workers.dev` health endpoint, browser application, Pass email flow, Link
-redirect, Pulse enrollment, and Drop upload/download lifecycle.
+redirect, Pulse enrollment, and the Link Files upload/download lifecycle.
 
 ## 4. Migrate Legacy Data
 
@@ -279,7 +280,7 @@ https://zarkiv.com/health
 https://pass.zarkiv.com/health
 https://link.zarkiv.com/health
 https://pulse.zarkiv.com/health
-https://drop.zarkiv.com/health
+https://port.zarkiv.com/health
 ```
 
 Also test an existing migrated slug through `https://zarkiv.com/{slug}` and
@@ -297,7 +298,7 @@ apply_migrations: false
 The Gateway then owns:
 
 - `deau.site/{slug}` for direct legacy slug resolution
-- `port.deau.site` redirecting to `zarkiv.com`
+- `port.deau.site` redirecting to `port.zarkiv.com`
 - `bit.deau.site` redirecting to `link.zarkiv.com`
 - `one.deau.site` redirecting to `pass.zarkiv.com`
 - `board.deau.site` redirecting to `pulse.zarkiv.com`
@@ -355,11 +356,33 @@ pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\pul
 pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\drop.json
 
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\pass.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\drop.json --secrets-file .wrangler\deploy\drop.secrets.json
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\link.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\portfolio.json
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\pulse.json
-pnpm exec wrangler deploy --strict --config .wrangler\deploy\drop.json
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\gateway.json
 ```
 
 Render again with `--domains canonical` only after workers.dev validation.
 Render with `--domains legacy` only after migration parity checks.
+
+## Custom Domain DNS Recovery
+
+Wrangler custom domains create and manage their Cloudflare DNS records. Do not
+add arbitrary CNAME targets for Worker custom domains.
+
+If a hostname returns `Could not resolve host`:
+
+1. Open **Workers & Pages** in Cloudflare.
+2. Open the expected Worker and inspect **Settings** -> **Domains & Routes**.
+3. Remove a stale custom-domain assignment from the wrong Worker if one exists.
+4. Run `Deploy Zarkiv` from `main` with `domains: canonical` and
+   `apply_migrations: false`.
+5. Confirm Cloudflare lists:
+   - `pass.zarkiv.com` on `zarkiv-pass`
+   - `link.zarkiv.com` and compatibility `drop.zarkiv.com` on `zarkiv-link`
+   - `pulse.zarkiv.com` on `zarkiv-pulse`
+   - `port.zarkiv.com` on `zarkiv-portfolio`
+   - `zarkiv.com` and `www.zarkiv.com` on `zarkiv-gateway`
+6. Wait for Cloudflare's domain status to become **Active**, then retry
+   `/health`.

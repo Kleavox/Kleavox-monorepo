@@ -1,7 +1,6 @@
 import { Turnstile } from "@marsidev/react-turnstile";
-import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
-import { createRoot } from "react-dom/client";
-import "./drop.css";
+import { useEffect, useMemo, useRef, useState } from "react";
+import "./files.css";
 
 interface Policy {
   kind: "guest" | "user";
@@ -72,7 +71,7 @@ const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
   | undefined;
 
-function App() {
+export function FilesApp() {
   const publicToken = useMemo(() => {
     const match = window.location.pathname.match(/^\/d\/([^/]+)$/u);
     return match?.[1] ? decodeURIComponent(match[1]) : null;
@@ -106,14 +105,14 @@ function SendView() {
 
   async function loadSession() {
     try {
-      const response = await fetch("/api/session");
+      const response = await fetch("/api/drop/session");
       const nextSession = await readApi<SessionResponse>(response);
       setSession(nextSession);
       setRetentionSeconds(nextSession.policy.retentionOptions.at(-1) ?? 3600);
       setMaxDownloads(nextSession.policy.defaultDownloads);
       if (nextSession.authenticated) await loadAccountDrops();
     } catch {
-      setError("Drop could not load your current session.");
+      setError("Files could not load your current session.");
     }
   }
 
@@ -252,7 +251,7 @@ function SendView() {
       headers: { Authorization: `Bearer ${result.manageToken}` },
     });
     if (!response.ok) {
-      setError("This drop could not be deleted.");
+      setError("This transfer could not be deleted.");
       return;
     }
     setResult(undefined);
@@ -263,7 +262,7 @@ function SendView() {
       method: "DELETE",
     });
     if (!response.ok) {
-      setError("That drop could not be deleted.");
+      setError("That transfer could not be deleted.");
       return;
     }
     setAccountDrops((items) => items.filter((item) => item.id !== drop.id));
@@ -425,7 +424,7 @@ function SendView() {
                 {phase === "preparing"
                   ? "Reserving space"
                   : phase === "finishing"
-                    ? "Sealing the drop"
+                    ? "Preparing the transfer"
                     : `Transferring ${progress}%`}
               </p>
             </div>
@@ -439,7 +438,7 @@ function SendView() {
             disabled={!file || !session || busy}
             onClick={() => void sendFile()}
           >
-            {busy ? "Transfer in progress" : "Create drop"}
+            {busy ? "Transfer in progress" : "Create transfer"}
           </button>
 
           <div className="drop-rule">
@@ -457,7 +456,7 @@ function SendView() {
       {result && (
         <section className="drop-result" aria-live="polite">
           <div>
-            <p className="drop-kicker">Drop ready</p>
+            <p className="drop-kicker">File ready</p>
             <h2>The clock is running.</h2>
             <p>
               This link ends {formatDate(result.expiresAt)}. Keep this tab open
@@ -488,12 +487,12 @@ function SendView() {
           <div>
             <p className="drop-kicker">Current handoffs</p>
             <h2>
-              {session?.authenticated ? "Your active drops" : "Built to end"}
+              {session?.authenticated ? "Your active transfers" : "Built to end"}
             </h2>
           </div>
           {!session?.authenticated && (
-            <a href="https://pass.zarkiv.com/login?returnTo=https%3A%2F%2Fdrop.zarkiv.com">
-              Sign in for 24 hour drops
+            <a href="https://pass.zarkiv.com/login?returnTo=https%3A%2F%2Flink.zarkiv.com%2Ffiles">
+              Sign in for 24 hour transfers
             </a>
           )}
         </div>
@@ -545,7 +544,7 @@ function SendView() {
             </div>
           ) : (
             <p className="drop-empty">
-              No drops yet. Your next completed transfer will appear here.
+              No transfers yet. Your next completed transfer will appear here.
             </p>
           )
         ) : (
@@ -588,7 +587,9 @@ function ReceiveView({ token }: { token: string }) {
       setDrop(await readApi<PublicDrop>(response));
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : "This drop is unavailable.",
+        reason instanceof Error
+          ? reason.message
+          : "This transfer is unavailable.",
       );
     } finally {
       setLoading(false);
@@ -713,10 +714,10 @@ function ReceiveView({ token }: { token: string }) {
           </>
         ) : (
           <div className="drop-gone">
-            <p className="drop-kicker">Drop ended</p>
+            <p className="drop-kicker">Share ended</p>
             <h1>Nothing remains here.</h1>
             <p>{error || "The file expired or reached its download limit."}</p>
-            <a href="/">Create a new drop</a>
+            <a href="/files">Share another file</a>
           </div>
         )}
       </section>
@@ -726,7 +727,7 @@ function ReceiveView({ token }: { token: string }) {
           {reportOpen ? (
             <div className="drop-report-form">
               <div>
-                <h2>Report this drop</h2>
+                <h2>Report this transfer</h2>
                 <button type="button" onClick={() => setReportOpen(false)}>
                   Close
                 </button>
@@ -760,7 +761,7 @@ function ReceiveView({ token }: { token: string }) {
               disabled={reported}
               onClick={() => setReportOpen(true)}
             >
-              {reported ? "Report received" : "Report this drop"}
+              {reported ? "Report received" : "Report this transfer"}
             </button>
           )}
         </section>
@@ -773,15 +774,16 @@ function ReceiveView({ token }: { token: string }) {
 function Header({ accountLabel }: { accountLabel?: string }) {
   return (
     <header className="drop-header">
-      <a className="drop-brand" href="https://zarkiv.com">
-        Zarkiv <span>Drop</span>
+      <a className="drop-brand" href="/">
+        Zarkiv <span>Link</span>
       </a>
       <nav>
-        <a href="/">Send</a>
+        <a href="/">Routes</a>
+        <a href="/files">Files</a>
         {accountLabel ? (
           <a href="https://pass.zarkiv.com">{accountLabel}</a>
         ) : (
-          <a href="https://pass.zarkiv.com/login?returnTo=https%3A%2F%2Fdrop.zarkiv.com">
+          <a href="https://pass.zarkiv.com/login?returnTo=https%3A%2F%2Flink.zarkiv.com%2Ffiles">
             Sign in
           </a>
         )}
@@ -793,7 +795,7 @@ function Header({ accountLabel }: { accountLabel?: string }) {
 function Footer() {
   return (
     <footer className="drop-footer">
-      <p>Zarkiv Drop is temporary by design.</p>
+      <p>Zarkiv Files is temporary by design.</p>
       <div>
         <a href="https://zarkiv.com/privacy">Privacy</a>
         <a href="https://zarkiv.com/terms">Terms</a>
@@ -870,9 +872,3 @@ function formatDate(value: string): string {
     timeStyle: "short",
   }).format(new Date(value));
 }
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);

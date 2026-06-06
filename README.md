@@ -7,10 +7,10 @@ Zarkiv is a Cloudflare-first product ecosystem built as a scalable monorepo.
 | Product | Domain             | Purpose                                |
 | ------- | ------------------ | -------------------------------------- |
 | Zarkiv  | `zarkiv.com`       | Public website and short-link resolver |
-| Link    | `link.zarkiv.com`  | Short-link management                  |
+| Link    | `link.zarkiv.com`  | Short links and temporary file sharing |
 | Pass    | `pass.zarkiv.com`  | Identity and single sign-on            |
 | Pulse   | `pulse.zarkiv.com` | Infrastructure monitoring              |
-| Drop    | `drop.zarkiv.com`  | Temporary file sharing                 |
+| Port    | `port.zarkiv.com`  | Hafidh Musyafa's portfolio             |
 
 ## Technology
 
@@ -27,7 +27,7 @@ connected to `main` without replacing the current monorepo tree.
 See [docs/architecture.md](docs/architecture.md),
 [docs/roadmap.md](docs/roadmap.md), and the
 [Pass](docs/pass.md), [Link](docs/link.md), [Pulse](docs/pulse.md), and
-[Drop](docs/drop.md) operations guides. Production transition is documented in
+[Files](docs/drop.md) operations guides. Production transition is documented in
 [docs/production.md](docs/production.md) and
 [docs/migration.md](docs/migration.md). See
 [docs/git-history.md](docs/git-history.md) for the imported repository graph

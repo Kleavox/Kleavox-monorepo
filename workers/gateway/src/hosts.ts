@@ -1,5 +1,5 @@
 const LEGACY_REDIRECTS: Record<string, string> = {
-  "port.deau.site": "https://zarkiv.com/",
+  "port.deau.site": "https://port.zarkiv.com/",
   "bit.deau.site": "https://link.zarkiv.com",
   "one.deau.site": "https://pass.zarkiv.com",
   "board.deau.site": "https://pulse.zarkiv.com",
@@ -12,7 +12,6 @@ export function hostRedirect(url: URL): URL | null {
 
   const destination = LEGACY_REDIRECTS[url.hostname];
   if (destination) {
-    if (url.hostname === "port.deau.site") return new URL(destination);
     return withPath(destination, url);
   }
 

@@ -83,8 +83,13 @@ export function productionConfigs(
           migrations_dir: "../../workers/link/migrations",
         },
       ],
-      services: [{ binding: "PASS", service: "zarkiv-pass" }],
-      ...(canonical ? { routes: routes("link.zarkiv.com") } : {}),
+      services: [
+        { binding: "PASS", service: "zarkiv-pass" },
+        { binding: "DROP", service: "zarkiv-drop" },
+      ],
+      ...(canonical
+        ? { routes: routes("link.zarkiv.com", "drop.zarkiv.com") }
+        : {}),
     },
     pulse: {
       ...base,
@@ -120,15 +125,9 @@ export function productionConfigs(
       account_id: env.CLOUDFLARE_ACCOUNT_ID,
       name: "zarkiv-drop",
       main: "../../workers/drop/src/index.ts",
-      assets: {
-        directory: "../../apps/drop/dist",
-        binding: "ASSETS",
-        not_found_handling: "single-page-application",
-        run_worker_first: ["/api/*", "/internal/*", "/health", "/__scheduled"],
-      },
       vars: {
         ENVIRONMENT: "production",
-        PUBLIC_ORIGIN: "https://drop.zarkiv.com",
+        PUBLIC_ORIGIN: "https://link.zarkiv.com",
       },
       d1_databases: [
         {
@@ -151,7 +150,19 @@ export function productionConfigs(
         rateLimit("REPORT_RATE_LIMIT", "3103", 5),
       ],
       triggers: { crons: ["*/15 * * * *"] },
-      ...(canonical ? { routes: routes("drop.zarkiv.com") } : {}),
+    },
+    portfolio: {
+      ...base,
+      account_id: env.CLOUDFLARE_ACCOUNT_ID,
+      name: "zarkiv-portfolio",
+      main: "../../workers/portfolio/src/index.ts",
+      assets: {
+        directory: "../../apps/portfolio/dist",
+        binding: "ASSETS",
+        not_found_handling: "404-page",
+        run_worker_first: ["/health"],
+      },
+      ...(canonical ? { routes: routes("port.zarkiv.com") } : {}),
     },
     gateway: {
       ...base,
@@ -187,26 +198,34 @@ export function productionConfigs(
 
 export function productionSecrets(env: NodeJS.ProcessEnv) {
   return {
-    pass: requiredSecrets(env, [
-      "ZARKIV_PASS_RESEND_API_KEY",
-      "ZARKIV_TURNSTILE_SECRET_KEY",
-      "ZARKIV_PASS_IP_HASH_SECRET",
-    ], {
-      ZARKIV_PASS_RESEND_API_KEY: "RESEND_API_KEY",
-      ZARKIV_TURNSTILE_SECRET_KEY: "TURNSTILE_SECRET_KEY",
-      ZARKIV_PASS_IP_HASH_SECRET: "IP_HASH_SECRET",
-    }),
-    drop: requiredSecrets(env, [
-      "ZARKIV_TURNSTILE_SECRET_KEY",
-      "ZARKIV_DROP_GUEST_HASH_SECRET",
-      "ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET",
-      "ZARKIV_DROP_PASSWORD_HASH_SECRET",
-    ], {
-      ZARKIV_TURNSTILE_SECRET_KEY: "TURNSTILE_SECRET_KEY",
-      ZARKIV_DROP_GUEST_HASH_SECRET: "GUEST_HASH_SECRET",
-      ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET: "DOWNLOAD_SIGNING_SECRET",
-      ZARKIV_DROP_PASSWORD_HASH_SECRET: "PASSWORD_HASH_SECRET",
-    }),
+    pass: requiredSecrets(
+      env,
+      [
+        "ZARKIV_PASS_RESEND_API_KEY",
+        "ZARKIV_TURNSTILE_SECRET_KEY",
+        "ZARKIV_PASS_IP_HASH_SECRET",
+      ],
+      {
+        ZARKIV_PASS_RESEND_API_KEY: "RESEND_API_KEY",
+        ZARKIV_TURNSTILE_SECRET_KEY: "TURNSTILE_SECRET_KEY",
+        ZARKIV_PASS_IP_HASH_SECRET: "IP_HASH_SECRET",
+      },
+    ),
+    drop: requiredSecrets(
+      env,
+      [
+        "ZARKIV_TURNSTILE_SECRET_KEY",
+        "ZARKIV_DROP_GUEST_HASH_SECRET",
+        "ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET",
+        "ZARKIV_DROP_PASSWORD_HASH_SECRET",
+      ],
+      {
+        ZARKIV_TURNSTILE_SECRET_KEY: "TURNSTILE_SECRET_KEY",
+        ZARKIV_DROP_GUEST_HASH_SECRET: "GUEST_HASH_SECRET",
+        ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET: "DOWNLOAD_SIGNING_SECRET",
+        ZARKIV_DROP_PASSWORD_HASH_SECRET: "PASSWORD_HASH_SECRET",
+      },
+    ),
   };
 }
 

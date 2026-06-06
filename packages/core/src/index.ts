@@ -1,4 +1,10 @@
-export const PRODUCT_NAMES = ["web", "pass", "link", "pulse", "drop"] as const;
+export const PRODUCT_NAMES = [
+  "web",
+  "pass",
+  "link",
+  "pulse",
+  "portfolio",
+] as const;
 
 export type ProductName = (typeof PRODUCT_NAMES)[number];
 
@@ -13,6 +19,8 @@ export const RESERVED_SLUGS = [
   "link",
   "login",
   "pass",
+  "port",
+  "portfolio",
   "privacy",
   "projects",
   "pulse",

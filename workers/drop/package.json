@@ -14,7 +14,6 @@
   "dependencies": {
     "@zarkiv/auth": "workspace:*",
     "@zarkiv/core": "workspace:*",
-    "@zarkiv/drop-app": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },

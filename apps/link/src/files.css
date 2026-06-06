@@ -1,7 +1,7 @@
 :root {
-  color: #151712;
-  background: #f1f2ed;
-  font-family: "Arial Nova", "Helvetica Neue", Arial, sans-serif;
+  color: var(--z-ink);
+  background: var(--z-paper);
+  font-family: var(--z-font);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -61,14 +61,14 @@ a {
   --line: #c9ccc2;
   --paper: #f1f2ed;
   --panel: #fafbf7;
-  --accent: #b8f34b;
+  --accent: var(--z-lime);
   min-height: 100dvh;
   overflow: hidden;
 }
 
 .drop-header,
 .drop-footer {
-  width: min(100% - 40px, 1380px);
+  width: var(--z-shell);
   margin-inline: auto;
 }
 
@@ -115,7 +115,7 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(520px, 0.78fr);
   gap: clamp(54px, 9vw, 148px);
-  width: min(100% - 40px, 1380px);
+  width: var(--z-shell);
   min-height: calc(100dvh - 72px);
   margin-inline: auto;
   padding: clamp(64px, 10vh, 112px) 0 72px;
@@ -424,7 +424,7 @@ a {
 
 .drop-result,
 .drop-ledger {
-  width: min(100% - 40px, 1380px);
+  width: var(--z-shell);
   margin-inline: auto;
 }
 
@@ -623,7 +623,7 @@ a {
   grid-template-columns: minmax(0, 1fr) minmax(410px, 0.55fr);
   gap: clamp(60px, 10vw, 160px);
   align-items: center;
-  width: min(100% - 40px, 1380px);
+  width: var(--z-shell);
   min-height: calc(100dvh - 144px);
   margin-inline: auto;
   padding: 80px 0;
@@ -736,7 +736,7 @@ a {
 }
 
 .drop-report {
-  width: min(100% - 40px, 1380px);
+  width: var(--z-shell);
   margin: 0 auto 70px;
   padding-top: 24px;
   border-top: 1px solid var(--line);

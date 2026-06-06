@@ -1,4 +1,4 @@
 {
   "extends": "../../tooling/typescript/app.json",
-  "include": ["src/**/*.tsx"]
+  "include": [".astro/types.d.ts", "**/*"]
 }

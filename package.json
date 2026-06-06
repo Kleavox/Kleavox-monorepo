@@ -15,7 +15,7 @@
     "agent:test": "go -C services/agent test ./...",
     "agent:build": "go -C services/agent build ./cmd/agent",
     "migrate": "pnpm --filter @zarkiv/migrate exec zarkiv-migrate",
-    "deploy:render": "pnpm --filter @zarkiv/deploy exec zarkiv-deploy render",
+    "deploy:render": "node tooling/deploy/dist/cli.js render",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm agent:test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

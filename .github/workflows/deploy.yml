@@ -73,14 +73,17 @@ jobs:
       - name: Deploy Pass
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pass.json --secrets-file .wrangler/deploy/pass.secrets.json
 
+      - name: Deploy Drop
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/drop.json --secrets-file .wrangler/deploy/drop.secrets.json
+
       - name: Deploy Link
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/link.json
 
+      - name: Deploy Portfolio
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/portfolio.json
+
       - name: Deploy Pulse
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pulse.json
-
-      - name: Deploy Drop
-        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/drop.json --secrets-file .wrangler/deploy/drop.secrets.json
 
       - name: Deploy Gateway
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/gateway.json

@@ -1,7 +1,7 @@
 :root {
   color: #11151c;
   background: #eef1f5;
-  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--z-font);
 }
 
 body {
@@ -29,7 +29,17 @@ button {
   flex-direction: column;
   justify-content: space-between;
   padding: clamp(1.5rem, 4vw, 4.5rem);
-  background: #11151c;
+  background:
+    radial-gradient(
+      circle at 22% 32%,
+      rgb(111 156 255 / 12%),
+      transparent 24rem
+    ),
+    radial-gradient(circle, #26313c 0.7px, transparent 0.7px), #11151c;
+  background-size:
+    auto,
+    26px 26px,
+    auto;
   color: #f8fafc;
 }
 
@@ -87,6 +97,13 @@ button {
   min-height: 100dvh;
   place-items: center;
   padding: clamp(1.5rem, 6vw, 6rem);
+  background:
+    radial-gradient(
+      circle at 90% 5%,
+      rgb(111 156 255 / 13%),
+      transparent 22rem
+    ),
+    #eef1f5;
 }
 
 .pass-panel-inner {

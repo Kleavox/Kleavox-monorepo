@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+  <rect width="1200" height="760" fill="#080b10"/>
+  <g fill="#263746">
+    <circle cx="40" cy="40" r="2"/><circle cx="80" cy="40" r="2"/><circle cx="120" cy="40" r="2"/>
+    <circle cx="40" cy="80" r="2"/><circle cx="80" cy="80" r="2"/><circle cx="120" cy="80" r="2"/>
+  </g>
+  <text x="70" y="120" fill="#31d7e8" font-family="monospace" font-size="24">PORT / SYSTEMS + INTERFACES</text>
+  <text x="70" y="270" fill="#eef5f5" font-family="Arial, sans-serif" font-size="96" font-weight="700">Hardware intuition.</text>
+  <text x="70" y="370" fill="#31d7e8" font-family="Arial, sans-serif" font-size="96" font-weight="700">Software reach.</text>
+  <rect x="715" y="455" width="390" height="190" fill="#0d1219" stroke="#2e4254" stroke-width="2"/>
+  <path d="M745 560h45l12-4 10 7 12-5 16 2 16-14 16-61 16 91 16-34 18 18h50l12-4 10 7 12-5 16 2 16-14 16-61 16 91 16-34 18 18h24" fill="none" stroke="#b8f34b" stroke-width="4"/>
+  <circle cx="748" cy="486" r="5" fill="#31d7e8"/>
+  <text x="765" y="494" fill="#82919c" font-family="monospace" font-size="16">SYSTEM / PULSE</text>
+</svg>
