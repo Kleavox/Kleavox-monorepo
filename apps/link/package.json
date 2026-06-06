@@ -1,5 +1,5 @@
 {
-  "name": "@zarkiv/link-app",
+  "name": "@kleavox/link-app",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@marsidev/react-turnstile": "catalog:",
-    "@zarkiv/ui": "workspace:*",
+    "@kleavox/compression": "workspace:*",
+    "@kleavox/ui": "workspace:*",
     "qrcode.react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

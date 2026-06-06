@@ -1,7 +1,8 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import "@zarkiv/ui/styles.css";
+import "@kleavox/ui/styles.css";
+import { PASS_ORIGIN, ROOT_ORIGIN, signInUrl } from "./config";
 import "./pulse.css";
 
 interface Identity {
@@ -145,14 +146,14 @@ function App() {
 function Header({ state }: { state: AppState }) {
   return (
     <header className="pulse-header">
-      <a href="https://zarkiv.com" className="pulse-brand">
-        ZARKIV <span>PULSE</span>
+      <a href={ROOT_ORIGIN} className="pulse-brand">
+        KLEAVOX <span>PULSE</span>
       </a>
       <div className="pulse-header-status">
         <span className="pulse-signal" />
         {state.status === "ready" ? "Online" : "Monitor"}
       </div>
-      <a href="https://pass.zarkiv.com" className="pulse-account">
+      <a href={PASS_ORIGIN} className="pulse-account">
         {state.status === "ready"
           ? state.identity.name || state.identity.email
           : "Account"}
@@ -193,6 +194,11 @@ function Dashboard({
           <p>Metrics, checks, incidents, projects, and notes.</p>
         </div>
         <div className="pulse-command-actions">
+          <div className="pulse-command-readout" aria-hidden="true">
+            <span>EDGE SIGNAL</span>
+            <strong>{online.toString().padStart(2, "0")}</strong>
+            <i />
+          </div>
           <CreateNode onCreated={onEnrollment} onRefresh={onRefresh} />
         </div>
       </section>
@@ -723,17 +729,14 @@ function Guest() {
   return (
     <main className="pulse-guest">
       <section>
-        <p className="pulse-kicker">Zarkiv Pulse / Go agent</p>
+        <p className="pulse-kicker">Kleavox Pulse / Go agent</p>
         <h1>
           Your VPS,
           <br />
           in one signal.
         </h1>
         <p>Host metrics. Service checks. Incident history.</p>
-        <a
-          className="pulse-primary"
-          href={`https://pass.zarkiv.com?returnTo=${encodeURIComponent(window.location.href)}`}
-        >
+        <a className="pulse-primary" href={signInUrl()}>
           Sign in
         </a>
       </section>
@@ -773,7 +776,7 @@ function Empty({
 }) {
   return (
     <main className="pulse-empty">
-      <p className="pulse-kicker">Zarkiv Pulse</p>
+      <p className="pulse-kicker">Kleavox Pulse</p>
       <h1>{title}</h1>
       <p>{message}</p>
       {children}

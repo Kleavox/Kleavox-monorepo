@@ -1,5 +1,5 @@
 import { Turnstile } from "@marsidev/react-turnstile";
-import "@zarkiv/ui/styles.css";
+import "@kleavox/ui/styles.css";
 import {
   type FormEvent,
   StrictMode,
@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
+import { LINK_ORIGIN, PULSE_ORIGIN, ROOT_ORIGIN } from "./config";
 import "./pass.css";
 
 type Mode = "login" | "register" | "forgot";
@@ -109,22 +110,49 @@ function App() {
   return (
     <main className="pass-layout">
       <section className="pass-intro" aria-labelledby="pass-title">
-        <a className="pass-wordmark" href="https://zarkiv.com">
-          ZARKIV
+        <a className="pass-wordmark" href={ROOT_ORIGIN}>
+          KLEAVOX <span>PASS</span>
         </a>
         <div className="pass-intro-copy">
-          <p className="pass-kicker">PASS / IDENTITY</p>
+          <p className="pass-kicker">IDENTITY / SHARED SESSION</p>
           <h1 id="pass-title">
-            One login.
+            One signal.
             <br />
-            All tools.
+            Every tool.
           </h1>
-          <p>Shared access for Link and Pulse.</p>
+          <p>Sign in once for Link, files, and Pulse.</p>
         </div>
-        <p className="pass-assurance">SESSION / 7 DAYS / REVOCABLE</p>
+        <div
+          className="pass-service-map"
+          aria-label="Connected Kleavox services"
+        >
+          <span>Connected access</span>
+          <a href={LINK_ORIGIN}>
+            Link <b>ready</b>
+          </a>
+          <a href={PULSE_ORIGIN}>
+            Pulse <b>ready</b>
+          </a>
+          <a href={ROOT_ORIGIN}>
+            Kleavox <b>home</b>
+          </a>
+        </div>
+        <div className="pass-orbit" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
       </section>
       <section className="pass-panel">
+        <header className="pass-panel-head">
+          <span>AUTH CHANNEL</span>
+          <b>ENCRYPTED</b>
+        </header>
         <div className="pass-panel-inner">{content}</div>
+        <footer className="pass-panel-foot">
+          <span>7 day session</span>
+          <span>revocable</span>
+        </footer>
       </section>
     </main>
   );
@@ -253,7 +281,7 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
   return (
     <AuthForm
       title="Create your account"
-      description="Create one identity for Zarkiv."
+      description="Create one identity for Kleavox."
       onSubmit={submit}
       state={state}
       submitLabel="Create account"
@@ -499,7 +527,7 @@ function AuthForm({
   return (
     <form className="pass-form" onSubmit={onSubmit}>
       <div className="pass-form-heading">
-        <p className="pass-section-label">Zarkiv Pass</p>
+        <p className="pass-section-label">Kleavox Pass</p>
         <h2>{title}</h2>
         <p>{description}</p>
       </div>
@@ -598,7 +626,7 @@ function ResultState({
 }) {
   return (
     <section className="pass-result">
-      <p className="pass-section-label">Zarkiv Pass</p>
+      <p className="pass-section-label">Kleavox Pass</p>
       <h2>{title}</h2>
       {state.status === "loading" ? (
         <div className="pass-loading-lines" aria-label="Loading">

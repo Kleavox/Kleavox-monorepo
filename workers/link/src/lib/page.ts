@@ -6,7 +6,7 @@ export function protectedLinkPage(slug: string): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Protected link | Zarkiv</title>
+  <title>Protected link | Kleavox</title>
   <style>
     *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#10131a;color:#f4f6fb;font-family:Arial,sans-serif}
     main{width:min(100%,440px);border:1px solid #303746;background:#171b24;padding:32px}
@@ -17,7 +17,7 @@ export function protectedLinkPage(slug: string): string {
 </head>
 <body>
   <main>
-    <small>ZARKIV LINK</small>
+    <small>KLEAVOX LINK</small>
     <h1>Protected destination</h1>
     <p>Enter the password provided by the link owner to continue to <strong>/${safeSlug}</strong>.</p>
     <form id="unlock">
@@ -53,7 +53,7 @@ export function protectedLinkPage(slug: string): string {
 }
 
 export function linkUnavailablePage(title: string, message: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escapeHtml(title)} | Zarkiv</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#10131a;color:#f4f6fb;font-family:Arial,sans-serif}main{max-width:520px}p{color:#aeb6c8;line-height:1.7}a{color:#79a4ff}</style></head><body><main><small>ZARKIV LINK</small><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><a href="https://zarkiv.com">Return to Zarkiv</a></main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escapeHtml(title)} | Kleavox</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#10131a;color:#f4f6fb;font-family:Arial,sans-serif}main{max-width:520px}p{color:#aeb6c8;line-height:1.7}a{color:#79a4ff}</style></head><body><main><small>KLEAVOX LINK</small><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><a href="/">Return to Kleavox</a></main></body></html>`;
 }
 
 function escapeHtml(value: string): string {

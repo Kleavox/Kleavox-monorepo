@@ -209,7 +209,7 @@ async function githubProfile(
   const headers = {
     Accept: "application/vnd.github+json",
     Authorization: `Bearer ${token.access_token}`,
-    "User-Agent": "Zarkiv-Pass",
+    "User-Agent": "Kleavox-Pass",
     "X-GitHub-Api-Version": "2022-11-28",
   };
   const profileResponse = await fetch("https://api.github.com/user", {

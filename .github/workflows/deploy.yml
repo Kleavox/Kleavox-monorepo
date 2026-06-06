@@ -1,4 +1,4 @@
-name: Deploy Zarkiv
+name: Deploy Kleavox
 
 on:
   workflow_dispatch:
@@ -11,7 +11,6 @@ on:
         options:
           - none
           - canonical
-          - legacy
       apply_migrations:
         description: Apply pending D1 migrations before deployment
         required: true
@@ -19,7 +18,7 @@ on:
         default: true
 
 concurrency:
-  group: deploy-zarkiv-production
+  group: deploy-production
   cancel-in-progress: false
 
 permissions:
@@ -32,24 +31,41 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      ZARKIV_PASS_D1_ID: ${{ secrets.ZARKIV_PASS_D1_ID }}
-      ZARKIV_PASS_KV_ID: ${{ secrets.ZARKIV_PASS_KV_ID }}
-      ZARKIV_LINK_D1_ID: ${{ secrets.ZARKIV_LINK_D1_ID }}
-      ZARKIV_PULSE_D1_ID: ${{ secrets.ZARKIV_PULSE_D1_ID }}
-      ZARKIV_DROP_D1_ID: ${{ secrets.ZARKIV_DROP_D1_ID }}
-      ZARKIV_DROP_BUCKET: ${{ vars.ZARKIV_DROP_BUCKET || 'zarkiv-drop' }}
-      ZARKIV_PASS_RESEND_API_KEY: ${{ secrets.ZARKIV_PASS_RESEND_API_KEY }}
-      ZARKIV_TURNSTILE_SECRET_KEY: ${{ secrets.ZARKIV_TURNSTILE_SECRET_KEY }}
-      ZARKIV_PASS_IP_HASH_SECRET: ${{ secrets.ZARKIV_PASS_IP_HASH_SECRET }}
-      ZARKIV_PASS_GOOGLE_CLIENT_ID: ${{ secrets.ZARKIV_PASS_GOOGLE_CLIENT_ID }}
-      ZARKIV_PASS_GOOGLE_CLIENT_SECRET: ${{ secrets.ZARKIV_PASS_GOOGLE_CLIENT_SECRET }}
-      ZARKIV_PASS_GITHUB_CLIENT_ID: ${{ secrets.ZARKIV_PASS_GITHUB_CLIENT_ID }}
-      ZARKIV_PASS_GITHUB_CLIENT_SECRET: ${{ secrets.ZARKIV_PASS_GITHUB_CLIENT_SECRET }}
-      ZARKIV_DROP_GUEST_HASH_SECRET: ${{ secrets.ZARKIV_DROP_GUEST_HASH_SECRET }}
-      ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET: ${{ secrets.ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET }}
-      ZARKIV_DROP_PASSWORD_HASH_SECRET: ${{ secrets.ZARKIV_DROP_PASSWORD_HASH_SECRET }}
-      VITE_TURNSTILE_SITE_KEY: ${{ secrets.ZARKIV_TURNSTILE_SITE_KEY }}
-      PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.ZARKIV_TURNSTILE_SITE_KEY }}
+      APP_ROOT_DOMAIN: ${{ vars.APP_ROOT_DOMAIN }}
+      WORKER_PREFIX: ${{ vars.WORKER_PREFIX }}
+      PASS_D1_ID: ${{ secrets.PASS_D1_ID }}
+      PASS_KV_ID: ${{ secrets.PASS_KV_ID }}
+      LINK_D1_ID: ${{ secrets.LINK_D1_ID }}
+      PULSE_D1_ID: ${{ secrets.PULSE_D1_ID }}
+      DROP_D1_ID: ${{ secrets.DROP_D1_ID }}
+      DROP_BUCKET_NAME: ${{ vars.DROP_BUCKET_NAME }}
+      AUTH_FROM_EMAIL: ${{ vars.AUTH_FROM_EMAIL }}
+      PORTFOLIO_FROM_EMAIL: ${{ vars.PORTFOLIO_FROM_EMAIL }}
+      PORTFOLIO_CONTACT_EMAIL: ${{ vars.PORTFOLIO_CONTACT_EMAIL }}
+      AGENT_DOWNLOAD_BASE: https://github.com/${{ github.repository }}/releases/latest/download
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+      IP_HASH_SECRET: ${{ secrets.IP_HASH_SECRET }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GITHUB_CLIENT_ID: ${{ secrets.GITHUB_CLIENT_ID }}
+      GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+      GUEST_HASH_SECRET: ${{ secrets.GUEST_HASH_SECRET }}
+      DOWNLOAD_SIGNING_SECRET: ${{ secrets.DOWNLOAD_SIGNING_SECRET }}
+      PASSWORD_HASH_SECRET: ${{ secrets.PASSWORD_HASH_SECRET }}
+      VITE_TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+      PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+      VITE_ROOT_ORIGIN: https://${{ vars.APP_ROOT_DOMAIN }}
+      VITE_PASS_ORIGIN: https://pass.${{ vars.APP_ROOT_DOMAIN }}
+      VITE_LINK_ORIGIN: https://link.${{ vars.APP_ROOT_DOMAIN }}
+      VITE_PULSE_ORIGIN: https://pulse.${{ vars.APP_ROOT_DOMAIN }}
+      PUBLIC_ROOT_ORIGIN: https://${{ vars.APP_ROOT_DOMAIN }}
+      PUBLIC_PORTFOLIO_ORIGIN: https://port.${{ vars.APP_ROOT_DOMAIN }}
+      PUBLIC_PORTFOLIO_NAME: ${{ vars.PUBLIC_PORTFOLIO_NAME }}
+      PUBLIC_PORTFOLIO_LOCATION: ${{ vars.PUBLIC_PORTFOLIO_LOCATION }}
+      PUBLIC_GITHUB_URL: ${{ vars.PUBLIC_GITHUB_URL }}
+      PUBLIC_LINKEDIN_URL: ${{ vars.PUBLIC_LINKEDIN_URL }}
+      PUBLIC_CONTACT_EMAIL: ${{ vars.PORTFOLIO_CONTACT_EMAIL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -62,6 +78,8 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - run: rustup target add wasm32-unknown-unknown
+      - run: cargo install wasm-pack --locked --version 0.15.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: node tooling/deploy/dist/cli.js render --domains "${{ inputs.domains }}"
@@ -92,3 +110,10 @@ jobs:
 
       - name: Deploy Gateway
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/gateway.json
+
+      - name: Verify public services
+        if: inputs.domains != 'none'
+        env:
+          HEALTH_ATTEMPTS: "8"
+          HEALTH_DELAY_MS: "15000"
+        run: pnpm health:check

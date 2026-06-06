@@ -1,4 +1,4 @@
-import { SESSION_COOKIE } from "@zarkiv/auth";
+import { SESSION_COOKIE } from "@kleavox/auth";
 import type { Env } from "../env";
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;

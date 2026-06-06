@@ -10,7 +10,7 @@ import (
 func TestSaveAndLoad(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 	err := Save(path, Config{
-		Endpoint: "https://pulse.zarkiv.com", NodeID: "node-id",
+		Endpoint: "https://pulse.product.test", NodeID: "node-id",
 		Token: "secret", IntervalSeconds: 60,
 	})
 	if err != nil {

@@ -1,0 +1,2 @@
+pkg/*
+!pkg/kleavox_compression.d.ts

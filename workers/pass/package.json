@@ -1,5 +1,5 @@
 {
-  "name": "@zarkiv/pass-worker",
+  "name": "@kleavox/pass-worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@zarkiv/auth": "workspace:*",
-    "@zarkiv/core": "workspace:*",
-    "@zarkiv/pass-app": "workspace:*",
+    "@kleavox/auth": "workspace:*",
+    "@kleavox/core": "workspace:*",
+    "@kleavox/pass-app": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },

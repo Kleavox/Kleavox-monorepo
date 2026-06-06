@@ -1,4 +1,4 @@
-import type { Identity } from "@zarkiv/core";
+import type { Identity } from "@kleavox/core";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../env";
 import {

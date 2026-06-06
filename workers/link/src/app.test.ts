@@ -7,7 +7,7 @@ describe("Link public session boundary", () => {
   it("returns an anonymous session without denying the application", async () => {
     const passFetch = vi.fn();
     const response = await app.request(
-      "https://link.zarkiv.com/api/session",
+      "https://link.product.test/api/session",
       {},
       {
         PASS: { fetch: passFetch },

@@ -82,7 +82,7 @@ async function contact(request: Request, env: Env): Promise<Response> {
       from: env.FROM_EMAIL,
       to: env.CONTACT_EMAIL,
       reply_to: email,
-      subject: `[Zarkiv Port] ${name}`,
+      subject: `[Kleavox Port] ${name}`,
       text: `From: ${name} <${email}>\n\n${message}`,
       html: `<p><strong>${escapeHtml(name)}</strong> &lt;${escapeHtml(email)}&gt;</p><p>${escapeHtml(message).replaceAll("\n", "<br>")}</p>`,
     }),

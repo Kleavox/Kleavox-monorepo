@@ -2,8 +2,10 @@ import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QRCodeSVG } from "qrcode.react";
 
-import "@zarkiv/ui/styles.css";
+import "@kleavox/ui/styles.css";
+import { ROOT_HOST, ROOT_ORIGIN, signInUrl } from "./config";
 import { FilesApp } from "./files";
+import type { AccountDrop } from "./files";
 import "./link.css";
 
 interface Identity {
@@ -43,13 +45,18 @@ interface LinkStats {
 type LoadState =
   | { status: "loading" }
   | { status: "guest" }
-  | { status: "ready"; identity: Identity; links: LinkRecord[] }
+  | {
+      status: "ready";
+      identity: Identity;
+      links: LinkRecord[];
+      files: AccountDrop[];
+    }
   | { status: "error"; message: string };
 
 function App() {
   if (
-    window.location.pathname === "/files" ||
-    window.location.pathname.startsWith("/d/")
+    window.location.pathname.startsWith("/d/") ||
+    /^\/f_[a-zA-Z0-9_-]+$/u.test(window.location.pathname)
   ) {
     return <FilesApp />;
   }
@@ -57,6 +64,10 @@ function App() {
     return <ReportApp />;
   }
 
+  return <WorkspaceApp />;
+}
+
+function WorkspaceApp() {
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   const refresh = async () => {
@@ -66,14 +77,22 @@ function App() {
         setState({ status: "guest" });
         return;
       }
-      const links = await request<{ data: LinkRecord[] }>("/api/links");
-      if (!isIdentity(session.identity) || !Array.isArray(links.data)) {
+      const [links, files] = await Promise.all([
+        request<{ data: LinkRecord[] }>("/api/links"),
+        request<{ drops: AccountDrop[] }>("/api/drops"),
+      ]);
+      if (
+        !isIdentity(session.identity) ||
+        !Array.isArray(links.data) ||
+        !Array.isArray(files.drops)
+      ) {
         throw new Error("Link received an invalid response from its API.");
       }
       setState({
         status: "ready",
         identity: session.identity,
         links: links.data,
+        files: files.drops,
       });
     } catch (error) {
       setState({ status: "error", message: messageFrom(error) });
@@ -97,6 +116,7 @@ function App() {
           <Dashboard
             identity={state.identity}
             links={state.links}
+            files={state.files}
             onRefresh={refresh}
           />
         )}
@@ -108,19 +128,16 @@ function App() {
 function Header({ state }: { state: LoadState }) {
   return (
     <header className="link-header">
-      <a className="link-brand" href="https://zarkiv.com">
-        ZARKIV <span>LINK</span>
+      <a className="link-brand" href={ROOT_ORIGIN}>
+        KLEAVOX <span>LINK</span>
       </a>
       <nav aria-label="Product navigation">
         <a className="link-nav-active" href="/">
-          Routes
+          Create
         </a>
-        <a href="/files">Files</a>
         <a href="/report">Report</a>
-        <a href="https://zarkiv.com">System</a>
-        <a
-          href={`https://pass.zarkiv.com?returnTo=${encodeURIComponent(window.location.href)}`}
-        >
+        <a href={ROOT_ORIGIN}>System</a>
+        <a href={signInUrl()}>
           {state.status === "ready"
             ? state.identity.name || state.identity.email
             : "Account"}
@@ -133,10 +150,12 @@ function Header({ state }: { state: LoadState }) {
 function Dashboard({
   identity,
   links,
+  files,
   onRefresh,
 }: {
   identity: Identity;
   links: LinkRecord[];
+  files: AccountDrop[];
   onRefresh: () => Promise<void>;
 }) {
   const totalClicks = useMemo(
@@ -149,25 +168,46 @@ function Dashboard({
       <section className="link-hero">
         <div>
           <p className="link-kicker">LINK / {identity.email}</p>
-          <h1>Shorten. Track. Control.</h1>
-          <p className="link-lede">Routes and temporary files in one place.</p>
+          <h1>
+            One address.
+            <br />
+            Any handoff.
+          </h1>
+          <p className="link-lede">
+            Route a destination or send a temporary file from the same
+            workspace.
+          </p>
         </div>
         <dl className="link-summary">
           <div>
-            <dt>Active routes</dt>
-            <dd>{links.filter((link) => !link.disabledAt).length}</dd>
+            <dt>Active handoffs</dt>
+            <dd>
+              {links.filter((link) => !link.disabledAt).length +
+                files.filter((file) => file.status === "ACTIVE").length}
+            </dd>
           </div>
           <div>
-            <dt>Total visits</dt>
+            <dt>Route visits</dt>
             <dd>{totalClicks.toLocaleString()}</dd>
           </div>
         </dl>
       </section>
 
-      <section className="link-workspace">
-        <CreateLink onCreated={onRefresh} />
-        <LinkList links={links} onRefresh={onRefresh} />
+      <section className="link-compose">
+        <header className="link-compose-heading">
+          <p className="link-kicker">CREATE / ONE PUBLIC NAMESPACE</p>
+          <h2>What are you sending?</h2>
+          <p>
+            URLs and files both leave as <strong>{ROOT_HOST}/...</strong>
+          </p>
+        </header>
+        <div className="link-compose-grid">
+          <CreateLink onCreated={onRefresh} />
+          <FilesApp embedded onChanged={onRefresh} />
+        </div>
       </section>
+
+      <LinkList links={links} files={files} onRefresh={onRefresh} />
     </>
   );
 }
@@ -209,8 +249,11 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
   return (
     <form className="link-create" onSubmit={submit}>
       <div className="link-section-heading">
-        <p className="link-kicker">NEW ROUTE</p>
-        <h2>Create link</h2>
+        <span className="link-create-index">01</span>
+        <div>
+          <p className="link-kicker">ROUTE A URL</p>
+          <h2>Short link</h2>
+        </div>
       </div>
 
       <label className="link-field link-field-wide">
@@ -228,7 +271,7 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
         <label className="link-field">
           <span>Custom slug</span>
           <div className="link-prefix-input">
-            <b>zarkiv.com/</b>
+            <b>{ROOT_HOST}/</b>
             <input
               value={slug}
               onChange={(event) => setSlug(event.target.value.toLowerCase())}
@@ -277,16 +320,33 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
 
 function LinkList({
   links,
+  files,
   onRefresh,
 }: {
   links: LinkRecord[];
+  files: AccountDrop[];
   onRefresh: () => Promise<void>;
 }) {
-  if (links.length === 0) {
+  const activity = [
+    ...links.map((link) => ({
+      kind: "link" as const,
+      createdAt: link.createdAt,
+      value: link,
+    })),
+    ...files.map((file) => ({
+      kind: "file" as const,
+      createdAt: file.created_at,
+      value: file,
+    })),
+  ].sort(
+    (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+  );
+
+  if (activity.length === 0) {
     return (
       <section className="link-list link-empty">
-        <p className="link-kicker">ROUTES</p>
-        <h2>No links yet.</h2>
+        <p className="link-kicker">ACTIVITY</p>
+        <h2>No handoffs yet.</h2>
       </section>
     );
   }
@@ -294,15 +354,92 @@ function LinkList({
   return (
     <section className="link-list">
       <div className="link-section-heading">
-        <p className="link-kicker">ROUTES / {links.length}</p>
-        <h2>Your links</h2>
+        <p className="link-kicker">ACTIVITY / {activity.length}</p>
+        <h2>Links and files</h2>
       </div>
       <div className="link-table" role="list">
-        {links.map((link) => (
-          <LinkRow key={link.id} link={link} onRefresh={onRefresh} />
-        ))}
+        {activity.map((item) =>
+          item.kind === "link" ? (
+            <LinkRow
+              key={`link-${item.value.id}`}
+              link={item.value}
+              onRefresh={onRefresh}
+            />
+          ) : (
+            <FileRow
+              key={`file-${item.value.id}`}
+              file={item.value}
+              onRefresh={onRefresh}
+            />
+          ),
+        )}
       </div>
     </section>
+  );
+}
+
+function FileRow({
+  file,
+  onRefresh,
+}: {
+  file: AccountDrop;
+  onRefresh: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const publicUrl = `${ROOT_ORIGIN}/${file.public_token}`;
+  const state =
+    file.status === "ACTIVE" && Date.parse(file.expires_at) <= Date.now()
+      ? "Expired"
+      : file.status[0] + file.status.slice(1).toLowerCase();
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await request(`/api/public/${encodeURIComponent(file.public_token)}`, {
+        method: "DELETE",
+      });
+      await onRefresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <article className="link-row link-file-row" role="listitem">
+      <div className="link-route">
+        <a href={publicUrl} target="_blank" rel="noreferrer">
+          /{file.public_token}
+        </a>
+        <p title={file.original_name}>{file.original_name}</p>
+      </div>
+      <div className="link-tags">
+        <span data-state={state.toLowerCase()}>{state}</span>
+        <span>File</span>
+        {Boolean(file.protected) && <span>Protected</span>}
+      </div>
+      <div className="link-clicks">
+        <strong>{file.download_count.toLocaleString()}</strong>
+        <span>downloads</span>
+      </div>
+      <div className="link-actions">
+        <button
+          type="button"
+          onClick={() => void navigator.clipboard.writeText(publicUrl)}
+        >
+          Copy
+        </button>
+        {!["DELETED", "FAILED"].includes(file.status) && (
+          <button
+            className="link-danger"
+            type="button"
+            disabled={busy}
+            onClick={() => void remove()}
+          >
+            Delete
+          </button>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -403,20 +540,26 @@ function LinkRow({
 
 function Guest() {
   return (
-    <section className="link-guest">
-      <div className="link-guest-copy">
-        <p className="link-kicker">ZARKIV LINK</p>
-        <h1>Make a short link.</h1>
-        <p>Guest links use an automatic slug.</p>
-        <a
-          className="link-primary"
-          href={`https://pass.zarkiv.com?returnTo=${encodeURIComponent(window.location.href)}`}
-        >
-          Sign in for controls
-        </a>
-      </div>
-      <PublicLinkForm />
-    </section>
+    <>
+      <section className="link-guest">
+        <div className="link-guest-copy">
+          <p className="link-kicker">KLEAVOX LINK / PUBLIC</p>
+          <h1>
+            Send a URL.
+            <br />
+            Or the file itself.
+          </h1>
+          <p>One short address, with an ending when you need it.</p>
+          <a className="link-primary" href={signInUrl()}>
+            Sign in for controls
+          </a>
+        </div>
+        <PublicLinkForm />
+      </section>
+      <section className="link-guest-drop">
+        <FilesApp embedded />
+      </section>
+    </>
   );
 }
 
@@ -442,6 +585,13 @@ function PublicLinkForm() {
 
   return (
     <form className="link-public-form" onSubmit={submit}>
+      <div className="link-public-heading">
+        <span>01</span>
+        <div>
+          <p className="link-kicker">ROUTE A URL</p>
+          <h2>Paste the destination.</h2>
+        </div>
+      </div>
       <label className="link-field">
         <span>Destination</span>
         <input
@@ -651,11 +801,10 @@ function ReportApp() {
     <div className="link-app">
       <header className="link-header">
         <a className="link-brand" href="/">
-          ZARKIV <span>LINK</span>
+          KLEAVOX <span>LINK</span>
         </a>
         <nav>
-          <a href="/">Routes</a>
-          <a href="/files">Files</a>
+          <a href="/">Create</a>
         </nav>
       </header>
       <main className="link-report-page">
@@ -667,7 +816,7 @@ function ReportApp() {
           <label className="link-field">
             <span>Slug</span>
             <div className="link-prefix-input">
-              <b>zarkiv.com/</b>
+              <b>{ROOT_HOST}/</b>
               <input
                 value={slug}
                 onChange={(event) => setSlug(event.target.value)}
@@ -808,7 +957,7 @@ function Notice({
 }) {
   return (
     <section className="link-notice">
-      <p className="link-kicker">Zarkiv Link</p>
+      <p className="link-kicker">Kleavox Link</p>
       <h1>{title}</h1>
       <p>{message}</p>
       {children}
@@ -819,7 +968,7 @@ function Notice({
 function Loading() {
   return (
     <section className="link-notice" aria-label="Loading Link">
-      <p className="link-kicker">Zarkiv Link</p>
+      <p className="link-kicker">Kleavox Link</p>
       <div className="link-loading" />
       <div className="link-loading link-loading-short" />
     </section>

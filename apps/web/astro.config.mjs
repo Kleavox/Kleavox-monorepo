@@ -2,5 +2,5 @@ import { defineConfig } from "astro/config";
 
 export default defineConfig({
   output: "static",
-  site: "https://zarkiv.com",
+  site: process.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com",
 });

@@ -1,10 +1,13 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "zarkiv-gateway",
+  "name": "local-gateway",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-05",
   "workers_dev": true,
   "preview_urls": false,
+  "vars": {
+    "PUBLIC_ORIGIN": "https://example.test",
+  },
   "assets": {
     "directory": "../../apps/web/dist",
     "binding": "ASSETS",
@@ -14,7 +17,11 @@
   "services": [
     {
       "binding": "LINK",
-      "service": "zarkiv-link",
+      "service": "local-link",
+    },
+    {
+      "binding": "DROP",
+      "service": "local-drop",
     },
   ],
   "observability": {

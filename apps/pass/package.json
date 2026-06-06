@@ -1,5 +1,5 @@
 {
-  "name": "@zarkiv/pass-app",
+  "name": "@kleavox/pass-app",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@marsidev/react-turnstile": "catalog:",
-    "@zarkiv/ui": "workspace:*",
+    "@kleavox/ui": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

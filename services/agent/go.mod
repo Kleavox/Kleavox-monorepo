@@ -1,3 +1,3 @@
-module github.com/zarkiv/agent
+module example.com/kleavox/agent
 
 go 1.26

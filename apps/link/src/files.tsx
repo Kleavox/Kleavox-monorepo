@@ -1,5 +1,7 @@
 import { Turnstile } from "@marsidev/react-turnstile";
+import { prepareUpload } from "@kleavox/compression";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LINK_ORIGIN, PASS_ORIGIN, ROOT_ORIGIN, signInUrl } from "./config";
 import "./files.css";
 
 interface Policy {
@@ -38,14 +40,17 @@ interface UploadResult {
   shareUrl: string;
   manageToken: string;
   expiresAt: string;
+  savedBytes: number;
 }
 
-interface AccountDrop {
+export interface AccountDrop {
   id: string;
   public_token: string;
   original_name: string;
   content_type: string;
   size_bytes: number;
+  source_size_bytes: number;
+  storage_encoding: string | null;
   max_downloads: number | null;
   download_count: number;
   expires_at: string;
@@ -59,6 +64,8 @@ interface PublicDrop {
   name: string;
   contentType: string;
   sizeBytes: number;
+  storedSizeBytes: number;
+  compressed: boolean;
   protected: boolean;
   maxDownloads: number | null;
   downloadCount: number;
@@ -71,16 +78,34 @@ const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
   | undefined;
 
-export function FilesApp() {
+export function FilesApp({
+  embedded = false,
+  onChanged,
+}: {
+  embedded?: boolean;
+  onChanged?: () => Promise<void>;
+}) {
   const publicToken = useMemo(() => {
-    const match = window.location.pathname.match(/^\/d\/([^/]+)$/u);
-    return match?.[1] ? decodeURIComponent(match[1]) : null;
+    const legacyMatch = window.location.pathname.match(/^\/d\/([^/]+)$/u);
+    if (legacyMatch?.[1]) return decodeURIComponent(legacyMatch[1]);
+    const rootMatch = window.location.pathname.match(/^\/(f_[^/]+)$/u);
+    return rootMatch?.[1] ? decodeURIComponent(rootMatch[1]) : null;
   }, []);
 
-  return publicToken ? <ReceiveView token={publicToken} /> : <SendView />;
+  return publicToken ? (
+    <ReceiveView token={publicToken} />
+  ) : (
+    <SendView embedded={embedded} onChanged={onChanged} />
+  );
 }
 
-function SendView() {
+function SendView({
+  embedded,
+  onChanged,
+}: {
+  embedded: boolean;
+  onChanged?: () => Promise<void>;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [session, setSession] = useState<SessionResponse>();
   const [accountDrops, setAccountDrops] = useState<AccountDrop[]>([]);
@@ -93,7 +118,7 @@ function SendView() {
   const [turnstileKey, setTurnstileKey] = useState(0);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<
-    "idle" | "preparing" | "uploading" | "finishing"
+    "idle" | "optimizing" | "preparing" | "uploading" | "finishing"
   >("idle");
   const [error, setError] = useState<string>();
   const [result, setResult] = useState<UploadResult>();
@@ -110,7 +135,7 @@ function SendView() {
       setSession(nextSession);
       setRetentionSeconds(nextSession.policy.retentionOptions.at(-1) ?? 3600);
       setMaxDownloads(nextSession.policy.defaultDownloads);
-      if (nextSession.authenticated) await loadAccountDrops();
+      if (nextSession.authenticated && !embedded) await loadAccountDrops();
     } catch {
       setError("Files could not load your current session.");
     }
@@ -156,17 +181,21 @@ function SendView() {
     setError(undefined);
     setResult(undefined);
     setProgress(0);
-    setPhase("preparing");
+    setPhase("optimizing");
     let start: UploadStart | undefined;
 
     try {
+      const prepared = await prepareUpload(file);
+      setPhase("preparing");
       const response = await fetch("/api/uploads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: file.name,
           contentType: file.type || "application/octet-stream",
-          sizeBytes: file.size,
+          sizeBytes: prepared.originalSizeBytes,
+          storedSizeBytes: prepared.storedSizeBytes,
+          storageEncoding: prepared.storageEncoding,
           retentionSeconds,
           maxDownloads,
           password: password || undefined,
@@ -179,8 +208,11 @@ function SendView() {
       let completedBytes = 0;
       for (let partNumber = 1; partNumber <= start.partCount; partNumber += 1) {
         const beginning = (partNumber - 1) * start.partSizeBytes;
-        const end = Math.min(beginning + start.partSizeBytes, file.size);
-        const part = file.slice(beginning, end);
+        const end = Math.min(
+          beginning + start.partSizeBytes,
+          prepared.storedSizeBytes,
+        );
+        const part = prepared.body.slice(beginning, end);
         await uploadPart(
           start.uploadId,
           partNumber,
@@ -190,7 +222,9 @@ function SendView() {
             setProgress(
               Math.min(
                 99,
-                Math.round(((completedBytes + loaded) / file.size) * 100),
+                Math.round(
+                  ((completedBytes + loaded) / prepared.storedSizeBytes) * 100,
+                ),
               ),
             );
           },
@@ -216,11 +250,15 @@ function SendView() {
       setResult({
         ...completed,
         manageToken: start.manageToken,
+        savedBytes: prepared.savedBytes,
       });
       setFile(undefined);
       setPassword("");
       if (inputRef.current) inputRef.current.value = "";
-      if (session.authenticated) await loadAccountDrops();
+      if (session.authenticated) {
+        if (embedded) await onChanged?.();
+        else await loadAccountDrops();
+      }
     } catch (reason) {
       if (start) {
         void fetch(`/api/uploads/${start.uploadId}`, {
@@ -255,6 +293,7 @@ function SendView() {
       return;
     }
     setResult(undefined);
+    await onChanged?.();
   }
 
   async function deleteDrop(drop: AccountDrop) {
@@ -270,28 +309,35 @@ function SendView() {
 
   const policy = session?.policy;
   const busy = phase !== "idle";
+  const Root = embedded ? "section" : "main";
 
   return (
-    <main className="drop-page">
-      <Header
-        accountLabel={
-          session?.authenticated
-            ? session.user?.name || session.user?.email
-            : undefined
-        }
-      />
+    <Root className={`drop-page${embedded ? " drop-embedded" : ""}`}>
+      {!embedded && (
+        <Header
+          accountLabel={
+            session?.authenticated
+              ? session.user?.name || session.user?.email
+              : undefined
+          }
+        />
+      )}
 
       <section className="drop-hero">
         <div className="drop-hero-copy">
-          <p className="drop-kicker">Temporary file transfer</p>
-          <h1>
-            Send it.
-            <br />
-            Let it disappear.
-          </h1>
+          {embedded && <span className="drop-create-index">02</span>}
+          <p className="drop-kicker">TEMPORARY FILE</p>
+          {embedded ? (
+            <h2>Drop the file itself.</h2>
+          ) : (
+            <h1>
+              Send it.
+              <br />
+              Let it disappear.
+            </h1>
+          )}
           <p className="drop-intro">
-            A private handoff with a built-in ending. No permanent drive, no
-            forgotten folder.
+            Time and download limits are built into the address.
           </p>
         </div>
 
@@ -423,9 +469,11 @@ function SendView() {
               <p>
                 {phase === "preparing"
                   ? "Reserving space"
-                  : phase === "finishing"
-                    ? "Preparing the transfer"
-                    : `Transferring ${progress}%`}
+                  : phase === "optimizing"
+                    ? "Optimizing locally with Rust"
+                    : phase === "finishing"
+                      ? "Preparing the transfer"
+                      : `Transferring ${progress}%`}
               </p>
             </div>
           )}
@@ -462,6 +510,12 @@ function SendView() {
               This link ends {formatDate(result.expiresAt)}. Keep this tab open
               if you may need to delete it early.
             </p>
+            {result.savedBytes > 0 && (
+              <p className="drop-compression">
+                Rust compression saved {formatBytes(result.savedBytes)} in
+                storage.
+              </p>
+            )}
             <button
               className="drop-delete-result"
               type="button"
@@ -482,88 +536,97 @@ function SendView() {
         </section>
       )}
 
-      <section className="drop-ledger">
-        <div className="drop-ledger-heading">
-          <div>
-            <p className="drop-kicker">Current handoffs</p>
-            <h2>
-              {session?.authenticated
-                ? "Your active transfers"
-                : "Built to end"}
-            </h2>
-          </div>
-          {!session?.authenticated && (
-            <a href="https://pass.zarkiv.com/login?returnTo=https%3A%2F%2Flink.zarkiv.com%2Ffiles">
-              Sign in for 24 hour transfers
-            </a>
-          )}
-        </div>
-
-        {session?.authenticated ? (
-          accountDrops.length ? (
-            <div className="drop-list">
-              {accountDrops.map((drop) => (
-                <article key={drop.id} className="drop-row">
-                  <div className="drop-row-main">
-                    <p>{drop.original_name}</p>
-                    <span>
-                      {formatBytes(drop.size_bytes)} / {drop.download_count} of{" "}
-                      {drop.max_downloads ?? "unlimited"} downloads
-                    </span>
-                  </div>
-                  <div className="drop-row-state">
-                    <span
-                      className={`drop-status is-${drop.status.toLowerCase()}`}
-                    >
-                      {drop.status}
-                    </span>
-                    <time>{formatDate(drop.expires_at)}</time>
-                  </div>
-                  <div className="drop-row-actions">
-                    {drop.status === "ACTIVE" && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void copyShareUrl(
-                            `${window.location.origin}/d/${drop.public_token}`,
-                          )
-                        }
-                      >
-                        Copy
-                      </button>
-                    )}
-                    {!["DELETED", "FAILED"].includes(drop.status) && (
-                      <button
-                        type="button"
-                        onClick={() => void deleteDrop(drop)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </article>
-              ))}
+      {!embedded && (
+        <section className="drop-ledger">
+          <div className="drop-ledger-heading">
+            <div>
+              <p className="drop-kicker">Current handoffs</p>
+              <h2>
+                {session?.authenticated
+                  ? "Your active transfers"
+                  : "Built to end"}
+              </h2>
             </div>
-          ) : (
-            <p className="drop-empty">
-              No transfers yet. Your next completed transfer will appear here.
-            </p>
-          )
-        ) : (
-          <div className="drop-principles">
-            <p>Guest files live for one hour and allow up to five downloads.</p>
-            <p>
-              Account files can live for one day, with a larger transfer limit.
-            </p>
-            <p>
-              Every object is removed when time or download allowance runs out.
-            </p>
+            {!session?.authenticated && (
+              <a href={signInUrl(LINK_ORIGIN)}>Sign in for 24 hour transfers</a>
+            )}
           </div>
-        )}
-      </section>
 
-      <Footer />
-    </main>
+          {session?.authenticated ? (
+            accountDrops.length ? (
+              <div className="drop-list">
+                {accountDrops.map((drop) => (
+                  <article key={drop.id} className="drop-row">
+                    <div className="drop-row-main">
+                      <p>{drop.original_name}</p>
+                      <span>
+                        {formatBytes(drop.source_size_bytes)} /{" "}
+                        {drop.download_count} of{" "}
+                        {drop.max_downloads ?? "unlimited"} downloads
+                        {drop.storage_encoding === "gzip"
+                          ? ` / ${formatPercentSaved(
+                              drop.source_size_bytes,
+                              drop.size_bytes,
+                            )} smaller`
+                          : ""}
+                      </span>
+                    </div>
+                    <div className="drop-row-state">
+                      <span
+                        className={`drop-status is-${drop.status.toLowerCase()}`}
+                      >
+                        {drop.status}
+                      </span>
+                      <time>{formatDate(drop.expires_at)}</time>
+                    </div>
+                    <div className="drop-row-actions">
+                      {drop.status === "ACTIVE" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void copyShareUrl(publicShareUrl(drop.public_token))
+                          }
+                        >
+                          Copy
+                        </button>
+                      )}
+                      {!["DELETED", "FAILED"].includes(drop.status) && (
+                        <button
+                          type="button"
+                          onClick={() => void deleteDrop(drop)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="drop-empty">
+                No transfers yet. Your next completed transfer will appear here.
+              </p>
+            )
+          ) : (
+            <div className="drop-principles">
+              <p>
+                Guest files live for one hour and allow up to five downloads.
+              </p>
+              <p>
+                Account files can live for one day, with a larger transfer
+                limit.
+              </p>
+              <p>
+                Every object is removed when time or download allowance runs
+                out.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {!embedded && <Footer />}
+    </Root>
   );
 }
 
@@ -670,6 +733,16 @@ function ReceiveView({ token }: { token: string }) {
                   <dt>Size</dt>
                   <dd>{formatBytes(drop.sizeBytes)}</dd>
                 </div>
+                {drop.compressed && (
+                  <div>
+                    <dt>Stored</dt>
+                    <dd>
+                      {formatBytes(drop.storedSizeBytes)} /{" "}
+                      {formatPercentSaved(drop.sizeBytes, drop.storedSizeBytes)}{" "}
+                      smaller
+                    </dd>
+                  </div>
+                )}
                 <div>
                   <dt>Downloads left</dt>
                   <dd>{drop.remainingDownloads ?? "No limit"}</dd>
@@ -719,7 +792,7 @@ function ReceiveView({ token }: { token: string }) {
             <p className="drop-kicker">Share ended</p>
             <h1>Nothing remains here.</h1>
             <p>{error || "The file expired or reached its download limit."}</p>
-            <a href="/files">Share another file</a>
+            <a href={LINK_ORIGIN}>Share another file</a>
           </div>
         )}
       </section>
@@ -776,18 +849,16 @@ function ReceiveView({ token }: { token: string }) {
 function Header({ accountLabel }: { accountLabel?: string }) {
   return (
     <header className="drop-header">
-      <a className="drop-brand" href="/">
-        Zarkiv <span>Link</span>
+      <a className="drop-brand" href={LINK_ORIGIN}>
+        Kleavox <span>Link</span>
       </a>
       <nav>
-        <a href="/">Routes</a>
-        <a href="/files">Files</a>
+        <a href={LINK_ORIGIN}>Create</a>
+        <a href={`${LINK_ORIGIN}/report`}>Report</a>
         {accountLabel ? (
-          <a href="https://pass.zarkiv.com">{accountLabel}</a>
+          <a href={PASS_ORIGIN}>{accountLabel}</a>
         ) : (
-          <a href="https://pass.zarkiv.com/login?returnTo=https%3A%2F%2Flink.zarkiv.com%2Ffiles">
-            Sign in
-          </a>
+          <a href={signInUrl(LINK_ORIGIN)}>Sign in</a>
         )}
       </nav>
     </header>
@@ -797,13 +868,22 @@ function Header({ accountLabel }: { accountLabel?: string }) {
 function Footer() {
   return (
     <footer className="drop-footer">
-      <p>Zarkiv Files is temporary by design.</p>
+      <p>Kleavox Link removes temporary files when their limits end.</p>
       <div>
-        <a href="https://zarkiv.com/privacy">Privacy</a>
-        <a href="https://zarkiv.com/terms">Terms</a>
+        <a href={`${ROOT_ORIGIN}/privacy`}>Privacy</a>
+        <a href={`${ROOT_ORIGIN}/terms`}>Terms</a>
       </div>
     </footer>
   );
+}
+
+function publicShareUrl(token: string): string {
+  const origin =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+      ? window.location.origin
+      : ROOT_ORIGIN;
+  return `${origin}/${token}`;
 }
 
 function uploadPart(
@@ -858,6 +938,13 @@ function formatBytes(bytes: number): string {
     unit = units[index]!;
   }
   return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${unit}`;
+}
+
+function formatPercentSaved(
+  originalBytes: number,
+  storedBytes: number,
+): string {
+  return `${Math.max(0, Math.round((1 - storedBytes / originalBytes) * 100))}%`;
 }
 
 function formatDuration(seconds: number): string {

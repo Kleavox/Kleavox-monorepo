@@ -1,4 +1,4 @@
-import { isReservedSlug } from "@zarkiv/core";
+import { FILE_SLUG_PREFIX, isReservedSlug } from "@kleavox/core";
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,49}$/;
 const RANDOM_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -9,7 +9,11 @@ export function normalizeSlug(value: string): string {
 
 export function isValidSlug(value: string): boolean {
   const slug = normalizeSlug(value);
-  return SLUG_PATTERN.test(slug) && !isReservedSlug(slug);
+  return (
+    SLUG_PATTERN.test(slug) &&
+    !isReservedSlug(slug) &&
+    !slug.startsWith(FILE_SLUG_PREFIX)
+  );
 }
 
 export function generateSlug(length = 7): string {

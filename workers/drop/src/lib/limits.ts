@@ -1,4 +1,4 @@
-import type { Identity } from "@zarkiv/core";
+import type { Identity } from "@kleavox/core";
 
 export const MEBIBYTE = 1024 * 1024;
 export const GIBIBYTE = 1024 * MEBIBYTE;

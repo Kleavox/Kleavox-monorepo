@@ -1,0 +1,13 @@
+{
+  "name": "@kleavox/compression",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir ../../packages/compression/pkg --out-name kleavox_compression --release --no-typescript ../../crates/compression --locked",
+    "test": "cargo test --manifest-path ../../crates/compression/Cargo.toml --locked"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "zarkiv-link",
+  "name": "local-link",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-05",
   "workers_dev": true,
@@ -8,6 +8,7 @@
   "vars": {
     "ENVIRONMENT": "development",
     "PUBLIC_SHORT_ORIGIN": "http://127.0.0.1:8786",
+    "PUBLIC_APP_ORIGIN": "http://127.0.0.1:8788",
   },
   "assets": {
     "directory": "../../apps/link/dist",
@@ -18,7 +19,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "zarkiv-link",
+      "database_name": "local-link",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations",
     },
@@ -26,11 +27,11 @@
   "services": [
     {
       "binding": "PASS",
-      "service": "zarkiv-pass",
+      "service": "local-pass",
     },
     {
       "binding": "DROP",
-      "service": "zarkiv-drop",
+      "service": "local-drop",
     },
   ],
   "ratelimits": [

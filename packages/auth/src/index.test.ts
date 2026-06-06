@@ -3,7 +3,7 @@ import { readCookie } from "./index";
 
 describe("readCookie", () => {
   it("reads an encoded cookie value", () => {
-    const request = new Request("https://link.zarkiv.com", {
+    const request = new Request("https://link.product.test", {
       headers: { cookie: "theme=dark; session=a%2Fb%3D" },
     });
 
@@ -11,7 +11,7 @@ describe("readCookie", () => {
   });
 
   it("does not partially match cookie names", () => {
-    const request = new Request("https://link.zarkiv.com", {
+    const request = new Request("https://link.product.test", {
       headers: { cookie: "other_session=value" },
     });
 

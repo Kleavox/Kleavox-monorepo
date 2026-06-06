@@ -4,9 +4,9 @@ import type { Env } from "./env";
 
 const baseEnv = {
   ENVIRONMENT: "production",
-  PUBLIC_ORIGIN: "https://pass.zarkiv.com",
-  ROOT_DOMAIN: "zarkiv.com",
-  FROM_EMAIL: "Zarkiv <no-reply@zarkiv.com>",
+  PUBLIC_ORIGIN: "https://pass.product.test",
+  ROOT_DOMAIN: "product.test",
+  FROM_EMAIL: "Product <no-reply@product.test>",
   ASSETS: {
     fetch: () => Promise.resolve(new Response("asset")),
   },
@@ -18,7 +18,7 @@ const baseEnv = {
 describe("Pass HTTP boundary", () => {
   it("rejects state-changing requests from another origin", async () => {
     const response = await app.request(
-      "https://pass.zarkiv.com/api/login",
+      "https://pass.product.test/api/login",
       {
         method: "POST",
         headers: {
@@ -41,10 +41,10 @@ describe("Pass HTTP boundary", () => {
 
   it("requires JSON for state-changing APIs", async () => {
     const response = await app.request(
-      "https://pass.zarkiv.com/api/logout",
+      "https://pass.product.test/api/logout",
       {
         method: "POST",
-        headers: { origin: "https://pass.zarkiv.com" },
+        headers: { origin: "https://pass.product.test" },
       },
       baseEnv,
     );
@@ -54,7 +54,7 @@ describe("Pass HTTP boundary", () => {
 
   it("does not expose the internal session endpoint publicly", async () => {
     const response = await app.request(
-      "https://pass.zarkiv.com/internal/session",
+      "https://pass.product.test/internal/session",
       {},
       baseEnv,
     );
@@ -74,7 +74,7 @@ describe("Pass HTTP boundary", () => {
 
   it("reports configured OAuth providers without exposing credentials", async () => {
     const response = await app.request(
-      "https://pass.zarkiv.com/api/oauth/providers",
+      "https://pass.product.test/api/oauth/providers",
       {},
       {
         ...baseEnv,
