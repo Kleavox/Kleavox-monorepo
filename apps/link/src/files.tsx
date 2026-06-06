@@ -487,7 +487,9 @@ function SendView() {
           <div>
             <p className="drop-kicker">Current handoffs</p>
             <h2>
-              {session?.authenticated ? "Your active transfers" : "Built to end"}
+              {session?.authenticated
+                ? "Your active transfers"
+                : "Built to end"}
             </h2>
           </div>
           {!session?.authenticated && (
@@ -829,9 +831,7 @@ function uploadPart(
         message =
           (JSON.parse(request.responseText) as { message?: string }).message ??
           message;
-      } catch {
-        // Keep the bounded fallback message.
-      }
+      } catch {}
       reject(new Error(message));
     };
     request.send(part);

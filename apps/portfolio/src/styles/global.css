@@ -601,17 +601,73 @@ p {
   max-width: 14ch;
 }
 
-.contact-section > div {
-  display: flex;
-  align-items: center;
-  gap: 38px;
+.contact-grid {
+  display: grid;
+  grid-template-columns: 0.7fr 1fr;
+  gap: clamp(50px, 10vw, 140px);
   margin-top: 50px;
 }
 
-.contact-section > div p {
+.contact-copy p {
   max-width: 30rem;
+  margin: 0 0 24px;
   color: var(--muted);
   line-height: 1.6;
+}
+
+.contact-copy a {
+  color: var(--cyan);
+  font-family: "Cascadia Code", monospace;
+  font-size: 0.8rem;
+}
+
+.contact-form {
+  display: grid;
+  gap: 14px;
+  padding: 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.contact-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.contact-form label span {
+  color: var(--quiet);
+  font-family: "Cascadia Code", monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 12px;
+  color: var(--ink);
+  background: var(--base);
+  border: 1px solid var(--line-bright);
+  font: inherit;
+}
+
+.contact-form textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.contact-form .signal-action {
+  border: 0;
+  cursor: pointer;
+}
+
+.contact-form #contact-status {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--muted);
+  font-family: "Cascadia Code", monospace;
+  font-size: 0.68rem;
 }
 
 .port-footer {
@@ -709,10 +765,13 @@ p {
     font-size: clamp(3.4rem, 17vw, 5.6rem);
   }
 
-  .hero-actions,
-  .contact-section > div {
+  .hero-actions {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .contact-grid {
+    grid-template-columns: 1fr;
   }
 
   .axis-stage {

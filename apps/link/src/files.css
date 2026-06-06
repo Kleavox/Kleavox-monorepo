@@ -1,6 +1,6 @@
 :root {
-  color: var(--z-ink);
-  background: var(--z-paper);
+  color: #f0f0f0;
+  background: #000;
   font-family: var(--z-font);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -14,7 +14,8 @@ html,
 body {
   min-width: 320px;
   min-height: 100dvh;
-  background: #f1f2ed;
+  background: radial-gradient(circle, #202020 0.75px, transparent 0.75px), #000;
+  background-size: 22px 22px;
 }
 
 body {
@@ -39,7 +40,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #151712;
+  outline: 3px solid #a3e635;
   outline-offset: 3px;
 }
 
@@ -56,12 +57,12 @@ a {
 }
 
 .drop-page {
-  --ink: #151712;
-  --muted: #62665d;
-  --line: #c9ccc2;
-  --paper: #f1f2ed;
-  --panel: #fafbf7;
-  --accent: var(--z-lime);
+  --ink: #f0f0f0;
+  --muted: #777;
+  --line: #292929;
+  --paper: #000;
+  --panel: #0a0a0a;
+  --accent: #a3e635;
   min-height: 100dvh;
   overflow: hidden;
 }
@@ -166,8 +167,8 @@ a {
   min-height: 236px;
   border-bottom: 1px solid var(--ink);
   background:
-    linear-gradient(90deg, rgb(21 23 18 / 5%) 1px, transparent 1px),
-    linear-gradient(rgb(21 23 18 / 5%) 1px, transparent 1px), var(--panel);
+    linear-gradient(90deg, rgb(240 240 240 / 5%) 1px, transparent 1px),
+    linear-gradient(rgb(240 240 240 / 5%) 1px, transparent 1px), var(--panel);
   background-size: 24px 24px;
   transition:
     background-color 160ms ease,
@@ -211,6 +212,7 @@ a {
   place-items: center;
   border: 1px solid var(--ink);
   background: var(--accent);
+  color: #080808;
   font-size: 2.15rem;
   font-weight: 300;
   line-height: 1;
@@ -302,7 +304,7 @@ a {
 }
 
 .drop-options label i {
-  color: #8a8e84;
+  color: #666;
   font-family: inherit;
   font-style: normal;
   font-weight: 400;
@@ -326,7 +328,7 @@ a {
 
 .drop-options input::placeholder,
 .drop-unlock input::placeholder {
-  color: #969990;
+  color: #666;
   font-weight: 500;
 }
 
@@ -350,7 +352,7 @@ a {
 .drop-progress > div {
   height: 6px;
   overflow: hidden;
-  background: #dde0d7;
+  background: #222;
 }
 
 .drop-progress span {
@@ -373,7 +375,7 @@ a {
   min-height: 60px;
   border: 0;
   background: var(--accent);
-  color: var(--ink);
+  color: #080808;
   font-size: 0.9rem;
   font-weight: 800;
   transition:
@@ -383,7 +385,7 @@ a {
 
 .drop-primary:hover:not(:disabled),
 .drop-secondary:hover:not(:disabled) {
-  background: #a9e541;
+  background: #a3e635;
 }
 
 .drop-primary:active:not(:disabled),
@@ -392,8 +394,8 @@ a {
 }
 
 .drop-primary:disabled {
-  background: #d9dcd3;
-  color: #7d8177;
+  background: #202020;
+  color: #777;
 }
 
 .drop-rule {
@@ -418,8 +420,8 @@ a {
 }
 
 .drop-message.is-error {
-  background: #ffe2dd;
-  color: #7a1f13;
+  background: rgb(239 68 68 / 10%);
+  color: #f87171;
 }
 
 .drop-result,
@@ -704,6 +706,7 @@ a {
   margin-top: 30px;
   padding: 15px 20px;
   background: var(--accent);
+  color: #080808;
   font-weight: 800;
   text-decoration: none;
 }
@@ -718,7 +721,7 @@ a {
 .drop-receive-loading span {
   display: block;
   height: 42px;
-  background: #e1e3dc;
+  background: #202020;
   animation: drop-pulse 1.25s ease-in-out infinite alternate;
 }
 

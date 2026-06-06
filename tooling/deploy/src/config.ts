@@ -41,7 +41,7 @@ export function productionConfigs(
         directory: "../../apps/pass/dist",
         binding: "ASSETS",
         not_found_handling: "single-page-application",
-        run_worker_first: ["/api/*", "/internal/*", "/health"],
+        run_worker_first: ["/api/*", "/internal/*", "/health", "/ready"],
       },
       vars: {
         ENVIRONMENT: "production",
@@ -87,6 +87,7 @@ export function productionConfigs(
         { binding: "PASS", service: "zarkiv-pass" },
         { binding: "DROP", service: "zarkiv-drop" },
       ],
+      ratelimits: [rateLimit("PUBLIC_CREATE_RATE_LIMIT", "3201", 10)],
       ...(canonical
         ? { routes: routes("link.zarkiv.com", "drop.zarkiv.com") }
         : {}),
@@ -156,12 +157,17 @@ export function productionConfigs(
       account_id: env.CLOUDFLARE_ACCOUNT_ID,
       name: "zarkiv-portfolio",
       main: "../../workers/portfolio/src/index.ts",
+      vars: {
+        CONTACT_EMAIL: "port@deau.site",
+        FROM_EMAIL: "Zarkiv Port <no-reply@zarkiv.com>",
+      },
       assets: {
         directory: "../../apps/portfolio/dist",
         binding: "ASSETS",
         not_found_handling: "404-page",
-        run_worker_first: ["/health"],
+        run_worker_first: ["/health", "/api/contact"],
       },
+      ratelimits: [rateLimit("CONTACT_RATE_LIMIT", "3301", 3)],
       ...(canonical ? { routes: routes("port.zarkiv.com") } : {}),
     },
     gateway: {
@@ -204,11 +210,19 @@ export function productionSecrets(env: NodeJS.ProcessEnv) {
         "ZARKIV_PASS_RESEND_API_KEY",
         "ZARKIV_TURNSTILE_SECRET_KEY",
         "ZARKIV_PASS_IP_HASH_SECRET",
+        "ZARKIV_PASS_GOOGLE_CLIENT_ID",
+        "ZARKIV_PASS_GOOGLE_CLIENT_SECRET",
+        "ZARKIV_PASS_GITHUB_CLIENT_ID",
+        "ZARKIV_PASS_GITHUB_CLIENT_SECRET",
       ],
       {
         ZARKIV_PASS_RESEND_API_KEY: "RESEND_API_KEY",
         ZARKIV_TURNSTILE_SECRET_KEY: "TURNSTILE_SECRET_KEY",
         ZARKIV_PASS_IP_HASH_SECRET: "IP_HASH_SECRET",
+        ZARKIV_PASS_GOOGLE_CLIENT_ID: "GOOGLE_CLIENT_ID",
+        ZARKIV_PASS_GOOGLE_CLIENT_SECRET: "GOOGLE_CLIENT_SECRET",
+        ZARKIV_PASS_GITHUB_CLIENT_ID: "GITHUB_CLIENT_ID",
+        ZARKIV_PASS_GITHUB_CLIENT_SECRET: "GITHUB_CLIENT_SECRET",
       },
     ),
     drop: requiredSecrets(
@@ -224,6 +238,14 @@ export function productionSecrets(env: NodeJS.ProcessEnv) {
         ZARKIV_DROP_GUEST_HASH_SECRET: "GUEST_HASH_SECRET",
         ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET: "DOWNLOAD_SIGNING_SECRET",
         ZARKIV_DROP_PASSWORD_HASH_SECRET: "PASSWORD_HASH_SECRET",
+      },
+    ),
+    portfolio: requiredSecrets(
+      env,
+      ["ZARKIV_PASS_RESEND_API_KEY", "ZARKIV_TURNSTILE_SECRET_KEY"],
+      {
+        ZARKIV_PASS_RESEND_API_KEY: "RESEND_API_KEY",
+        ZARKIV_TURNSTILE_SECRET_KEY: "TURNSTILE_SECRET_KEY",
       },
     ),
   };

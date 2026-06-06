@@ -145,13 +145,13 @@ Omitting it is safe because the workflow defaults to `zarkiv-drop`.
 
 ### Turnstile Keys
 
-One production widget is shared by Pass and Link Files:
+One production widget is shared by Pass, Link Files, and Port:
 
 1. In Cloudflare, open **Turnstile**.
 2. Click **Add widget**.
 3. Name it `zarkiv-production`.
-4. Add hostnames `pass.zarkiv.com`, `link.zarkiv.com`, and
-   `drop.zarkiv.com`. The last hostname is retained only for compatibility.
+4. Add hostnames `pass.zarkiv.com`, `link.zarkiv.com`,
+   `drop.zarkiv.com`, and `port.zarkiv.com`.
 5. Select **Managed** mode.
 6. Create the widget.
 7. Copy both generated values.
@@ -166,13 +166,63 @@ Store them as:
 The sitekey is technically public, but the current workflow consumes it as an
 environment secret for one consistent setup.
 
+### Google Login
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/).
+2. Select or create a project for Zarkiv.
+3. Open **Google Auth Platform** and complete **Branding**, **Audience**, and
+   **Data Access**.
+4. Use the external audience unless the application belongs to a Google
+   Workspace organization and must be organization-only.
+5. Add your own Google account as a test user while the app is in testing.
+6. Open **Clients** -> **Create client** -> **Web application**.
+7. Name it `Zarkiv Pass`.
+8. Add this exact authorized redirect URI:
+
+```text
+https://pass.zarkiv.com/api/oauth/callback/google
+```
+
+9. Create the client.
+10. Store the client ID as `ZARKIV_PASS_GOOGLE_CLIENT_ID`.
+11. Store the client secret as `ZARKIV_PASS_GOOGLE_CLIENT_SECRET`.
+
+The redirect URI must match exactly, including HTTPS, hostname, path, case,
+and trailing slash. This application requests only `openid`, `email`, and
+`profile`.
+
+### GitHub Login
+
+1. Open GitHub **Settings** -> **Developer settings** -> **OAuth Apps**.
+2. Select **New OAuth App**.
+3. Set **Application name** to `Zarkiv Pass`.
+4. Set **Homepage URL** to:
+
+```text
+https://pass.zarkiv.com
+```
+
+5. Set **Authorization callback URL** to:
+
+```text
+https://pass.zarkiv.com/api/oauth/callback/github
+```
+
+6. Register the application.
+7. Copy the client ID to `ZARKIV_PASS_GITHUB_CLIENT_ID`.
+8. Generate a client secret and copy it immediately to
+   `ZARKIV_PASS_GITHUB_CLIENT_SECRET`.
+
+GitHub OAuth Apps support one callback URL. Create a separate OAuth App for
+local development instead of replacing the production callback.
+
 ### Resend API Key
 
-Pass uses Resend to deliver login and verification email:
+Pass uses Resend for account email. Port uses the same key for its contact
+form:
 
 1. Create or open a Resend account.
-2. In **Domains**, add a sending domain. A subdomain such as
-   `mail.zarkiv.com` is recommended for reputation isolation.
+2. In **Domains**, add `zarkiv.com` as the sending domain.
 3. Add the DNS records displayed by Resend to Cloudflare DNS.
 4. Keep mail verification records **DNS only**, not proxied.
 5. Wait until Resend marks the domain verified.
@@ -182,9 +232,8 @@ Pass uses Resend to deliver login and verification email:
 9. Copy the key when it is shown.
 10. Store it as `ZARKIV_PASS_RESEND_API_KEY`.
 
-The current production sender is `Zarkiv <no-reply@zarkiv.com>`. If the Resend
-sending domain is a subdomain, update `FROM_EMAIL` in the deployment renderer
-to an address covered by that verified domain before deploying.
+The production senders use `no-reply@zarkiv.com`, so `zarkiv.com` must show as
+verified before signup email and the Port contact form are tested.
 
 ### Application-Generated Secrets
 
@@ -216,7 +265,7 @@ manager as a recovery record, then place them directly into GitHub.
 
 ### Final GitHub Checklist
 
-The `production` environment must contain these 14 secrets:
+The `production` environment must contain these 18 secrets:
 
 ```text
 CLOUDFLARE_API_TOKEN
@@ -230,6 +279,10 @@ ZARKIV_PASS_RESEND_API_KEY
 ZARKIV_TURNSTILE_SECRET_KEY
 ZARKIV_TURNSTILE_SITE_KEY
 ZARKIV_PASS_IP_HASH_SECRET
+ZARKIV_PASS_GOOGLE_CLIENT_ID
+ZARKIV_PASS_GOOGLE_CLIENT_SECRET
+ZARKIV_PASS_GITHUB_CLIENT_ID
+ZARKIV_PASS_GITHUB_CLIENT_SECRET
 ZARKIV_DROP_GUEST_HASH_SECRET
 ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET
 ZARKIV_DROP_PASSWORD_HASH_SECRET
@@ -254,7 +307,7 @@ domains: none
 apply_migrations: true
 ```
 
-This deploys all five Workers without attaching public domains. Verify every
+This deploys all six Workers without attaching public domains. Verify every
 `workers.dev` health endpoint, browser application, Pass email flow, Link
 redirect, Pulse enrollment, and the Link Files upload/download lifecycle.
 
@@ -285,6 +338,41 @@ https://port.zarkiv.com/health
 
 Also test an existing migrated slug through `https://zarkiv.com/{slug}` and
 confirm the shared Pass cookie works across protected products.
+
+## Repair the Current Production Deployment
+
+For an existing deployment where the domains are already attached but signup
+fails and product pages appear denied, run **Actions** -> **Deploy Zarkiv**
+from `main` with:
+
+```text
+domains: canonical
+apply_migrations: true
+```
+
+Do not disable migrations for this recovery run. The workflow records applied
+migrations in each D1 database, so already-applied files are skipped.
+
+After the workflow succeeds, verify in this order:
+
+```text
+https://pass.zarkiv.com/ready
+https://pass.zarkiv.com/api/oauth/providers
+https://link.zarkiv.com/api/session
+https://pulse.zarkiv.com/api/session
+https://port.zarkiv.com/health
+```
+
+Expected results:
+
+- Pass readiness returns `{"service":"pass","status":"ready"}`.
+- OAuth providers returns `true` for Google and GitHub.
+- Link and Pulse return `{"authenticated":false}` when signed out, not 401.
+- Port health returns `{"service":"portfolio","status":"ok"}`.
+
+Then create a new account, open the verification email, sign in, and test both
+provider buttons. If account creation reports `email_delivery_failed`, check
+the Resend domain status, API key scope, and sender domain.
 
 ## 6. Legacy Cutover
 
@@ -340,11 +428,18 @@ Set Worker secrets interactively so they are never written to a command:
 pnpm exec wrangler secret put RESEND_API_KEY --config .wrangler\deploy\pass.json
 pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler\deploy\pass.json
 pnpm exec wrangler secret put IP_HASH_SECRET --config .wrangler\deploy\pass.json
+pnpm exec wrangler secret put GOOGLE_CLIENT_ID --config .wrangler\deploy\pass.json
+pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET --config .wrangler\deploy\pass.json
+pnpm exec wrangler secret put GITHUB_CLIENT_ID --config .wrangler\deploy\pass.json
+pnpm exec wrangler secret put GITHUB_CLIENT_SECRET --config .wrangler\deploy\pass.json
 
 pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler\deploy\drop.json
 pnpm exec wrangler secret put GUEST_HASH_SECRET --config .wrangler\deploy\drop.json
 pnpm exec wrangler secret put DOWNLOAD_SIGNING_SECRET --config .wrangler\deploy\drop.json
 pnpm exec wrangler secret put PASSWORD_HASH_SECRET --config .wrangler\deploy\drop.json
+
+pnpm exec wrangler secret put RESEND_API_KEY --config .wrangler\deploy\portfolio.json
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler\deploy\portfolio.json
 ```
 
 Apply migrations and deploy in dependency order:
@@ -355,10 +450,10 @@ pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\lin
 pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\pulse.json
 pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler\deploy\drop.json
 
-pnpm exec wrangler deploy --strict --config .wrangler\deploy\pass.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\pass.json --secrets-file .wrangler\deploy\pass.secrets.json
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\drop.json --secrets-file .wrangler\deploy\drop.secrets.json
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\link.json
-pnpm exec wrangler deploy --strict --config .wrangler\deploy\portfolio.json
+pnpm exec wrangler deploy --strict --config .wrangler\deploy\portfolio.json --secrets-file .wrangler\deploy\portfolio.secrets.json
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\pulse.json
 pnpm exec wrangler deploy --strict --config .wrangler\deploy\gateway.json
 ```

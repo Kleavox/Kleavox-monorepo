@@ -62,6 +62,10 @@ describe("production secrets", () => {
       ZARKIV_PASS_RESEND_API_KEY: "resend",
       ZARKIV_TURNSTILE_SECRET_KEY: "turnstile",
       ZARKIV_PASS_IP_HASH_SECRET: "audit",
+      ZARKIV_PASS_GOOGLE_CLIENT_ID: "google-id",
+      ZARKIV_PASS_GOOGLE_CLIENT_SECRET: "google-secret",
+      ZARKIV_PASS_GITHUB_CLIENT_ID: "github-id",
+      ZARKIV_PASS_GITHUB_CLIENT_SECRET: "github-secret",
       ZARKIV_DROP_GUEST_HASH_SECRET: "guest",
       ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET: "download",
       ZARKIV_DROP_PASSWORD_HASH_SECRET: "password",
@@ -70,7 +74,15 @@ describe("production secrets", () => {
       RESEND_API_KEY: "resend",
       TURNSTILE_SECRET_KEY: "turnstile",
       IP_HASH_SECRET: "audit",
+      GOOGLE_CLIENT_ID: "google-id",
+      GOOGLE_CLIENT_SECRET: "google-secret",
+      GITHUB_CLIENT_ID: "github-id",
+      GITHUB_CLIENT_SECRET: "github-secret",
     });
     expect(result.drop.PASSWORD_HASH_SECRET).toBe("password");
+    expect(result.portfolio).toEqual({
+      RESEND_API_KEY: "resend",
+      TURNSTILE_SECRET_KEY: "turnstile",
+    });
   });
 });

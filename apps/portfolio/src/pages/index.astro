@@ -48,6 +48,8 @@ const timeline = [
   ["2025 Q1", "Huawei HCIA-AI", "AI overview and HCIA-AI V3.5"],
   ["2025", "DeltaT32", "Modular PCB platform assembled"],
 ];
+
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 ---
 
 <!doctype html>
@@ -205,12 +207,33 @@ const timeline = [
 
       <section id="contact" class="contact-section">
         <p class="mono-label">03 / CONTACT</p>
-        <h2>Have a system that needs a clearer signal?</h2>
-        <div>
-          <a class="signal-action" href="mailto:port@deau.site">
-            port@deau.site <span>↗</span>
-          </a>
-          <p>Embedded systems, IoT, web products, or infrastructure work.</p>
+        <h2>Let&apos;s build something.</h2>
+        <div class="contact-grid">
+          <div class="contact-copy">
+            <p>Embedded systems, IoT, web products, or infrastructure.</p>
+            <a href="mailto:port@deau.site">port@deau.site</a>
+          </div>
+          <form id="contact-form" class="contact-form">
+            <label>
+              <span>Name</span>
+              <input name="name" maxlength="100" required />
+            </label>
+            <label>
+              <span>Email</span>
+              <input name="email" type="email" required />
+            </label>
+            <label>
+              <span>Message</span>
+              <textarea name="message" minlength="10" maxlength="2000" required></textarea>
+            </label>
+            <div
+              class="cf-turnstile"
+              data-sitekey={turnstileSiteKey}
+              data-theme="dark"
+            ></div>
+            <button class="signal-action" type="submit">Send message <span>↗</span></button>
+            <p id="contact-status" role="status"></p>
+          </form>
         </div>
       </section>
     </main>
@@ -224,6 +247,7 @@ const timeline = [
       </div>
     </footer>
 
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script>
       const stage = document.querySelector<HTMLElement>("#axis-stage");
       const model = document.querySelector<HTMLElement>(".board-model");
@@ -260,6 +284,44 @@ const timeline = [
         );
         document.querySelectorAll(".reveal").forEach((item) => observer.observe(item));
       }
+
+      const contactForm = document.querySelector<HTMLFormElement>("#contact-form");
+      const contactStatus = document.querySelector<HTMLElement>("#contact-status");
+      contactForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submit = contactForm.querySelector<HTMLButtonElement>("button");
+        const data = new FormData(contactForm);
+        const turnstileToken = data.get("cf-turnstile-response");
+        if (!turnstileToken) {
+          if (contactStatus) contactStatus.textContent = "Complete the verification.";
+          return;
+        }
+        if (submit) submit.disabled = true;
+        if (contactStatus) contactStatus.textContent = "Sending...";
+        try {
+          const response = await fetch("/api/contact", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              name: data.get("name"),
+              email: data.get("email"),
+              message: data.get("message"),
+              turnstileToken,
+            }),
+          });
+          const result = await response.json() as { error?: string };
+          if (!response.ok) throw new Error(result.error || "Message failed.");
+          contactForm.reset();
+          if (contactStatus) contactStatus.textContent = "Message sent.";
+        } catch (error) {
+          if (contactStatus) {
+            contactStatus.textContent =
+              error instanceof Error ? error.message : "Message failed.";
+          }
+        } finally {
+          if (submit) submit.disabled = false;
+        }
+      });
     </script>
   </body>
 </html>

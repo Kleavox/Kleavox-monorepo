@@ -133,9 +133,56 @@ const requireSession: MiddlewareHandler<{
   await next();
 };
 
-app.get("/api/session", requireSession, (context) =>
-  context.json(context.get("session")),
-);
+app.get("/api/session", async (context) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  return session
+    ? context.json({ authenticated: true, identity: session.identity })
+    : context.json({ authenticated: false });
+});
+
+app.post("/api/public-links", async (context) => {
+  const rateKey =
+    context.req.header("cf-connecting-ip") ??
+    context.req.header("user-agent") ??
+    "anonymous";
+  if (
+    !(await context.env.PUBLIC_CREATE_RATE_LIMIT.limit({ key: rateKey }))
+      .success
+  ) {
+    return context.json(
+      { code: "RATE_LIMITED", message: "Try again in a minute." },
+      429,
+    );
+  }
+
+  const parsed = z
+    .object({ targetUrl: z.string().min(1).max(2048) })
+    .safeParse(await readJson(context));
+  if (!parsed.success) return invalidBody(context);
+  const targetUrl = parseTargetUrl(parsed.data.targetUrl);
+  if (!targetUrl) {
+    return context.json(
+      { code: "INVALID_URL", message: "Use a valid HTTP or HTTPS URL." },
+      400,
+    );
+  }
+
+  const slug = await uniqueSlug(context.env.DB);
+  await context.env.DB.prepare(
+    `INSERT INTO links (id, user_id, slug, target_url)
+     VALUES (?, NULL, ?, ?)`,
+  )
+    .bind(crypto.randomUUID(), slug, targetUrl)
+    .run();
+  return context.json(
+    {
+      slug,
+      shortUrl: `${context.env.PUBLIC_SHORT_ORIGIN}/${slug}`,
+      targetUrl,
+    },
+    201,
+  );
+});
 
 app.get("/api/links", requireSession, async (context) => {
   const userId = context.get("session").identity.id;

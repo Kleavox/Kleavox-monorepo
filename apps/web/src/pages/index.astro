@@ -6,45 +6,33 @@ const products = [
     name: "Link",
     number: "01",
     href: "https://link.zarkiv.com",
-    image: "/products/link.png",
-    alt: "Zarkiv Link dashboard showing short-link management",
-    statement: "Short links that remain yours.",
-    detail:
-      "Create memorable routes and send temporary files from one focused workspace, with explicit access and expiry controls.",
-    capabilities: ["Custom slugs", "Temporary files", "Expiry and access control"],
+    statement: "Short links and files.",
+    detail: "Create routes, track visits, and send temporary files.",
+    capabilities: ["Custom slugs", "Analytics", "Temporary files"],
   },
   {
     name: "Pass",
     number: "02",
     href: "https://pass.zarkiv.com",
-    image: "/products/pass.png",
-    alt: "Zarkiv Pass sign-in interface",
-    statement: "One identity across every system.",
-    detail:
-      "A single account boundary for Zarkiv, built around opaque sessions, verified email, and product-owned authorization.",
-    capabilities: ["Shared session", "Account recovery", "Service-bound verification"],
+    statement: "One account.",
+    detail: "Email, Google, and GitHub login for Zarkiv.",
+    capabilities: ["Shared session", "OAuth", "Account recovery"],
   },
   {
     name: "Pulse",
     number: "03",
     href: "https://pulse.zarkiv.com",
-    image: "/products/pulse.png",
-    alt: "Zarkiv Pulse infrastructure monitoring dashboard",
-    statement: "Know what your servers are doing.",
-    detail:
-      "Monitor hosts, services, and HTTP checks with a compact Go agent designed to stay out of the way.",
+    statement: "Watch every host.",
+    detail: "Metrics and checks from a small Go agent.",
     capabilities: ["Host metrics", "Health checks", "Incident history"],
   },
   {
     name: "Port",
     number: "04",
     href: "https://port.zarkiv.com",
-    image: "/products/portfolio.svg",
-    alt: "Hafidh Musyafa portfolio interface with sensor instruments",
-    statement: "The person behind the systems.",
-    detail:
-      "A portfolio spanning embedded hardware, edge infrastructure, and interfaces designed to make complex systems readable.",
-    capabilities: ["Embedded systems", "Product engineering", "Selected work"],
+    statement: "Selected work.",
+    detail: "Hardware, software, and infrastructure by Hafidh Musyafa.",
+    capabilities: ["Embedded", "Software", "Infrastructure"],
   },
 ];
 ---
@@ -82,14 +70,11 @@ const products = [
     <main>
       <section class="hero shell" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">Independent tools. One system.</p>
-          <h1 id="hero-title">One name.<br />Clear systems.</h1>
-          <p class="hero-lede">
-            Zarkiv keeps routes, files, identity, and infrastructure
-            useful, bounded, and understandable.
-          </p>
+          <p class="eyebrow">ZARKIV / SYSTEM</p>
+          <h1 id="hero-title">Useful tools.<br />One system.</h1>
+          <p class="hero-lede">Links, files, identity, and server monitoring.</p>
           <a class="primary-action" href="#products">
-            Explore the system
+            Open products
             <span aria-hidden="true">↘</span>
           </a>
         </div>
@@ -101,24 +86,25 @@ const products = [
               href={product.href}
               aria-label={`Open Zarkiv ${product.name}`}
             >
-              <img src={product.image} alt={product.alt} loading={index > 1 ? "lazy" : "eager"} />
-              <span>{product.name}</span>
+              <div class="mosaic-preview">
+                <small>ZARKIV / {product.name.toUpperCase()}</small>
+                <strong>{product.statement}</strong>
+                <i></i>
+              </div>
+              <span>{product.name} ↗</span>
             </a>
           ))}
         </div>
       </section>
 
       <section class="statement-band" aria-label="Zarkiv purpose">
-        <p>
-          Software should explain itself, respect its limits, and leave room for
-          the person using it.
-        </p>
+        <p>Small tools. Clear jobs.</p>
       </section>
 
       <section id="products" class="products shell" aria-labelledby="products-title">
         <div class="section-heading">
-          <p class="section-label">Product index</p>
-          <h2 id="products-title">Each tool owns one job.</h2>
+          <p class="section-label">PRODUCTS / 04</p>
+          <h2 id="products-title">Pick a tool.</h2>
         </div>
 
         <div class="product-index">
@@ -146,15 +132,15 @@ const products = [
 
       <section id="system" class="system shell" aria-labelledby="system-title">
         <div class="system-title">
-          <p class="section-label">The system underneath</p>
-          <h2 id="system-title">Unified outside.<br />Independent inside.</h2>
+          <p class="section-label">ARCHITECTURE</p>
+          <h2 id="system-title">One domain.<br />Separate workers.</h2>
         </div>
 
         <div class="architecture" aria-label="Zarkiv architecture">
           <div class="architecture-domain">
             <span>Public edge</span>
             <strong>zarkiv.com</strong>
-            <p>Website and short-link resolution at the root domain.</p>
+            <p>Website and short-link resolution.</p>
           </div>
           <div class="architecture-route" aria-hidden="true">
             <span></span>
@@ -175,32 +161,25 @@ const products = [
         <div class="principles">
           <article>
             <span>01</span>
-            <h3>Clear boundaries</h3>
-            <p>
-              Every product deploys independently and owns its own data.
-            </p>
+            <h3>Independent</h3>
+            <p>Each product deploys and stores data separately.</p>
           </article>
           <article>
             <span>02</span>
-            <h3>Shared identity</h3>
-            <p>
-              Pass establishes who you are. Each product decides what you may do.
-            </p>
+            <h3>One login</h3>
+            <p>Pass shares identity across products.</p>
           </article>
           <article>
             <span>03</span>
-            <h3>Measured complexity</h3>
-            <p>
-              TypeScript at the edge, Go on hosts, and Rust only when evidence
-              earns it.
-            </p>
+            <h3>Edge first</h3>
+            <p>TypeScript Workers and a Go host agent.</p>
           </article>
         </div>
       </section>
 
       <section class="closing shell" aria-labelledby="closing-title">
-        <p class="section-label">Start somewhere useful</p>
-        <h2 id="closing-title">A smaller surface.<br />A more dependable system.</h2>
+        <p class="section-label">START</p>
+        <h2 id="closing-title">Create an account.<br />Use every tool.</h2>
         <div class="closing-actions">
           <a class="primary-action" href="https://pass.zarkiv.com">
             Create your account
@@ -213,7 +192,7 @@ const products = [
 
     <footer class="site-footer shell">
       <a class="wordmark" href="/">Zarkiv</a>
-      <p>Focused infrastructure for ordinary work.</p>
+      <p>Tools by Hafidh Musyafa.</p>
       <div>
         <a href="https://link.zarkiv.com">Link</a>
         <a href="https://pass.zarkiv.com">Pass</a>

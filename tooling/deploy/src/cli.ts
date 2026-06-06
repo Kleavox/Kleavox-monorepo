@@ -42,7 +42,7 @@ try {
         { encoding: "utf8", mode: 0o600 },
       );
     }
-    console.log("Rendered production secret files for Pass and Drop.");
+    console.log("Rendered production secret files.");
   } else {
     throw new Error(
       "Usage: zarkiv-deploy <render|secrets> [--domains none|canonical|legacy] [--out directory]",

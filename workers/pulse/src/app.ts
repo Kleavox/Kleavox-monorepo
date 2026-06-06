@@ -70,9 +70,12 @@ const requireSession: MiddlewareHandler<{
   await next();
 };
 
-app.get("/api/session", requireSession, (context) =>
-  context.json(context.get("session")),
-);
+app.get("/api/session", async (context) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  return session
+    ? context.json({ authenticated: true, identity: session.identity })
+    : context.json({ authenticated: false });
+});
 
 app.get("/api/overview", requireSession, async (context) => {
   const ownerId = context.get("session").identity.id;
@@ -348,6 +351,54 @@ app.post("/api/projects", requireSession, async (context) => {
   return context.json({ id }, 201);
 });
 
+app.patch("/api/projects/:id", requireSession, async (context) => {
+  const project = await ownedProject(context);
+  if (!project) return context.json({ code: "NOT_FOUND" }, 404);
+  const body = z
+    .object({
+      name: z.string().trim().min(1).max(100).optional(),
+      description: z.string().max(1000).nullable().optional(),
+      status: z.enum(["ACTIVE", "PAUSED", "ARCHIVED"]).optional(),
+      url: z.string().url().nullable().optional(),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  for (const [field, value] of Object.entries(body.data)) {
+    const column =
+      field === "description"
+        ? "description"
+        : field === "status"
+          ? "status"
+          : field === "url"
+            ? "url"
+            : "name";
+    updates.push(`${column} = ?`);
+    values.push(value);
+  }
+  if (updates.length > 0) {
+    updates.push("updated_at = datetime('now')");
+    values.push(project.id);
+    await context.env.DB.prepare(
+      `UPDATE projects SET ${updates.join(", ")} WHERE id = ?`,
+    )
+      .bind(...values)
+      .run();
+  }
+  return context.json({ ok: true });
+});
+
+app.delete("/api/projects/:id", requireSession, async (context) => {
+  const project = await ownedProject(context);
+  if (!project) return context.json({ code: "NOT_FOUND" }, 404);
+  await context.env.DB.prepare("DELETE FROM projects WHERE id = ?")
+    .bind(project.id)
+    .run();
+  return context.body(null, 204);
+});
+
 app.post("/api/notes", requireSession, async (context) => {
   const body = z
     .object({
@@ -381,6 +432,62 @@ app.post("/api/notes", requireSession, async (context) => {
     )
     .run();
   return context.json({ id }, 201);
+});
+
+app.patch("/api/notes/:id", requireSession, async (context) => {
+  const note = await ownedNote(context);
+  if (!note) return context.json({ code: "NOT_FOUND" }, 404);
+  const body = z
+    .object({
+      content: z.string().trim().min(1).max(4000).optional(),
+      pinned: z.boolean().optional(),
+      projectId: z.string().uuid().nullable().optional(),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  if (body.data.projectId) {
+    const project = await context.env.DB.prepare(
+      "SELECT id FROM projects WHERE id = ? AND owner_user_id = ?",
+    )
+      .bind(body.data.projectId, context.get("session").identity.id)
+      .first();
+    if (!project) return context.json({ code: "NOT_FOUND" }, 404);
+  }
+
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  if (body.data.content !== undefined) {
+    updates.push("content = ?");
+    values.push(body.data.content);
+  }
+  if (body.data.pinned !== undefined) {
+    updates.push("pinned = ?");
+    values.push(body.data.pinned ? 1 : 0);
+  }
+  if (body.data.projectId !== undefined) {
+    updates.push("project_id = ?");
+    values.push(body.data.projectId);
+  }
+  if (updates.length > 0) {
+    updates.push("updated_at = datetime('now')");
+    values.push(note.id);
+    await context.env.DB.prepare(
+      `UPDATE notes SET ${updates.join(", ")} WHERE id = ?`,
+    )
+      .bind(...values)
+      .run();
+  }
+  return context.json({ ok: true });
+});
+
+app.delete("/api/notes/:id", requireSession, async (context) => {
+  const note = await ownedNote(context);
+  if (!note) return context.json({ code: "NOT_FOUND" }, 404);
+  await context.env.DB.prepare("DELETE FROM notes WHERE id = ?")
+    .bind(note.id)
+    .run();
+  return context.body(null, 204);
 });
 
 app.post("/api/agent/enroll", async (context) => {
@@ -653,6 +760,22 @@ async function ownedCheck(context: PulseContext): Promise<CheckRow | null> {
   )
     .bind(context.req.param("id"), context.get("session").identity.id)
     .first<CheckRow>();
+}
+
+function ownedProject(context: PulseContext) {
+  return context.env.DB.prepare(
+    "SELECT id FROM projects WHERE id = ? AND owner_user_id = ? LIMIT 1",
+  )
+    .bind(context.req.param("id"), context.get("session").identity.id)
+    .first<{ id: string }>();
+}
+
+function ownedNote(context: PulseContext) {
+  return context.env.DB.prepare(
+    "SELECT id FROM notes WHERE id = ? AND owner_user_id = ? LIMIT 1",
+  )
+    .bind(context.req.param("id"), context.get("session").identity.id)
+    .first<{ id: string }>();
 }
 
 export { app };
