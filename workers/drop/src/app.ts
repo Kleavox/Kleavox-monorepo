@@ -829,7 +829,9 @@ app.patch("/api/admin/reports/:id", requireSession, async (context) => {
   return context.json({ updated: true });
 });
 
-app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
+app.all("*", (context) =>
+  context.json({ message: "Drop service route not found." }, 404),
+);
 
 export async function finalizeUploadRecord(
   env: Env,

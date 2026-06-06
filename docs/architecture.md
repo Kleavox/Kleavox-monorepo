@@ -28,6 +28,9 @@ link.zarkiv.com
   Link application
   Link Worker
   Link D1
+  /files and /d/{token} -> Drop service binding
+  Drop Worker (internal)
+  Drop D1 + R2
 
 pulse.zarkiv.com
   Pulse application
@@ -35,10 +38,9 @@ pulse.zarkiv.com
   Pulse D1
   Go agents on managed hosts
 
-drop.zarkiv.com
-  Drop application
-  Drop Worker
-  Drop D1 + R2
+port.zarkiv.com
+  Portfolio application
+  Portfolio Worker
 ```
 
 Workers communicate through Service Bindings. Public HTTP calls between Zarkiv
@@ -72,6 +74,9 @@ product database.
 - Expiration and password protection
 - Click analytics and abuse reports
 - Reserved-slug enforcement
+- Temporary file upload and download workspace
+- Public `/d/{token}` file receipts
+- Proxies file operations to the internal Drop Worker
 
 ### Pulse
 
@@ -83,7 +88,7 @@ product database.
 
 Pulse agents never expose a general-purpose remote shell.
 
-### Drop
+### Drop Service
 
 - Temporary file uploads and downloads
 - Account and guest quotas
@@ -91,7 +96,15 @@ Pulse agents never expose a general-purpose remote shell.
 - Abuse reporting
 - Multipart R2 upload and streamed download flows through the Worker
 
-Drop is not permanent cloud storage.
+Drop is not a public product or permanent cloud storage. It remains an
+independently deployed internal Worker because file storage, cleanup, D1, and
+R2 have a different failure and cost boundary from short links.
+
+### Port
+
+- Personal portfolio for Hafidh Musyafa
+- Selected embedded, software, and infrastructure work
+- Static Astro output served by a dedicated Worker
 
 ## Data Ownership
 
@@ -100,7 +113,7 @@ Drop is not permanent cloud storage.
 | Pass    | D1 + KV | users, identities, sessions, verification tokens  |
 | Link    | D1      | links, clicks, reports, product memberships       |
 | Pulse   | D1      | nodes, checks, heartbeats, incidents, memberships |
-| Drop    | D1 + R2 | drops, objects, downloads, memberships            |
+| Link Files | D1 + R2 | drops, objects, downloads, memberships         |
 
 Cross-database joins are forbidden. Product Workers validate identity through a
 Pass Service Binding and persist stable `user_id` values locally.

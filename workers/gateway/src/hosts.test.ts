@@ -5,7 +5,9 @@ import { hostRedirect } from "./hosts";
 describe("gateway host redirects", () => {
   it("normalizes www while preserving path and query", () => {
     expect(
-      hostRedirect(new URL("https://www.zarkiv.com/about?from=www"))?.toString(),
+      hostRedirect(
+        new URL("https://www.zarkiv.com/about?from=www"),
+      )?.toString(),
     ).toBe("https://zarkiv.com/about?from=www");
   });
 
@@ -13,9 +15,12 @@ describe("gateway host redirects", () => {
     expect(
       hostRedirect(new URL("https://bit.deau.site/settings"))?.toString(),
     ).toBe("https://link.zarkiv.com/settings");
+    expect(hostRedirect(new URL("https://board.deau.site/"))?.toString()).toBe(
+      "https://pulse.zarkiv.com/",
+    );
     expect(
-      hostRedirect(new URL("https://board.deau.site/"))?.toString(),
-    ).toBe("https://pulse.zarkiv.com/");
+      hostRedirect(new URL("https://port.deau.site/projects"))?.toString(),
+    ).toBe("https://port.zarkiv.com/projects");
   });
 
   it("keeps deau.site slugs available for Link resolution", () => {

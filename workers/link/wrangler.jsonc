@@ -28,6 +28,10 @@
       "binding": "PASS",
       "service": "zarkiv-pass",
     },
+    {
+      "binding": "DROP",
+      "service": "zarkiv-drop",
+    },
   ],
   "observability": {
     "enabled": true,

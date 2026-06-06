@@ -6,9 +6,13 @@
 | ------------------ | ------------------------------------ |
 | `zarkiv.com`       | Web and public short-link resolution |
 | `pass.zarkiv.com`  | Pass                                 |
-| `link.zarkiv.com`  | Link                                 |
+| `link.zarkiv.com`  | Link routes and temporary files      |
 | `pulse.zarkiv.com` | Pulse                                |
-| `drop.zarkiv.com`  | Drop                                 |
+| `port.zarkiv.com`  | Personal portfolio                   |
+
+`drop.zarkiv.com` is a compatibility hostname owned by the Link Worker. It
+redirects `/` to `https://link.zarkiv.com/files` and preserves existing
+`/d/{token}` paths on `link.zarkiv.com`.
 
 ## Apex Routing
 
@@ -43,7 +47,7 @@ Link.
 
 | Legacy            | Canonical          |
 | ----------------- | ------------------ |
-| `port.deau.site`  | `zarkiv.com`       |
+| `port.deau.site`  | `port.zarkiv.com`  |
 | `bit.deau.site`   | `link.zarkiv.com`  |
 | `one.deau.site`   | `pass.zarkiv.com`  |
 | `board.deau.site` | `pulse.zarkiv.com` |

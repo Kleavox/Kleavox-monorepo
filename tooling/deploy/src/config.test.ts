@@ -26,7 +26,12 @@ describe("production deployment config", () => {
     expect(legacy["gateway"]?.routes).toHaveLength(7);
     expect(legacy["link"]?.routes).toEqual([
       { pattern: "link.zarkiv.com", custom_domain: true },
+      { pattern: "drop.zarkiv.com", custom_domain: true },
     ]);
+    expect(canonical["portfolio"]?.routes).toEqual([
+      { pattern: "port.zarkiv.com", custom_domain: true },
+    ]);
+    expect(canonical["drop"]?.routes).toBeUndefined();
   });
 
   it("refuses placeholder resource ids", () => {

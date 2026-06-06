@@ -197,7 +197,7 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
   return (
     <AuthForm
       title="Create your account"
-      description="One verified identity for Link, Pulse, and Drop."
+      description="One verified identity for Link and Pulse."
       onSubmit={submit}
       state={state}
       submitLabel="Create account"

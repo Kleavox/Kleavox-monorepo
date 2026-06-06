@@ -1,6 +1,7 @@
-# Zarkiv Drop
+# Zarkiv Files
 
-Drop is temporary file transfer, not permanent cloud storage. Files are stored
+Files is the temporary file-transfer area inside Zarkiv Link, not permanent
+cloud storage. Files are stored
 in R2, metadata and quota reservations are stored in an isolated D1 database,
 and identity is verified through the Pass service binding.
 
@@ -48,14 +49,16 @@ Workers Free CPU budget on a large password KDF.
 
 ```bash
 copy workers\drop\.dev.vars.example workers\drop\.dev.vars
-copy apps\drop\.env.example apps\drop\.env
-pnpm --filter @zarkiv/drop-app build
+copy apps\link\.env.example apps\link\.env
+pnpm --filter @zarkiv/link-app build
 pnpm --dir workers/drop exec wrangler d1 migrations apply DB --local
 pnpm --filter @zarkiv/pass-worker dev
 pnpm --filter @zarkiv/drop-worker dev
+pnpm --filter @zarkiv/link-worker dev
 ```
 
-Drop uses `http://127.0.0.1:8791` in local development. Pass uses port `8787`.
+The public UI is served by Link. The Drop Worker remains an internal service
+binding and uses Link's public origin for generated `/d/{token}` URLs.
 Separate Wrangler processes discover their service binding by Worker name.
 
 To test scheduled cleanup, start Drop with `--test-scheduled`, then request:
@@ -75,7 +78,7 @@ pnpm --dir workers/drop exec wrangler secret put DOWNLOAD_SIGNING_SECRET
 pnpm --dir workers/drop exec wrangler secret put PASSWORD_HASH_SECRET
 ```
 
-Also provide `VITE_TURNSTILE_SITE_KEY` when building the Drop application.
+Provide `VITE_TURNSTILE_SITE_KEY` when building the Link application.
 Production intentionally refuses guest identity hashing, password creation, or
 password unlock when the corresponding secret is absent.
 

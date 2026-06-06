@@ -1,13 +1,7 @@
 :root {
   color: #172028;
   background: #eef2f4;
-  font-family:
-    "Segoe UI",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: var(--z-font);
   font-synthesis: none;
 }
 

@@ -47,6 +47,13 @@ const updateSchema = z.object({
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 app.use("*", async (context, next) => {
+  const url = new URL(context.req.url);
+  if (url.hostname === "drop.zarkiv.com") {
+    url.hostname = "link.zarkiv.com";
+    if (url.pathname === "/") url.pathname = "/files";
+    return context.redirect(url.toString(), 308);
+  }
+
   await next();
   context.header("Referrer-Policy", "strict-origin-when-cross-origin");
   context.header("X-Content-Type-Options", "nosniff");
@@ -56,6 +63,14 @@ app.use("*", async (context, next) => {
 app.get("/health", (context) =>
   context.json({ service: "link", status: "ok" }),
 );
+
+app.all("/api/drop/*", (context) =>
+  proxyDrop(context, context.req.path.replace(/^\/api\/drop/u, "/api")),
+);
+app.all("/api/uploads", (context) => proxyDrop(context, context.req.path));
+app.all("/api/uploads/*", (context) => proxyDrop(context, context.req.path));
+app.all("/api/drops", (context) => proxyDrop(context, context.req.path));
+app.all("/api/public/*", (context) => proxyDrop(context, context.req.path));
 
 app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
   if (new URL(context.req.url).hostname !== "link.internal") {
@@ -361,6 +376,14 @@ app.post("/api/reports", async (context) => {
 });
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
+
+function proxyDrop(context: AppContext, pathname: string) {
+  const source = new URL(context.req.url);
+  const destination = new URL(source);
+  destination.hostname = "drop.internal";
+  destination.pathname = pathname;
+  return context.env.DROP.fetch(new Request(destination, context.req.raw));
+}
 
 async function readJson(context: AppContext): Promise<unknown> {
   return context.req.json().catch(() => null);
