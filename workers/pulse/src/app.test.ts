@@ -7,7 +7,7 @@ describe("Pulse public session boundary", () => {
   it("returns an anonymous session without denying the application", async () => {
     const passFetch = vi.fn();
     const response = await app.request(
-      "https://pulse.zarkiv.com/api/session",
+      "https://pulse.product.test/api/session",
       {},
       {
         PASS: { fetch: passFetch },

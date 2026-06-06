@@ -7,6 +7,8 @@ describe("Link slugs", () => {
     expect(normalizeSlug("  Launch-2026 ")).toBe("launch-2026");
     expect(isValidSlug("launch-2026")).toBe(true);
     expect(isValidSlug("api")).toBe(false);
+    expect(isValidSlug("f-JG2nV6pQ9")).toBe(true);
+    expect(isValidSlug("f_JG2nV6-pQ9")).toBe(false);
     expect(isValidSlug("-invalid")).toBe(false);
   });
 

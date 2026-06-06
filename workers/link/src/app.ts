@@ -1,5 +1,5 @@
-import { verifySession } from "@zarkiv/auth";
-import type { SessionIdentity } from "@zarkiv/core";
+import { verifySession } from "@kleavox/auth";
+import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
 import { z } from "zod";
@@ -47,13 +47,6 @@ const updateSchema = z.object({
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 app.use("*", async (context, next) => {
-  const url = new URL(context.req.url);
-  if (url.hostname === "drop.zarkiv.com") {
-    url.hostname = "link.zarkiv.com";
-    if (url.pathname === "/") url.pathname = "/files";
-    return context.redirect(url.toString(), 308);
-  }
-
   await next();
   context.header("Referrer-Policy", "strict-origin-when-cross-origin");
   context.header("X-Content-Type-Options", "nosniff");
@@ -63,6 +56,8 @@ app.use("*", async (context, next) => {
 app.get("/health", (context) =>
   context.json({ service: "link", status: "ok" }),
 );
+
+app.get("/files", (context) => context.redirect("/", 308));
 
 app.all("/api/drop/*", (context) =>
   proxyDrop(context, context.req.path.replace(/^\/api\/drop/u, "/api")),
@@ -125,7 +120,7 @@ const requireSession: MiddlewareHandler<{
   const session = await verifySession(context.req.raw, context.env.PASS);
   if (!session) {
     return context.json(
-      { code: "UNAUTHORIZED", message: "Sign in with Zarkiv Pass." },
+      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
       401,
     );
   }

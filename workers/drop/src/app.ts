@@ -1,5 +1,5 @@
-import { readCookie, verifySession } from "@zarkiv/auth";
-import type { SessionIdentity } from "@zarkiv/core";
+import { readCookie, verifySession } from "@kleavox/auth";
+import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
 
@@ -30,6 +30,7 @@ import {
   UPLOAD_TTL_SECONDS,
   USER_POLICY,
 } from "./lib/limits";
+import { createFileSlug } from "./lib/slug";
 import { verifyTurnstile } from "./lib/turnstile";
 import {
   createUploadSchema,
@@ -56,6 +57,8 @@ export interface UploadRow {
   original_name: string;
   content_type: string;
   size_bytes: number;
+  source_size_bytes: number | null;
+  storage_encoding: string | null;
   part_size_bytes: number;
   part_count: number;
   password_hash: string | null;
@@ -77,6 +80,8 @@ export interface DropRow {
   original_name: string;
   content_type: string;
   size_bytes: number;
+  source_size_bytes: number | null;
+  storage_encoding: string | null;
   password_hash: string | null;
   max_downloads: number | null;
   download_count: number;
@@ -94,7 +99,7 @@ interface PartRow {
 
 const ACTIVE_DROP_STATUSES = "('ACTIVE', 'EXHAUSTED', 'DELETING')";
 const ACTIVE_UPLOAD_STATUSES = "('OPENING', 'OPEN', 'COMPLETING')";
-const UNLOCK_COOKIE = "zarkiv_drop_grant";
+const UNLOCK_COOKIE = "kleavox_drop_grant";
 
 export const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -194,13 +199,15 @@ app.post("/api/uploads", async (context) => {
   );
   const maxDownloads = normalizeDownloadLimit(body.data.maxDownloads, policy);
   const uploadId = crypto.randomUUID();
-  const publicToken = randomToken(20);
+  const publicToken = createFileSlug();
   const manageToken = randomToken(32);
   const publicTokenHash = await sha256(publicToken);
   const manageTokenHash = await sha256(manageToken);
   const originalName = sanitizeFileName(body.data.name);
   const contentType = normalizeContentType(body.data.contentType);
-  const partCount = Math.ceil(body.data.sizeBytes / PART_SIZE_BYTES);
+  const storedSizeBytes = body.data.storedSizeBytes ?? body.data.sizeBytes;
+  const storageEncoding = body.data.storageEncoding ?? null;
+  const partCount = Math.ceil(storedSizeBytes / PART_SIZE_BYTES);
   const createdAt = new Date().toISOString();
   const expiresAt = new Date(
     Date.now() + retentionSeconds * 1000,
@@ -224,10 +231,12 @@ app.post("/api/uploads", async (context) => {
     `INSERT INTO upload_sessions (
        id, owner_user_id, guest_actor_hash, manage_token_hash, public_token,
        public_token_hash, object_key, original_name, content_type, size_bytes,
-       part_size_bytes, part_count, password_hash, max_downloads, expires_at,
-       upload_expires_at, status, created_at, updated_at
+       source_size_bytes, storage_encoding, part_size_bytes, part_count,
+       password_hash, max_downloads, expires_at, upload_expires_at, status,
+       created_at, updated_at
      )
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'OPENING', ?, ?
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            'OPENING', ?, ?
      WHERE ? <= ?
        AND (
          COALESCE((
@@ -288,7 +297,9 @@ app.post("/api/uploads", async (context) => {
       objectKey,
       originalName,
       contentType,
+      storedSizeBytes,
       body.data.sizeBytes,
+      storageEncoding,
       PART_SIZE_BYTES,
       partCount,
       passwordHash,
@@ -299,17 +310,17 @@ app.post("/api/uploads", async (context) => {
       createdAt,
       body.data.sizeBytes,
       policy.maxFileBytes,
-      body.data.sizeBytes,
+      storedSizeBytes,
       GLOBAL_ACTIVE_STORAGE_BYTES,
       identity?.id ?? null,
       identity?.id ?? null,
       identity?.id ?? null,
-      body.data.sizeBytes,
+      storedSizeBytes,
       policy.maxActiveBytes,
       identity?.id ?? null,
       guestActorHash,
       guestActorHash,
-      body.data.sizeBytes,
+      storedSizeBytes,
       policy.maxActiveBytes,
     )
     .run();
@@ -329,8 +340,12 @@ app.post("/api/uploads", async (context) => {
       httpMetadata: {
         contentType,
         contentDisposition: contentDisposition(originalName),
+        contentEncoding: storageEncoding ?? undefined,
       },
-      customMetadata: { dropId: uploadId },
+      customMetadata: {
+        dropId: uploadId,
+        sourceSizeBytes: String(body.data.sizeBytes),
+      },
     });
     await context.env.DB.prepare(
       `UPDATE upload_sessions
@@ -358,7 +373,7 @@ app.post("/api/uploads", async (context) => {
       uploadId,
       manageToken,
       publicToken,
-      shareUrl: `${context.env.PUBLIC_ORIGIN}/d/${publicToken}`,
+      shareUrl: `${context.env.PUBLIC_ORIGIN}/${publicToken}`,
       partSizeBytes: PART_SIZE_BYTES,
       partCount,
       expiresAt,
@@ -534,7 +549,7 @@ app.post("/api/uploads/:id/complete", async (context) => {
   return context.json({
     dropId: upload.id,
     publicToken: upload.public_token,
-    shareUrl: `${context.env.PUBLIC_ORIGIN}/d/${upload.public_token}`,
+    shareUrl: `${context.env.PUBLIC_ORIGIN}/${upload.public_token}`,
     expiresAt: upload.expires_at,
   });
 });
@@ -555,7 +570,7 @@ const requireSession: MiddlewareHandler<{
   const session = await verifySession(context.req.raw, context.env.PASS);
   if (!session) {
     return context.json(
-      { code: "UNAUTHORIZED", message: "Sign in with Zarkiv Pass." },
+      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
       401,
     );
   }
@@ -567,9 +582,12 @@ app.get("/api/drops", requireSession, async (context) => {
   const ownerId = context.get("session").identity.id;
   const drops = await context.env.DB.prepare(
     `SELECT id, public_token, original_name, content_type, size_bytes,
-            max_downloads, download_count, expires_at, status, created_at,
-            completed_at, password_hash IS NOT NULL AS protected
+            COALESCE(source_size_bytes, size_bytes) AS source_size_bytes,
+            storage_encoding, max_downloads, download_count, expires_at,
+            status, created_at, completed_at,
+            password_hash IS NOT NULL AS protected
      FROM drops WHERE owner_user_id = ?
+       AND public_token IS NOT NULL
      ORDER BY created_at DESC LIMIT 100`,
   )
     .bind(ownerId)
@@ -842,13 +860,14 @@ export async function finalizeUploadRecord(
       `INSERT OR IGNORE INTO drops (
          id, owner_user_id, guest_actor_hash, public_token, public_token_hash,
          manage_token_hash, object_key, original_name, content_type, size_bytes,
-         password_hash, max_downloads, expires_at, status, created_at,
-         completed_at
+         source_size_bytes, storage_encoding, password_hash, max_downloads,
+         expires_at, status, created_at, completed_at
        )
        SELECT id, owner_user_id, guest_actor_hash, public_token,
               public_token_hash, manage_token_hash, object_key, original_name,
-              content_type, size_bytes, password_hash, max_downloads,
-              expires_at, 'ACTIVE', created_at, datetime('now')
+              content_type, size_bytes, source_size_bytes, storage_encoding,
+              password_hash, max_downloads, expires_at, 'ACTIVE', created_at,
+              datetime('now')
        FROM upload_sessions
        WHERE id = ? AND status = 'COMPLETING'`,
     ).bind(uploadId),
@@ -922,9 +941,9 @@ async function findUpload(
     .prepare(
       `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
               public_token, public_token_hash, object_key, r2_upload_id,
-              original_name, content_type, size_bytes, part_size_bytes,
-              part_count, password_hash, max_downloads, expires_at,
-              upload_expires_at, status, created_at
+              original_name, content_type, size_bytes, source_size_bytes,
+              storage_encoding, part_size_bytes, part_count, password_hash,
+              max_downloads, expires_at, upload_expires_at, status, created_at
        FROM upload_sessions WHERE id = ?`,
     )
     .bind(id)
@@ -947,8 +966,9 @@ async function findPublicDrop(
     .prepare(
       `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
               public_token, public_token_hash, object_key, original_name,
-              content_type, size_bytes, password_hash, max_downloads,
-              download_count, expires_at, status, created_at, completed_at
+              content_type, size_bytes, source_size_bytes, storage_encoding,
+              password_hash, max_downloads, download_count, expires_at,
+              status, created_at, completed_at
        FROM drops WHERE public_token_hash = ?`,
     )
     .bind(await sha256(token))
@@ -959,7 +979,9 @@ function publicDrop(drop: DropRow) {
   return {
     name: drop.original_name,
     contentType: drop.content_type,
-    sizeBytes: drop.size_bytes,
+    sizeBytes: drop.source_size_bytes ?? drop.size_bytes,
+    storedSizeBytes: drop.size_bytes,
+    compressed: drop.storage_encoding === "gzip",
     protected: Boolean(drop.password_hash),
     maxDownloads: drop.max_downloads,
     downloadCount: drop.download_count,

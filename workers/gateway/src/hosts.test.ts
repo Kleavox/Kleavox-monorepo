@@ -6,27 +6,21 @@ describe("gateway host redirects", () => {
   it("normalizes www while preserving path and query", () => {
     expect(
       hostRedirect(
-        new URL("https://www.zarkiv.com/about?from=www"),
+        new URL("https://www.product.test/about?from=www"),
+        "https://product.test",
       )?.toString(),
-    ).toBe("https://zarkiv.com/about?from=www");
+    ).toBe("https://product.test/about?from=www");
   });
 
-  it("moves legacy product hosts to their canonical products", () => {
+  it("does not redirect canonical or unrelated hosts", () => {
     expect(
-      hostRedirect(new URL("https://bit.deau.site/settings"))?.toString(),
-    ).toBe("https://link.zarkiv.com/settings");
-    expect(hostRedirect(new URL("https://board.deau.site/"))?.toString()).toBe(
-      "https://pulse.zarkiv.com/",
-    );
+      hostRedirect(
+        new URL("https://product.test/about"),
+        "https://product.test",
+      ),
+    ).toBeNull();
     expect(
-      hostRedirect(new URL("https://port.deau.site/projects"))?.toString(),
-    ).toBe("https://port.zarkiv.com/projects");
-  });
-
-  it("keeps deau.site slugs available for Link resolution", () => {
-    expect(hostRedirect(new URL("https://deau.site/legacy-slug"))).toBeNull();
-    expect(hostRedirect(new URL("https://deau.site/"))?.toString()).toBe(
-      "https://zarkiv.com/",
-    );
+      hostRedirect(new URL("https://other.test/about"), "https://product.test"),
+    ).toBeNull();
   });
 });

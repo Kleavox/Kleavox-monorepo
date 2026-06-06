@@ -8,6 +8,8 @@ export const PRODUCT_NAMES = [
 
 export type ProductName = (typeof PRODUCT_NAMES)[number];
 
+export const FILE_SLUG_PREFIX = "f_";
+
 export const RESERVED_SLUGS = [
   "about",
   "account",
@@ -17,6 +19,7 @@ export const RESERVED_SLUGS = [
   "drop",
   "favicon.ico",
   "link",
+  "link-assets",
   "login",
   "pass",
   "port",
@@ -33,6 +36,14 @@ const reservedSlugSet = new Set<string>(RESERVED_SLUGS);
 
 export function isReservedSlug(value: string): boolean {
   return reservedSlugSet.has(value.trim().toLowerCase());
+}
+
+export function isFileSlug(value: string): boolean {
+  const slug = value.trim().toLowerCase();
+  return (
+    slug.startsWith(FILE_SLUG_PREFIX) &&
+    /^[a-z0-9][a-z0-9_-]{7,63}$/u.test(slug)
+  );
 }
 
 export interface Identity {

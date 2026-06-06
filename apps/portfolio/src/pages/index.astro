@@ -1,6 +1,21 @@
 ---
 import "../styles/global.css";
 
+const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
+const portfolioOrigin =
+  import.meta.env.PUBLIC_PORTFOLIO_ORIGIN ??
+  "https://portfolio.example.com";
+const portfolioName = "Hafidh Musyafa";
+const portfolioLocation = "Semarang, Indonesia";
+const githubUrl = "https://github.com/Kleavox";
+const linkedinUrl = "https://www.linkedin.com/in/hmus122/";
+const initials = portfolioName
+  .split(/\s+/u)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0]?.toUpperCase())
+  .join("");
+
 const disciplines = [
   ["embedded", "PCB design, ESP32 firmware, sensor integration"],
   ["software", "TypeScript, Go, Python, C and C++"],
@@ -11,42 +26,40 @@ const disciplines = [
 const projects = [
   {
     index: "01",
-    name: "Zarkiv",
+    name: "Kleavox",
     status: "active",
     type: "edge ecosystem",
     description:
       "A Cloudflare-first ecosystem for identity, short routes, temporary file delivery, and infrastructure monitoring.",
     stack: "TypeScript / Workers / D1 / R2 / Go",
-    href: "https://zarkiv.com",
+    href: rootOrigin,
   },
   {
     index: "02",
-    name: "DeltaT32",
+    name: "Embedded Platform",
     status: "assembled",
     type: "embedded hardware",
     description:
-      "A modular ESP32-C3 platform with hot-swappable BMI270 and MPU9250 sensor boards, designed in KiCad.",
-    stack: "KiCad / ESP32-C3 / IMU / esp-rs",
-    href: "https://github.com/Zarkir",
+      "A modular controller platform with swappable sensor boards and a compact firmware interface.",
+    stack: "KiCad / ESP32 / IMU / Rust",
+    href: githubUrl,
   },
   {
     index: "03",
-    name: "Doswall",
+    name: "Operations Interface",
     status: "shipped",
     type: "mobile system",
     description:
-      "A Flutter rebuild of a lecturer wallboard application with live attendance, campus announcements, and geolocation.",
+      "A mobile operations surface combining live status, announcements, and location-aware workflows.",
     stack: "Flutter / Dart / REST / Geolocation",
-    href: "https://github.com/Zarkir",
+    href: githubUrl,
   },
 ];
 
 const timeline = [
-  ["2022—now", "Computer Engineering, UNNES", "BSc program and thesis work"],
-  ["2024 Q2", "Contract research staff", "Electoral data processing and analysis"],
-  ["2024 Q4", "Dicoding", "Python, machine learning, and AI fundamentals"],
-  ["2025 Q1", "Huawei HCIA-AI", "AI overview and HCIA-AI V3.5"],
-  ["2025", "DeltaT32", "Modular PCB platform assembled"],
+  ["NOW", "Systems practice", "Hardware, software, and infrastructure"],
+  ["RECENT", "Product engineering", "Interfaces backed by observable systems"],
+  ["ONGOING", "Embedded research", "Sensors, controllers, and edge workloads"],
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
@@ -59,31 +72,31 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Portfolio of Hafidh Musyafa, a computer engineering student working across embedded systems, infrastructure, and product interfaces."
+      content={`Portfolio of ${portfolioName}, spanning embedded systems, infrastructure, and product interfaces.`}
     />
     <meta name="theme-color" content="#080b10" />
-    <meta property="og:title" content="Hafidh Musyafa | Systems and interfaces" />
+    <meta property="og:title" content={`${portfolioName} | Systems and interfaces`} />
     <meta
       property="og:description"
       content="Work spanning sensor hardware, edge infrastructure, and deliberate product interfaces."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://port.zarkiv.com" />
-    <link rel="canonical" href="https://port.zarkiv.com" />
-    <title>Hafidh Musyafa | Systems and interfaces</title>
+    <meta property="og:url" content={portfolioOrigin} />
+    <link rel="canonical" href={portfolioOrigin} />
+    <title>{portfolioName} | Systems and interfaces</title>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="port-nav">
       <a class="port-mark" href="/" aria-label="Portfolio home">
-        <span>HM</span>
+        <span>{initials || "PO"}</span>
         <strong>PORT / 26</strong>
       </a>
       <nav aria-label="Portfolio navigation">
         <a href="#work">Work</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
-        <a class="nav-system" href="https://zarkiv.com">Zarkiv ↗</a>
+        <a class="nav-system" href={rootOrigin}>Kleavox / system</a>
       </nav>
     </header>
 
@@ -91,16 +104,16 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
       <section class="port-hero">
         <div class="hero-grid" aria-hidden="true"></div>
         <div class="hero-copy">
-          <p class="mono-label">SEMARANG / INDONESIA / AVAILABLE</p>
+          <p class="mono-label">{portfolioLocation.toUpperCase()} / AVAILABLE</p>
           <h1>Hardware intuition.<br /><em>Software reach.</em></h1>
           <p class="hero-intro">
-            I’m Hafidh Musyafa, a computer engineering student building across
-            the entire signal path: from sensor boards and host agents to
+            I&apos;m Hafidh Musyafa, a computer engineering student building
+            across the entire signal path: from sensor boards and host agents to
             edge services and the interfaces people actually touch.
           </p>
           <div class="hero-actions">
-            <a class="signal-action" href="#work">Inspect selected work <span>↓</span></a>
-            <a class="quiet-action" href="https://github.com/Zarkir">GitHub ↗</a>
+            <a class="signal-action" href="#work">Selected work <span>01</span></a>
+            <a class="quiet-action" href={githubUrl}>GitHub / source</a>
           </div>
         </div>
 
@@ -133,6 +146,19 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
         </div>
       </section>
 
+      <div class="signal-ticker" aria-hidden="true">
+        <div>
+          <span>embedded systems</span>
+          <span>edge infrastructure</span>
+          <span>product interfaces</span>
+          <span>hardware prototyping</span>
+          <span>embedded systems</span>
+          <span>edge infrastructure</span>
+          <span>product interfaces</span>
+          <span>hardware prototyping</span>
+        </div>
+      </div>
+
       <section class="manifesto">
         <p class="mono-label">OPERATING PRINCIPLE</p>
         <p>
@@ -161,7 +187,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
                 <p class="project-description">{project.description}</p>
                 <div class="project-meta">
                   <span>{project.stack}</span>
-                  <strong>{project.status} ↗</strong>
+                  <strong>{project.status} / open</strong>
                 </div>
               </a>
             ))
@@ -211,7 +237,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
         <div class="contact-grid">
           <div class="contact-copy">
             <p>Embedded systems, IoT, web products, or infrastructure.</p>
-            <a href="mailto:port@deau.site">port@deau.site</a>
+            <span>Send a message through Kleavox Port.</span>
           </div>
           <form id="contact-form" class="contact-form">
             <label>
@@ -231,7 +257,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
               data-sitekey={turnstileSiteKey}
               data-theme="dark"
             ></div>
-            <button class="signal-action" type="submit">Send message <span>↗</span></button>
+            <button class="signal-action" type="submit">Send message <span>/</span></button>
             <p id="contact-status" role="status"></p>
           </form>
         </div>
@@ -239,11 +265,11 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
     </main>
 
     <footer class="port-footer">
-      <span>Hafidh Musyafa / {new Date().getFullYear()}</span>
-      <span>Semarang, Indonesia</span>
+      <span>{portfolioName} / {new Date().getFullYear()}</span>
+      <span>{portfolioLocation}</span>
       <div>
-        <a href="https://github.com/Zarkir">GitHub</a>
-        <a href="https://www.linkedin.com/in/hmus122/">LinkedIn</a>
+        <a href={githubUrl}>GitHub</a>
+        {linkedinUrl && <a href={linkedinUrl}>LinkedIn</a>}
       </div>
     </footer>
 

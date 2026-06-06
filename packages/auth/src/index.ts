@@ -1,6 +1,6 @@
-import type { SessionIdentity } from "@zarkiv/core";
+import type { SessionIdentity } from "@kleavox/core";
 
-export const SESSION_COOKIE = "__Secure-zarkiv_session";
+export const SESSION_COOKIE = "__Secure-kleavox_session";
 
 export interface PassBinding {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
@@ -32,7 +32,7 @@ export async function verifySession(
 
   const response = await pass.fetch("http://pass.internal/internal/session", {
     headers: {
-      "x-zarkiv-session": sessionId,
+      "x-kleavox-session": sessionId,
     },
   });
 

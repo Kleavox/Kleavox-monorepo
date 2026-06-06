@@ -1,5 +1,5 @@
-import { verifySession } from "@zarkiv/auth";
-import type { SessionIdentity } from "@zarkiv/core";
+import { verifySession } from "@kleavox/auth";
+import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
 import { z } from "zod";
@@ -62,7 +62,7 @@ const requireSession: MiddlewareHandler<{
   const session = await verifySession(context.req.raw, context.env.PASS);
   if (!session) {
     return context.json(
-      { code: "UNAUTHORIZED", message: "Sign in with Zarkiv Pass." },
+      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
       401,
     );
   }
@@ -173,7 +173,7 @@ app.post("/api/nodes", requireSession, async (context) => {
       id: nodeId,
       enrollmentToken,
       enrollmentExpiresAt,
-      command: `sudo zarkiv-agent enroll --endpoint ${context.env.PUBLIC_ORIGIN} --token ${enrollmentToken}`,
+      command: `sudo kleavox-agent enroll --endpoint ${context.env.PUBLIC_ORIGIN} --token ${enrollmentToken}`,
     },
     201,
   );
@@ -200,7 +200,7 @@ app.post("/api/nodes/:id/enrollment", requireSession, async (context) => {
   return context.json({
     enrollmentToken,
     enrollmentExpiresAt,
-    command: `sudo zarkiv-agent enroll --endpoint ${context.env.PUBLIC_ORIGIN} --token ${enrollmentToken}`,
+    command: `sudo kleavox-agent enroll --endpoint ${context.env.PUBLIC_ORIGIN} --token ${enrollmentToken}`,
   });
 });
 

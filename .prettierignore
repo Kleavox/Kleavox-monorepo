@@ -6,9 +6,5 @@ node_modules/
 **/dist/
 **/bin/
 
-# Legacy repositories are migration references and remain untouched.
-deaubit/
-deauboard/
-deauone/
-deauport/
-deauvault/
+docs/
+packages/compression/pkg/

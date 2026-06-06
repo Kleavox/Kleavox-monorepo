@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zarkiv/agent/internal/reporter"
+	"example.com/kleavox/agent/internal/reporter"
 )
 
 func RunAll(ctx context.Context, definitions []reporter.Check) []reporter.CheckResult {
@@ -72,7 +72,7 @@ func runHTTP(ctx context.Context, target string) error {
 	if err != nil {
 		return err
 	}
-	request.Header.Set("User-Agent", "zarkiv-agent-check")
+	request.Header.Set("User-Agent", "kleavox-agent-check")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err

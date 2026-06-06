@@ -17,10 +17,10 @@ export async function sendVerificationEmail(
 
   await sendEmail(env, {
     to: email,
-    subject: "Verify your Zarkiv account",
+    subject: "Verify your Kleavox account",
     html: accountEmail(
       "Verify your account",
-      `Hi ${escapeHtml(name)}, confirm this email address to activate Zarkiv Pass.`,
+      `Hi ${escapeHtml(name)}, confirm this email address to activate Kleavox Pass.`,
       "Verify email",
       url.toString(),
       "This link expires in 30 minutes.",
@@ -39,10 +39,10 @@ export async function sendPasswordResetEmail(
 
   await sendEmail(env, {
     to: email,
-    subject: "Reset your Zarkiv password",
+    subject: "Reset your Kleavox password",
     html: accountEmail(
       "Reset your password",
-      `Hi ${escapeHtml(name)}, use this link to choose a new Zarkiv Pass password.`,
+      `Hi ${escapeHtml(name)}, use this link to choose a new Kleavox Pass password.`,
       "Reset password",
       url.toString(),
       "This link expires in 15 minutes. Ignore this email if you did not request it.",
@@ -89,7 +89,7 @@ function accountEmail(
 <html>
   <body style="margin:0;background:#f3f1ea;color:#161713;font-family:Arial,sans-serif">
     <div style="max-width:560px;margin:0 auto;padding:48px 24px">
-      <p style="font-weight:700">Zarkiv Pass</p>
+      <p style="font-weight:700">Kleavox Pass</p>
       <h1 style="font-size:32px;line-height:1.1">${escapeHtml(title)}</h1>
       <p style="line-height:1.7;color:#56574f">${intro}</p>
       <p style="margin:32px 0">

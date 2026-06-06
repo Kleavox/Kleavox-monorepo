@@ -18,7 +18,7 @@ describe("Link request helpers", () => {
   });
 
   it("extracts coarse analytics without an IP address", () => {
-    const request = new Request("https://zarkiv.com/example", {
+    const request = new Request("https://product.test/example", {
       headers: {
         "user-agent":
           "Mozilla/5.0 (Windows NT 10.0) AppleWebKit Chrome/125 Safari/537.36",

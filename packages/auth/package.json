@@ -1,5 +1,5 @@
 {
-  "name": "@zarkiv/auth",
+  "name": "@kleavox/auth",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@zarkiv/core": "workspace:*"
+    "@kleavox/core": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

@@ -31,11 +31,9 @@ describe("Pulse retention", () => {
   it("wires scheduled work through waitUntil", () => {
     const { env } = retentionEnv();
     const waitUntil = vi.fn();
-    worker.scheduled(
-      {} as ScheduledController,
-      env,
-      { waitUntil } as unknown as ExecutionContext,
-    );
+    worker.scheduled({} as ScheduledController, env, {
+      waitUntil,
+    } as unknown as ExecutionContext);
     expect(waitUntil).toHaveBeenCalledTimes(1);
     expect(waitUntil.mock.calls[0]?.[0]).toBeInstanceOf(Promise);
   });

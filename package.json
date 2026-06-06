@@ -1,5 +1,5 @@
 {
-  "name": "zarkiv",
+  "name": "kleavox",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.24.0",
@@ -12,10 +12,12 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "compression:build": "pnpm --filter @kleavox/compression build",
+    "compression:test": "pnpm --filter @kleavox/compression test",
     "agent:test": "go -C services/agent test ./...",
     "agent:build": "go -C services/agent build ./cmd/agent",
-    "migrate": "pnpm --filter @zarkiv/migrate exec zarkiv-migrate",
     "deploy:render": "node tooling/deploy/dist/cli.js render",
+    "health:check": "node tooling/health/check.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm agent:test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

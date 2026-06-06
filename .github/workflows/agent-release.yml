@@ -29,23 +29,23 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           version="${GITHUB_REF_NAME#agent-v}"
-          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=${version}" -o zarkiv-agent-linux-amd64 ./cmd/agent
-          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=${version}" -o zarkiv-agent-linux-arm64 ./cmd/agent
-          sha256sum zarkiv-agent-linux-amd64 > zarkiv-agent-linux-amd64.sha256
-          sha256sum zarkiv-agent-linux-arm64 > zarkiv-agent-linux-arm64.sha256
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=${version}" -o kleavox-agent-linux-amd64 ./cmd/agent
+          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=${version}" -o kleavox-agent-linux-arm64 ./cmd/agent
+          sha256sum kleavox-agent-linux-amd64 > kleavox-agent-linux-amd64.sha256
+          sha256sum kleavox-agent-linux-arm64 > kleavox-agent-linux-arm64.sha256
       - name: Attest amd64 binary
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: services/agent/zarkiv-agent-linux-amd64
+          subject-path: services/agent/kleavox-agent-linux-amd64
       - name: Attest arm64 binary
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: services/agent/zarkiv-agent-linux-arm64
+          subject-path: services/agent/kleavox-agent-linux-arm64
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            services/agent/zarkiv-agent-linux-amd64
-            services/agent/zarkiv-agent-linux-amd64.sha256
-            services/agent/zarkiv-agent-linux-arm64
-            services/agent/zarkiv-agent-linux-arm64.sha256
+            services/agent/kleavox-agent-linux-amd64
+            services/agent/kleavox-agent-linux-amd64.sha256
+            services/agent/kleavox-agent-linux-arm64
+            services/agent/kleavox-agent-linux-arm64.sha256

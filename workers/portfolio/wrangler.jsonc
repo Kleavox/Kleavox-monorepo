@@ -1,13 +1,13 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "zarkiv-portfolio",
+  "name": "local-portfolio",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-05",
   "workers_dev": true,
   "preview_urls": false,
   "vars": {
-    "CONTACT_EMAIL": "port@deau.site",
-    "FROM_EMAIL": "Zarkiv Port <no-reply@zarkiv.com>",
+    "CONTACT_EMAIL": "portfolio@inbound.example.test",
+    "FROM_EMAIL": "Portfolio <no-reply@example.test>",
   },
   "assets": {
     "directory": "../../apps/portfolio/dist",

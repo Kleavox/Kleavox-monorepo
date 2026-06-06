@@ -16,8 +16,8 @@ const outputDirectory = resolve(option(args, "out") ?? ".wrangler/deploy");
 try {
   if (command === "render") {
     const domains = (option(args, "domains") ?? "none") as DomainMode;
-    if (!["none", "canonical", "legacy"].includes(domains)) {
-      throw new Error("--domains must be none, canonical, or legacy.");
+    if (!["none", "canonical"].includes(domains)) {
+      throw new Error("--domains must be none or canonical.");
     }
     const configs = productionConfigs(
       process.env as unknown as DeployEnvironment,
@@ -45,7 +45,7 @@ try {
     console.log("Rendered production secret files.");
   } else {
     throw new Error(
-      "Usage: zarkiv-deploy <render|secrets> [--domains none|canonical|legacy] [--out directory]",
+      "Usage: deploy-config <render|secrets> [--domains none|canonical] [--out directory]",
     );
   }
 } catch (error) {

@@ -15,7 +15,7 @@ export async function writeAuditEvent(
   const ip = event.request.headers.get("cf-connecting-ip") ?? "unknown";
   const ipHash = await hashAuditIp(
     ip,
-    env.IP_HASH_SECRET ?? "zarkiv-local-development",
+    env.IP_HASH_SECRET ?? "kleavox-local-development",
   );
   const userAgent = (
     event.request.headers.get("user-agent") ?? "unknown"

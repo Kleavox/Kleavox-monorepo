@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zarkiv/agent/internal/metrics"
+	"example.com/kleavox/agent/internal/metrics"
 )
 
 type Host struct {
@@ -141,7 +141,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, input, output 
 		}
 		request.Header.Set("Authorization", "Bearer "+c.token)
 		request.Header.Set("Accept", "application/json")
-		request.Header.Set("User-Agent", "zarkiv-agent/"+c.version)
+		request.Header.Set("User-Agent", "kleavox-agent/"+c.version)
 		if input != nil {
 			request.Header.Set("Content-Type", "application/json")
 		}

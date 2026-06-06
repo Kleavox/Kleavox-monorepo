@@ -1,4 +1,4 @@
-import type { Identity } from "@zarkiv/core";
+import type { Identity } from "@kleavox/core";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import type { Env } from "./env";
@@ -755,7 +755,7 @@ app.get("/internal/session", async (context) => {
     return context.body(null, 404);
   }
 
-  const token = context.req.header("x-zarkiv-session");
+  const token = context.req.header("x-kleavox-session");
   if (!token) return context.json({ error: "unauthorized" }, 401);
 
   const session = await getSession(context.env, token);

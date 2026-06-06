@@ -13,12 +13,6 @@ dist/
 coverage/
 *.tsbuildinfo
 
-# Legacy working trees are imported as namespaced Git branches before removal.
-/deaubit/
-/deauboard/
-/deauone/
-/deauport/
-/deauvault/
 /docs/
 
 # Framework output

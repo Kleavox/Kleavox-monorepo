@@ -1,5 +1,5 @@
-import { readCookie, SESSION_COOKIE } from "@zarkiv/auth";
-import type { Identity, SessionIdentity } from "@zarkiv/core";
+import { readCookie, SESSION_COOKIE } from "@kleavox/auth";
+import type { Identity, SessionIdentity } from "@kleavox/core";
 import type { Env } from "../env";
 import { SESSION_TTL_SECONDS } from "./cookies";
 import { hashToken, randomToken } from "./crypto";

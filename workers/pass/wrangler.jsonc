@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "zarkiv-pass",
+  "name": "local-pass",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-05",
   "workers_dev": true,
@@ -8,8 +8,8 @@
   "vars": {
     "ENVIRONMENT": "development",
     "PUBLIC_ORIGIN": "http://127.0.0.1:8787",
-    "ROOT_DOMAIN": "zarkiv.com",
-    "FROM_EMAIL": "Zarkiv <no-reply@zarkiv.com>",
+    "ROOT_DOMAIN": "example.test",
+    "FROM_EMAIL": "Example <no-reply@example.test>",
   },
   "assets": {
     "directory": "../../apps/pass/dist",
@@ -26,7 +26,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "zarkiv-pass",
+      "database_name": "local-pass",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations",
     },

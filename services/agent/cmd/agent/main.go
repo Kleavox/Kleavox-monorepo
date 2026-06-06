@@ -17,15 +17,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zarkiv/agent/internal/checks"
-	"github.com/zarkiv/agent/internal/config"
-	"github.com/zarkiv/agent/internal/metrics"
-	"github.com/zarkiv/agent/internal/reporter"
+	"example.com/kleavox/agent/internal/checks"
+	"example.com/kleavox/agent/internal/config"
+	"example.com/kleavox/agent/internal/metrics"
+	"example.com/kleavox/agent/internal/reporter"
 )
 
 var version = "dev"
 
-const defaultConfigPath = "/etc/zarkiv-agent/config.json"
+const defaultConfigPath = "/etc/kleavox-agent/config.json"
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -63,7 +63,7 @@ func run(args []string) error {
 
 func enroll(args []string) error {
 	flags := flag.NewFlagSet("enroll", flag.ContinueOnError)
-	endpoint := flags.String("endpoint", "https://pulse.zarkiv.com", "Pulse endpoint")
+	endpoint := flags.String("endpoint", "https://pulse.example.com", "Pulse endpoint")
 	token := flags.String("token", "", "one-time enrollment token")
 	configPath := flags.String("config", defaultConfigPath, "configuration path")
 	if err := flags.Parse(args); err != nil {
@@ -116,7 +116,7 @@ func runDaemon(args []string, once bool) error {
 		return err
 	}
 
-	log.Printf("zarkiv-agent %s started for node %s", version, cfg.NodeID)
+	log.Printf("kleavox-agent %s started for node %s", version, cfg.NodeID)
 	interval := cfg.Interval
 	for {
 		started := time.Now()
@@ -134,7 +134,7 @@ func runDaemon(args []string, once bool) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			log.Print("zarkiv-agent stopped")
+			log.Print("kleavox-agent stopped")
 			return nil
 		case <-timer.C:
 		}
@@ -213,14 +213,14 @@ func installService(args []string) error {
 	}
 
 	unit := fmt.Sprintf(`[Unit]
-Description=Zarkiv Pulse Agent
+Description=Kleavox Pulse Agent
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=zarkiv-agent
-Group=zarkiv-agent
+User=kleavox-agent
+Group=kleavox-agent
 ExecStart=%s run --config %s
 Restart=always
 RestartSec=15
@@ -238,31 +238,31 @@ RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 [Install]
 WantedBy=multi-user.target
 `, executable, *configPath)
-	if err := os.WriteFile("/etc/systemd/system/zarkiv-agent.service", []byte(unit), 0o644); err != nil {
+	if err := os.WriteFile("/etc/systemd/system/kleavox-agent.service", []byte(unit), 0o644); err != nil {
 		return err
 	}
 	if err := exec.Command("systemctl", "daemon-reload").Run(); err != nil {
 		return err
 	}
-	if err := exec.Command("systemctl", "enable", "--now", "zarkiv-agent.service").Run(); err != nil {
+	if err := exec.Command("systemctl", "enable", "--now", "kleavox-agent.service").Run(); err != nil {
 		return err
 	}
-	fmt.Println("Installed and started zarkiv-agent.service")
+	fmt.Println("Installed and started kleavox-agent.service")
 	return nil
 }
 
 func ensureServiceUser(configPath string) error {
-	account, err := user.Lookup("zarkiv-agent")
+	account, err := user.Lookup("kleavox-agent")
 	if err != nil {
 		if createErr := exec.Command(
 			"useradd", "--system", "--home-dir", "/nonexistent",
-			"--shell", "/usr/sbin/nologin", "zarkiv-agent",
+			"--shell", "/usr/sbin/nologin", "kleavox-agent",
 		).Run(); createErr != nil {
-			return fmt.Errorf("create zarkiv-agent user: %w", createErr)
+			return fmt.Errorf("create kleavox-agent user: %w", createErr)
 		}
-		account, err = user.Lookup("zarkiv-agent")
+		account, err = user.Lookup("kleavox-agent")
 		if err != nil {
-			return fmt.Errorf("lookup zarkiv-agent user: %w", err)
+			return fmt.Errorf("lookup kleavox-agent user: %w", err)
 		}
 	}
 	uid, err := strconv.Atoi(account.Uid)
@@ -283,8 +283,8 @@ func uninstallService() error {
 	if runtime.GOOS != "linux" || os.Geteuid() != 0 {
 		return fmt.Errorf("uninstall-service must run as root on Linux")
 	}
-	_ = exec.Command("systemctl", "disable", "--now", "zarkiv-agent.service").Run()
-	if err := os.Remove("/etc/systemd/system/zarkiv-agent.service"); err != nil && !errors.Is(err, os.ErrNotExist) {
+	_ = exec.Command("systemctl", "disable", "--now", "kleavox-agent.service").Run()
+	if err := os.Remove("/etc/systemd/system/kleavox-agent.service"); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	return exec.Command("systemctl", "daemon-reload").Run()

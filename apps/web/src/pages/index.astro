@@ -1,37 +1,46 @@
 ---
 import "../styles/global.css";
 
+const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
+const rootHost = new URL(rootOrigin).host;
+const productOrigin = (subdomain: string) =>
+  new URL(`https://${subdomain}.${rootHost}`).toString().replace(/\/$/u, "");
+
 const products = [
   {
     name: "Link",
+    domain: "link",
     number: "01",
-    href: "https://link.zarkiv.com",
-    statement: "Short links and files.",
-    detail: "Create routes, track visits, and send temporary files.",
-    capabilities: ["Custom slugs", "Analytics", "Temporary files"],
+    href: productOrigin("link"),
+    statement: "One address for links and files.",
+    detail: "Route a destination or send the file itself from one workspace.",
+    capabilities: ["Custom slugs", "Analytics", "Expiring files"],
   },
   {
     name: "Pass",
+    domain: "pass",
     number: "02",
-    href: "https://pass.zarkiv.com",
+    href: productOrigin("pass"),
     statement: "One account.",
-    detail: "Email, Google, and GitHub login for Zarkiv.",
+    detail: "Email, Google, and GitHub login for Kleavox.",
     capabilities: ["Shared session", "OAuth", "Account recovery"],
   },
   {
     name: "Pulse",
+    domain: "pulse",
     number: "03",
-    href: "https://pulse.zarkiv.com",
+    href: productOrigin("pulse"),
     statement: "Watch every host.",
     detail: "Metrics and checks from a small Go agent.",
     capabilities: ["Host metrics", "Health checks", "Incident history"],
   },
   {
     name: "Port",
+    domain: "port",
     number: "04",
-    href: "https://port.zarkiv.com",
+    href: productOrigin("port"),
     statement: "Selected work.",
-    detail: "Hardware, software, and infrastructure by Hafidh Musyafa.",
+    detail: "Selected hardware, software, and infrastructure work.",
     capabilities: ["Embedded", "Software", "Infrastructure"],
   },
 ];
@@ -44,61 +53,66 @@ const products = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Zarkiv is a focused ecosystem for routes, temporary files, identity, and infrastructure monitoring."
+      content="Kleavox is a focused ecosystem for routes, temporary files, identity, and infrastructure monitoring."
     />
     <meta name="theme-color" content="#0b0d0c" />
-    <meta property="og:title" content="Zarkiv | Focused systems" />
+    <meta property="og:title" content="Kleavox | Focused systems" />
     <meta
       property="og:description"
       content="Routes, temporary files, identity, and infrastructure monitoring under one deliberate system."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://zarkiv.com" />
-    <link rel="canonical" href="https://zarkiv.com" />
-    <title>Zarkiv | Focused systems</title>
+    <meta property="og:url" content={rootOrigin} />
+    <link rel="canonical" href={rootOrigin} />
+    <title>Kleavox | Focused systems</title>
   </head>
   <body>
     <header class="site-header">
-      <a class="wordmark" href="/" aria-label="Zarkiv home">Zarkiv</a>
+      <a class="wordmark" href="/" aria-label="Kleavox home">Kleavox</a>
       <nav aria-label="Primary navigation">
         <a href="#products">Products</a>
         <a href="#system">System</a>
-        <a class="nav-action" href="https://pass.zarkiv.com">Sign in</a>
+        <a class="nav-action" href={productOrigin("pass")}>Sign in</a>
       </nav>
     </header>
 
     <main>
       <section class="hero shell" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">ZARKIV / SYSTEM</p>
+          <p class="eyebrow">KLEAVOX / SYSTEM</p>
           <h1 id="hero-title">Useful tools.<br />One system.</h1>
-          <p class="hero-lede">Links, files, identity, and server monitoring.</p>
+          <p class="hero-lede">Public routes, shared identity, and infrastructure signals.</p>
           <a class="primary-action" href="#products">
             Open products
-            <span aria-hidden="true">↘</span>
+            <span aria-hidden="true">/</span>
           </a>
+          <div class="route-sample" aria-label="Example Kleavox public address">
+            <span>{rootHost}/</span>
+            <strong>your-slug</strong>
+            <i></i>
+          </div>
         </div>
 
-        <div class="product-mosaic" aria-label="Zarkiv product previews">
+        <div class="product-mosaic" aria-label="Kleavox product previews">
           {products.map((product, index) => (
             <a
               class={`mosaic-item mosaic-item-${index + 1}`}
               href={product.href}
-              aria-label={`Open Zarkiv ${product.name}`}
+              aria-label={`Open Kleavox ${product.name}`}
             >
               <div class="mosaic-preview">
-                <small>ZARKIV / {product.name.toUpperCase()}</small>
+                <small>KLEAVOX / {product.name.toUpperCase()}</small>
                 <strong>{product.statement}</strong>
                 <i></i>
               </div>
-              <span>{product.name} ↗</span>
+              <span>{product.name} /</span>
             </a>
           ))}
         </div>
       </section>
 
-      <section class="statement-band" aria-label="Zarkiv purpose">
-        <p>Small tools. Clear jobs.</p>
+      <section class="statement-band" aria-label="Kleavox purpose">
+        <p>One address. Four focused systems.</p>
       </section>
 
       <section id="products" class="products shell" aria-labelledby="products-title">
@@ -121,9 +135,9 @@ const products = [
               <ul aria-label={`${product.name} capabilities`}>
                 {product.capabilities.map((capability) => <li>{capability}</li>)}
               </ul>
-              <a class="product-link" href={product.href} aria-label={`Open Zarkiv ${product.name}`}>
+              <a class="product-link" href={product.href} aria-label={`Open Kleavox ${product.name}`}>
                 Open {product.name}
-                <span aria-hidden="true">↗</span>
+                <span aria-hidden="true">/</span>
               </a>
             </article>
           ))}
@@ -136,11 +150,11 @@ const products = [
           <h2 id="system-title">One domain.<br />Separate workers.</h2>
         </div>
 
-        <div class="architecture" aria-label="Zarkiv architecture">
+        <div class="architecture" aria-label="Kleavox architecture">
           <div class="architecture-domain">
             <span>Public edge</span>
-            <strong>zarkiv.com</strong>
-            <p>Website and short-link resolution.</p>
+            <strong>{rootHost}</strong>
+            <p>Website, short routes, and temporary file delivery.</p>
           </div>
           <div class="architecture-route" aria-hidden="true">
             <span></span>
@@ -152,7 +166,7 @@ const products = [
             {products.map((product) => (
               <a href={product.href}>
                 <strong>{product.name}</strong>
-                <span>{product.name.toLowerCase()}.zarkiv.com</span>
+                <span>{product.domain}.{rootHost}</span>
               </a>
             ))}
           </div>
@@ -181,25 +195,27 @@ const products = [
         <p class="section-label">START</p>
         <h2 id="closing-title">Create an account.<br />Use every tool.</h2>
         <div class="closing-actions">
-          <a class="primary-action" href="https://pass.zarkiv.com">
+          <a class="primary-action" href={productOrigin("pass")}>
             Create your account
-            <span aria-hidden="true">↗</span>
+            <span aria-hidden="true">/</span>
           </a>
-          <a class="text-action" href="https://link.zarkiv.com">Open Link</a>
+          <a class="text-action" href={productOrigin("link")}>Open Link</a>
         </div>
       </section>
     </main>
 
     <footer class="site-footer shell">
-      <a class="wordmark" href="/">Zarkiv</a>
-      <p>Tools by Hafidh Musyafa.</p>
+      <a class="wordmark" href="/">Kleavox</a>
+      <p>Independent tools for public routes and infrastructure.</p>
       <div>
-        <a href="https://link.zarkiv.com">Link</a>
-        <a href="https://pass.zarkiv.com">Pass</a>
-        <a href="https://pulse.zarkiv.com">Pulse</a>
-        <a href="https://port.zarkiv.com">Port</a>
+        <a href={productOrigin("link")}>Link</a>
+        <a href={productOrigin("pass")}>Pass</a>
+        <a href={productOrigin("pulse")}>Pulse</a>
+        <a href={productOrigin("port")}>Port</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
       </div>
-      <span>© {new Date().getFullYear()} Zarkiv</span>
+      <span>(c) {new Date().getFullYear()} Kleavox</span>
     </footer>
 
     <script>

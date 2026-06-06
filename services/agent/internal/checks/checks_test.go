@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/zarkiv/agent/internal/reporter"
+	"example.com/kleavox/agent/internal/reporter"
 )
 
 func TestHTTPCheck(t *testing.T) {
