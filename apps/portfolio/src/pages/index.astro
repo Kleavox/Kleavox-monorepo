@@ -5,16 +5,10 @@ const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
 const portfolioOrigin =
   import.meta.env.PUBLIC_PORTFOLIO_ORIGIN ??
   "https://portfolio.example.com";
-const portfolioName = String(
-  import.meta.env.PUBLIC_PORTFOLIO_NAME ?? "Portfolio Owner",
-);
-const portfolioLocation =
-  import.meta.env.PUBLIC_PORTFOLIO_LOCATION ?? "Independent / Remote";
-const githubUrl =
-  import.meta.env.PUBLIC_GITHUB_URL ?? "https://github.com/example";
-const linkedinUrl = import.meta.env.PUBLIC_LINKEDIN_URL ?? "";
-const contactEmail =
-  import.meta.env.PUBLIC_CONTACT_EMAIL ?? "portfolio@inbound.example.com";
+const portfolioName = "Hafidh Musyafa";
+const portfolioLocation = "Semarang, Indonesia";
+const githubUrl = "https://github.com/Kleavox";
+const linkedinUrl = "https://www.linkedin.com/in/hmus122/";
 const initials = portfolioName
   .split(/\s+/u)
   .filter(Boolean)
@@ -113,8 +107,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
           <p class="mono-label">{portfolioLocation.toUpperCase()} / AVAILABLE</p>
           <h1>Hardware intuition.<br /><em>Software reach.</em></h1>
           <p class="hero-intro">
-            I build across the entire signal path: from sensor boards and host
-            agents to edge services and the interfaces people actually touch.
+            I&apos;m Hafidh Musyafa, a computer engineering student building
+            across the entire signal path: from sensor boards and host agents to
+            edge services and the interfaces people actually touch.
           </p>
           <div class="hero-actions">
             <a class="signal-action" href="#work">Selected work <span>01</span></a>
@@ -242,8 +237,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
         <div class="contact-grid">
           <div class="contact-copy">
             <p>Embedded systems, IoT, web products, or infrastructure.</p>
-            <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-            <span>Resend inbound / receiving address</span>
+            <span>Send a message through Kleavox Port.</span>
           </div>
           <form id="contact-form" class="contact-form">
             <label>

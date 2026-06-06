@@ -102,11 +102,6 @@ WORKER_PREFIX=<worker-prefix>
 DROP_BUCKET_NAME=<bucket-name>
 AUTH_FROM_EMAIL=<auth-sender-address>
 PORTFOLIO_FROM_EMAIL=<portfolio-sender-address>
-PORTFOLIO_CONTACT_EMAIL=<portfolio-recipient-address>
-PUBLIC_PORTFOLIO_NAME=<display name>
-PUBLIC_PORTFOLIO_LOCATION=<location>
-PUBLIC_GITHUB_URL=<public profile URL>
-PUBLIC_LINKEDIN_URL=<public profile URL>
 ```
 
 Add these environment secrets:
@@ -125,8 +120,8 @@ TURNSTILE_SECRET_KEY
 IP_HASH_SECRET
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
-GITHUB_CLIENT_ID
-GITHUB_CLIENT_SECRET
+OAUTH_GITHUB_CLIENT_ID
+OAUTH_GITHUB_CLIENT_SECRET
 GUEST_HASH_SECRET
 DOWNLOAD_SIGNING_SECRET
 PASSWORD_HASH_SECRET
@@ -152,18 +147,29 @@ reuse an OAuth secret or API token.
 
 ## Google OAuth
 
-1. Open Google Cloud Console and select or create a project.
-2. Configure the OAuth consent screen with the Kleavox name, homepage, privacy
-   URL, and support email.
-3. Create an OAuth client with application type `Web application`.
-4. Add `https://pass.<root-domain>` under Authorized JavaScript origins.
-5. Add `https://pass.<root-domain>/api/oauth/callback/google` under Authorized
-   redirect URIs.
-6. Store the client ID and secret in the GitHub `production` environment.
+1. Open Google Cloud Console, select or create a project, and open Google Auth
+   Platform.
+2. Under Branding, set the application name, support email, home page,
+   `https://<root-domain>/privacy`, and `https://<root-domain>/terms`.
+3. Under Audience, choose External.
+4. Under Data Access, declare the basic identity scopes used by the application:
+   `openid`, `userinfo.email`, and `userinfo.profile`.
+5. Under Clients, create a `Web application` client.
+6. Leave Authorized JavaScript origins empty because authentication uses the
+   server authorization-code flow.
+7. Add `https://pass.<root-domain>/api/oauth/callback/google` as the exact
+   Authorized redirect URI.
+8. Store the client ID and secret as `GOOGLE_CLIENT_ID` and
+   `GOOGLE_CLIENT_SECRET` in the GitHub `production` environment.
+9. After the public home, privacy, and terms pages are live, verify ownership of
+   the root domain in Google Search Console, publish the app from Audience, and
+   complete brand verification when Google offers or requires it.
 
 The application requests `openid email profile` at runtime. Google may not show
-`openid` as a selectable consent-screen scope; that is normal. The redirect URI
-must match exactly, including HTTPS and the full path.
+`openid` as a separately selectable scope; it can be prefilled or represented
+by the OpenID Connect identity scopes. The redirect URI must match exactly,
+including HTTPS and the full path. These basic identity scopes are
+non-sensitive; do not add unrelated Google API scopes.
 
 ## GitHub OAuth
 
@@ -172,22 +178,22 @@ must match exactly, including HTTPS and the full path.
 3. Set Homepage URL to `https://<root-domain>`.
 4. Set Authorization callback URL to
    `https://pass.<root-domain>/api/oauth/callback/github`.
-5. Store the generated client ID and client secret in the GitHub `production`
-   environment.
+5. Store the generated values as `OAUTH_GITHUB_CLIENT_ID` and
+   `OAUTH_GITHUB_CLIENT_SECRET` in the GitHub `production` environment. GitHub
+   reserves secret names beginning with `GITHUB_`.
 
 ## Resend
 
-Verify the production domain for sending and add the SPF and DKIM records supplied by
-Resend to Cloudflare DNS. The configured sender addresses can then send account
-and portfolio email.
+Verify the production domain for sending and add the SPF and DKIM records
+supplied by Resend to Cloudflare DNS. The configured sender addresses can then
+send account and portfolio email.
 
 For receiving:
 
 1. Add `inbound.<root-domain>` as a receiving domain in Resend.
 2. Add its MX record to Cloudflare DNS.
-3. Set `PORTFOLIO_CONTACT_EMAIL` to
-   an address on the receiving domain.
-4. Submit the portfolio form and confirm the message appears under Resend
+3. Submit the portfolio form and confirm the message sent to
+   `portfolio@inbound.<root-domain>` appears under Resend
    Receiving.
 
 Resend stores inbound messages even without a webhook. Add an `email.received`

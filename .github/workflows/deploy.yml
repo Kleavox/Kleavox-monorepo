@@ -41,15 +41,14 @@ jobs:
       DROP_BUCKET_NAME: ${{ vars.DROP_BUCKET_NAME }}
       AUTH_FROM_EMAIL: ${{ vars.AUTH_FROM_EMAIL }}
       PORTFOLIO_FROM_EMAIL: ${{ vars.PORTFOLIO_FROM_EMAIL }}
-      PORTFOLIO_CONTACT_EMAIL: ${{ vars.PORTFOLIO_CONTACT_EMAIL }}
       AGENT_DOWNLOAD_BASE: https://github.com/${{ github.repository }}/releases/latest/download
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
       IP_HASH_SECRET: ${{ secrets.IP_HASH_SECRET }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-      GITHUB_CLIENT_ID: ${{ secrets.GITHUB_CLIENT_ID }}
-      GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+      GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
+      GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
       GUEST_HASH_SECRET: ${{ secrets.GUEST_HASH_SECRET }}
       DOWNLOAD_SIGNING_SECRET: ${{ secrets.DOWNLOAD_SIGNING_SECRET }}
       PASSWORD_HASH_SECRET: ${{ secrets.PASSWORD_HASH_SECRET }}
@@ -61,11 +60,6 @@ jobs:
       VITE_PULSE_ORIGIN: https://pulse.${{ vars.APP_ROOT_DOMAIN }}
       PUBLIC_ROOT_ORIGIN: https://${{ vars.APP_ROOT_DOMAIN }}
       PUBLIC_PORTFOLIO_ORIGIN: https://port.${{ vars.APP_ROOT_DOMAIN }}
-      PUBLIC_PORTFOLIO_NAME: ${{ vars.PUBLIC_PORTFOLIO_NAME }}
-      PUBLIC_PORTFOLIO_LOCATION: ${{ vars.PUBLIC_PORTFOLIO_LOCATION }}
-      PUBLIC_GITHUB_URL: ${{ vars.PUBLIC_GITHUB_URL }}
-      PUBLIC_LINKEDIN_URL: ${{ vars.PUBLIC_LINKEDIN_URL }}
-      PUBLIC_CONTACT_EMAIL: ${{ vars.PORTFOLIO_CONTACT_EMAIL }}
     steps:
       - uses: actions/checkout@v4
 

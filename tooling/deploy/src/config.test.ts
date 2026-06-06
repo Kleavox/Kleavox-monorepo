@@ -14,7 +14,6 @@ const env = {
   DROP_BUCKET_NAME: "product-files",
   AUTH_FROM_EMAIL: "Product <no-reply@product.test>",
   PORTFOLIO_FROM_EMAIL: "Portfolio <no-reply@product.test>",
-  PORTFOLIO_CONTACT_EMAIL: "portfolio@inbound.product.test",
   AGENT_DOWNLOAD_BASE:
     "https://github.com/example/project/releases/latest/download",
 };
@@ -39,6 +38,9 @@ describe("production deployment config", () => {
     expect(configs["portfolio"]?.routes).toEqual([
       { pattern: "port.product.test", custom_domain: true },
     ]);
+    expect(configs["portfolio"]?.vars).toMatchObject({
+      CONTACT_EMAIL: "portfolio@inbound.product.test",
+    });
     expect(configs["drop"]?.routes).toBeUndefined();
     expect(configs["drop"]?.vars).toMatchObject({
       PUBLIC_ORIGIN: "https://product.test",

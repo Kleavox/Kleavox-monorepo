@@ -615,12 +615,6 @@ p {
   line-height: 1.6;
 }
 
-.contact-copy a {
-  color: var(--cyan);
-  font-family: "Cascadia Code", monospace;
-  font-size: 0.8rem;
-}
-
 .contact-form {
   display: grid;
   gap: 14px;

@@ -12,7 +12,6 @@ export interface DeployEnvironment {
   DROP_BUCKET_NAME: string;
   AUTH_FROM_EMAIL: string;
   PORTFOLIO_FROM_EMAIL: string;
-  PORTFOLIO_CONTACT_EMAIL: string;
   AGENT_DOWNLOAD_BASE: string;
 }
 
@@ -175,7 +174,7 @@ export function productionConfigs(
       name: names.portfolio,
       main: "../../workers/portfolio/src/index.ts",
       vars: {
-        CONTACT_EMAIL: env.PORTFOLIO_CONTACT_EMAIL,
+        CONTACT_EMAIL: `portfolio@inbound.${rootDomain}`,
         FROM_EMAIL: env.PORTFOLIO_FROM_EMAIL,
       },
       assets: {
@@ -256,7 +255,6 @@ function validateEnvironment(env: DeployEnvironment) {
     "DROP_BUCKET_NAME",
     "AUTH_FROM_EMAIL",
     "PORTFOLIO_FROM_EMAIL",
-    "PORTFOLIO_CONTACT_EMAIL",
     "AGENT_DOWNLOAD_BASE",
   ] as const satisfies readonly (keyof DeployEnvironment)[];
 
