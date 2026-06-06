@@ -37,19 +37,39 @@ interface FormState {
   message?: string;
 }
 
+interface OAuthProviders {
+  google: boolean;
+  github: boolean;
+}
+
 const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
   | undefined;
+const returnTo = new URLSearchParams(window.location.search).get("returnTo");
 
 function App() {
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [mode, setMode] = useState<Mode>("login");
+  const [providers, setProviders] = useState<OAuthProviders>({
+    google: false,
+    github: false,
+  });
   const route = window.location.pathname;
 
   useEffect(() => {
     if (route === "/verify" || route === "/reset") return;
-    void api<SessionResponse>("/api/session")
-      .then(setSession)
+    void Promise.all([
+      api<SessionResponse>("/api/session"),
+      api<OAuthProviders>("/api/oauth/providers"),
+    ])
+      .then(([nextSession, nextProviders]) => {
+        if (nextSession.authenticated && returnTo) {
+          window.location.assign(returnTo);
+          return;
+        }
+        setProviders(nextProviders);
+        setSession(nextSession);
+      })
       .catch(() => setSession({ authenticated: false }));
   }, [route]);
 
@@ -73,30 +93,35 @@ function App() {
     }
     return (
       <Login
+        providers={providers}
         onModeChange={setMode}
-        onAuthenticated={(user) => setSession({ authenticated: true, user })}
+        onAuthenticated={(user) => {
+          if (returnTo) {
+            window.location.assign(returnTo);
+            return;
+          }
+          setSession({ authenticated: true, user });
+        }}
       />
     );
-  }, [mode, route, session]);
+  }, [mode, providers, route, session]);
 
   return (
     <main className="pass-layout">
       <section className="pass-intro" aria-labelledby="pass-title">
         <a className="pass-wordmark" href="https://zarkiv.com">
-          Zarkiv
+          ZARKIV
         </a>
         <div className="pass-intro-copy">
-          <p className="pass-kicker">Pass</p>
-          <h1 id="pass-title">One account. Every Zarkiv tool.</h1>
-          <p>
-            Your identity stays in Pass. Products receive only the minimum
-            profile needed to authorize your work.
-          </p>
+          <p className="pass-kicker">PASS / IDENTITY</p>
+          <h1 id="pass-title">
+            One login.
+            <br />
+            All tools.
+          </h1>
+          <p>Shared access for Link and Pulse.</p>
         </div>
-        <p className="pass-assurance">
-          Opaque sessions. Revocable access. No shared passwords between
-          products.
-        </p>
+        <p className="pass-assurance">SESSION / 7 DAYS / REVOCABLE</p>
       </section>
       <section className="pass-panel">
         <div className="pass-panel-inner">{content}</div>
@@ -106,15 +131,20 @@ function App() {
 }
 
 function Login({
+  providers,
   onModeChange,
   onAuthenticated,
 }: {
+  providers: OAuthProviders;
   onModeChange: (mode: Mode) => void;
   onAuthenticated: (user: Identity) => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
+  const oauthError = oauthErrorMessage(
+    new URLSearchParams(window.location.search).get("oauthError"),
+  );
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -133,11 +163,37 @@ function Login({
   return (
     <AuthForm
       title="Sign in"
-      description="Continue to your Zarkiv products."
+      description="Use your account or a connected provider."
       onSubmit={submit}
       state={state}
       submitLabel="Sign in"
     >
+      {(providers.google || providers.github) && (
+        <>
+          <div className="pass-oauth">
+            {providers.google && (
+              <button type="button" onClick={() => startOAuth("google")}>
+                <span>G</span>
+                Google
+              </button>
+            )}
+            {providers.github && (
+              <button type="button" onClick={() => startOAuth("github")}>
+                <span>GH</span>
+                GitHub
+              </button>
+            )}
+          </div>
+          <div className="pass-divider">
+            <span>or</span>
+          </div>
+        </>
+      )}
+      {oauthError && (
+        <p className="pass-status pass-status-error" role="alert">
+          {oauthError}
+        </p>
+      )}
       <Field
         label="Email"
         name="email"
@@ -162,7 +218,7 @@ function Login({
         Forgot password?
       </button>
       <p className="pass-switch">
-        New to Zarkiv?{" "}
+        No account?{" "}
         <button type="button" onClick={() => onModeChange("register")}>
           Create an account
         </button>
@@ -197,7 +253,7 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
   return (
     <AuthForm
       title="Create your account"
-      description="One verified identity for Link and Pulse."
+      description="Create one identity for Zarkiv."
       onSubmit={submit}
       state={state}
       submitLabel="Create account"
@@ -264,7 +320,7 @@ function ForgotPassword({
   return (
     <AuthForm
       title="Reset access"
-      description="We will send a short-lived reset link if the account is eligible."
+      description="Receive a short-lived reset link."
       onSubmit={submit}
       state={state}
       submitLabel="Send reset link"
@@ -512,7 +568,7 @@ function SecurityChallenge({ onToken }: { onToken: (token?: string) => void }) {
         siteKey={turnstileSiteKey}
         onSuccess={(token) => onToken(token)}
         onExpire={() => onToken(undefined)}
-        options={{ theme: "light", size: "flexible" }}
+        options={{ theme: "dark", size: "flexible" }}
       />
     </div>
   );
@@ -588,6 +644,24 @@ async function api<T = { ok: boolean }>(
 
 function errorMessage(cause: unknown): string {
   return cause instanceof Error ? cause.message : "Request failed.";
+}
+
+function startOAuth(provider: "google" | "github") {
+  const url = new URL(`/api/oauth/${provider}`, window.location.origin);
+  if (returnTo) url.searchParams.set("returnTo", returnTo);
+  window.location.assign(url);
+}
+
+function oauthErrorMessage(code: string | null): string | null {
+  if (!code) return null;
+  const messages: Record<string, string> = {
+    provider_not_configured: "This provider is not configured yet.",
+    oauth_cancelled: "Sign in was cancelled.",
+    oauth_state_expired: "The sign-in request expired. Try again.",
+    oauth_failed: "The provider could not complete sign in.",
+    account_disabled: "This account is disabled.",
+  };
+  return messages[code] ?? "OAuth sign in failed.";
 }
 
 createRoot(document.getElementById("root")!).render(

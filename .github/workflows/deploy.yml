@@ -41,10 +41,15 @@ jobs:
       ZARKIV_PASS_RESEND_API_KEY: ${{ secrets.ZARKIV_PASS_RESEND_API_KEY }}
       ZARKIV_TURNSTILE_SECRET_KEY: ${{ secrets.ZARKIV_TURNSTILE_SECRET_KEY }}
       ZARKIV_PASS_IP_HASH_SECRET: ${{ secrets.ZARKIV_PASS_IP_HASH_SECRET }}
+      ZARKIV_PASS_GOOGLE_CLIENT_ID: ${{ secrets.ZARKIV_PASS_GOOGLE_CLIENT_ID }}
+      ZARKIV_PASS_GOOGLE_CLIENT_SECRET: ${{ secrets.ZARKIV_PASS_GOOGLE_CLIENT_SECRET }}
+      ZARKIV_PASS_GITHUB_CLIENT_ID: ${{ secrets.ZARKIV_PASS_GITHUB_CLIENT_ID }}
+      ZARKIV_PASS_GITHUB_CLIENT_SECRET: ${{ secrets.ZARKIV_PASS_GITHUB_CLIENT_SECRET }}
       ZARKIV_DROP_GUEST_HASH_SECRET: ${{ secrets.ZARKIV_DROP_GUEST_HASH_SECRET }}
       ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET: ${{ secrets.ZARKIV_DROP_DOWNLOAD_SIGNING_SECRET }}
       ZARKIV_DROP_PASSWORD_HASH_SECRET: ${{ secrets.ZARKIV_DROP_PASSWORD_HASH_SECRET }}
       VITE_TURNSTILE_SITE_KEY: ${{ secrets.ZARKIV_TURNSTILE_SITE_KEY }}
+      PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.ZARKIV_TURNSTILE_SITE_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -80,7 +85,7 @@ jobs:
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/link.json
 
       - name: Deploy Portfolio
-        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/portfolio.json
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/portfolio.json --secrets-file .wrangler/deploy/portfolio.secrets.json
 
       - name: Deploy Pulse
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pulse.json

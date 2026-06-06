@@ -1,12 +1,12 @@
 :root {
   color-scheme: dark;
-  --ink: #f1f4ef;
-  --muted: #9ca59e;
-  --quiet: #687169;
-  --base: #0b0d0c;
-  --panel: #111411;
-  --line: #2a302b;
-  --accent: #a8f45a;
+  --ink: #f0f0f0;
+  --muted: #777;
+  --quiet: #555;
+  --base: #000;
+  --panel: #0a0a0a;
+  --line: #292929;
+  --accent: #a3e635;
   --accent-ink: #10180a;
   --shell: min(1380px, calc(100vw - 48px));
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -28,8 +28,8 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   background:
-    linear-gradient(90deg, transparent calc(50% - 0.5px), rgb(255 255 255 / 0.035) 50%, transparent calc(50% + 0.5px)),
-    var(--base);
+    radial-gradient(circle, #202020 0.75px, transparent 0.75px), var(--base);
+  background-size: 22px 22px;
 }
 
 a {
@@ -154,7 +154,9 @@ h1 {
   color: var(--accent-ink);
   font-size: 0.9rem;
   font-weight: 720;
-  transition: transform 160ms ease, background 160ms ease;
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
 }
 
 .primary-action:hover {
@@ -177,7 +179,10 @@ h1 {
   border: 1px solid #303731;
   background: #151815;
   box-shadow: 0 28px 80px rgb(0 0 0 / 0.34);
-  transition: z-index 0s, transform 260ms ease, border-color 260ms ease;
+  transition:
+    z-index 0s,
+    transform 260ms ease,
+    border-color 260ms ease;
 }
 
 .mosaic-item:hover {
@@ -186,12 +191,53 @@ h1 {
   transform: translateY(-7px);
 }
 
-.mosaic-item img {
+.mosaic-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: top left;
-  filter: saturate(0.72) contrast(1.04);
+  padding: clamp(1rem, 3vw, 2.25rem);
+  background:
+    radial-gradient(circle, #303030 0.7px, transparent 0.7px),
+    #0a0a0a;
+  background-size: 18px 18px;
+}
+
+.mosaic-preview small {
+  color: var(--accent);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+}
+
+.mosaic-preview strong {
+  max-width: 9ch;
+  font-size: clamp(1.4rem, 3vw, 3.6rem);
+  letter-spacing: -0.065em;
+  line-height: 0.92;
+}
+
+.mosaic-preview i {
+  width: 42%;
+  height: 5px;
+  background: var(--accent);
+}
+
+.mosaic-item-4 .mosaic-preview {
+  background:
+    linear-gradient(90deg, rgb(34 211 238 / 6%) 1px, transparent 1px),
+    linear-gradient(rgb(34 211 238 / 6%) 1px, transparent 1px),
+    #080b10;
+  background-size: 22px 22px;
+}
+
+.mosaic-item-4 .mosaic-preview small {
+  color: #22d3ee;
+}
+
+.mosaic-item-4 .mosaic-preview i {
+  background: #22d3ee;
 }
 
 .mosaic-item span {
@@ -237,6 +283,7 @@ h1 {
   display: flex;
   align-items: center;
   background: var(--accent);
+  background-image: none;
   color: var(--accent-ink);
 }
 
@@ -340,7 +387,9 @@ h1 {
   gap: 1rem;
   white-space: nowrap;
   font-size: 0.86rem;
-  transition: color 160ms ease, transform 160ms ease;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .product-link:hover {
@@ -430,7 +479,9 @@ h1 {
   justify-content: space-between;
   gap: 2rem;
   border-bottom: 1px solid var(--line);
-  transition: background 160ms ease, color 160ms ease;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
 }
 
 .architecture-products a:last-child {
@@ -540,7 +591,9 @@ h1 {
 .motion-ready .reveal {
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 600ms ease, transform 600ms ease;
+  transition:
+    opacity 600ms ease,
+    transform 600ms ease;
 }
 
 .motion-ready .reveal.is-visible {

@@ -5,8 +5,14 @@ import "@zarkiv/ui/styles.css";
 import "./pulse.css";
 
 interface Identity {
+  id: string;
   email: string;
   name: string | null;
+}
+
+interface SessionResponse {
+  authenticated: boolean;
+  identity?: Identity;
 }
 
 interface NodeRecord {
@@ -94,15 +100,15 @@ function App() {
 
   const refresh = async () => {
     try {
-      const session = await api<{ identity: Identity }>("/api/session");
+      const session = await api<SessionResponse>("/api/session");
+      if (!session.authenticated || !session.identity) {
+        setState({ status: "guest" });
+        return;
+      }
       const overview = await api<Overview>("/api/overview");
       setState({ status: "ready", identity: session.identity, overview });
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        setState({ status: "guest" });
-      } else {
-        setState({ status: "error", message: errorMessage(error) });
-      }
+      setState({ status: "error", message: errorMessage(error) });
     }
   };
 
@@ -144,7 +150,7 @@ function Header({ state }: { state: AppState }) {
       </a>
       <div className="pulse-header-status">
         <span className="pulse-signal" />
-        {state.status === "ready" ? "Control plane online" : "Control plane"}
+        {state.status === "ready" ? "Online" : "Monitor"}
       </div>
       <a href="https://pass.zarkiv.com" className="pulse-account">
         {state.status === "ready"
@@ -183,12 +189,8 @@ function Dashboard({
       <section className="pulse-command">
         <div>
           <p className="pulse-kicker">Workspace / {identity.email}</p>
-          <h1>Infrastructure, without the remote shell.</h1>
-          <p>
-            Pulse receives bounded host telemetry and check results from a small
-            Go daemon. Configuration stays here; execution remains narrow and
-            auditable.
-          </p>
+          <h1>See every host.</h1>
+          <p>Metrics, checks, incidents, projects, and notes.</p>
         </div>
         <div className="pulse-command-actions">
           <CreateNode onCreated={onEnrollment} onRefresh={onRefresh} />
@@ -552,10 +554,33 @@ function ProjectNotes({
       </form>
       <div className="pulse-project-list">
         {projects.map((project) => (
-          <div key={project.id}>
-            <span>{project.status}</span>
+          <article key={project.id}>
+            <select
+              value={project.status}
+              aria-label={`${project.name} status`}
+              onChange={async (event) => {
+                await api(`/api/projects/${project.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ status: event.target.value }),
+                });
+                await onRefresh();
+              }}
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="PAUSED">Paused</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
             <strong>{project.name}</strong>
-          </div>
+            <button
+              aria-label={`Delete ${project.name}`}
+              onClick={async () => {
+                await api(`/api/projects/${project.id}`, { method: "DELETE" });
+                await onRefresh();
+              }}
+            >
+              Remove
+            </button>
+          </article>
         ))}
       </div>
       <form
@@ -580,7 +605,30 @@ function ProjectNotes({
       </form>
       <div className="pulse-note-list">
         {notes.slice(0, 5).map((item) => (
-          <p key={item.id}>{item.content}</p>
+          <article key={item.id}>
+            <p>{item.content}</p>
+            <div>
+              <button
+                onClick={async () => {
+                  await api(`/api/notes/${item.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ pinned: !item.pinned }),
+                  });
+                  await onRefresh();
+                }}
+              >
+                {item.pinned ? "Unpin" : "Pin"}
+              </button>
+              <button
+                onClick={async () => {
+                  await api(`/api/notes/${item.id}`, { method: "DELETE" });
+                  await onRefresh();
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </article>
         ))}
       </div>
     </section>
@@ -598,11 +646,8 @@ function EnrollmentDialog({
     <div className="pulse-dialog-backdrop" role="presentation">
       <section className="pulse-dialog" role="dialog" aria-modal="true">
         <p className="pulse-kicker">One-time enrollment</p>
-        <h2>Connect the VPS within 30 minutes.</h2>
-        <p>
-          Install the binary, then run this command as root. The token is shown
-          once and exchanged for a separate agent credential.
-        </p>
+        <h2>Connect this VPS.</h2>
+        <p>The token expires in 30 minutes.</p>
         <pre>{enrollment.command}</pre>
         <div>
           <button
@@ -676,14 +721,44 @@ function InlineEmpty({ message }: { message: string }) {
 
 function Guest() {
   return (
-    <Empty
-      title="Sign in to open the control plane."
-      message="Pulse uses Zarkiv Pass for identity and keeps node credentials separate from browser sessions."
-    >
-      <a className="pulse-primary" href="https://pass.zarkiv.com">
-        Open Zarkiv Pass
-      </a>
-    </Empty>
+    <main className="pulse-guest">
+      <section>
+        <p className="pulse-kicker">Zarkiv Pulse / Go agent</p>
+        <h1>
+          Your VPS,
+          <br />
+          in one signal.
+        </h1>
+        <p>Host metrics. Service checks. Incident history.</p>
+        <a
+          className="pulse-primary"
+          href={`https://pass.zarkiv.com?returnTo=${encodeURIComponent(window.location.href)}`}
+        >
+          Sign in
+        </a>
+      </section>
+      <div className="pulse-guest-panel" aria-hidden="true">
+        <header>
+          <span />
+          <b>node / production-01</b>
+          <em>online</em>
+        </header>
+        <div className="pulse-guest-metrics">
+          <strong>
+            18<i>% CPU</i>
+          </strong>
+          <strong>
+            42<i>% MEM</i>
+          </strong>
+          <strong>
+            61<i>% DISK</i>
+          </strong>
+        </div>
+        <svg viewBox="0 0 600 150">
+          <path d="M0 112L50 100L100 106L150 64L200 77L250 42L300 58L350 35L400 75L450 58L500 87L550 52L600 69" />
+        </svg>
+      </div>
+    </main>
   );
 }
 

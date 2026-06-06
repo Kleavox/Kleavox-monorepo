@@ -5,12 +5,26 @@
   "compatibility_date": "2026-06-05",
   "workers_dev": true,
   "preview_urls": false,
+  "vars": {
+    "CONTACT_EMAIL": "port@deau.site",
+    "FROM_EMAIL": "Zarkiv Port <no-reply@zarkiv.com>",
+  },
   "assets": {
     "directory": "../../apps/portfolio/dist",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/health"],
+    "run_worker_first": ["/health", "/api/contact"],
   },
+  "ratelimits": [
+    {
+      "name": "CONTACT_RATE_LIMIT",
+      "namespace_id": "3301",
+      "simple": {
+        "limit": 3,
+        "period": 60,
+      },
+    },
+  ],
   "observability": {
     "enabled": true,
   },

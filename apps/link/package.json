@@ -13,6 +13,7 @@
   "dependencies": {
     "@marsidev/react-turnstile": "catalog:",
     "@zarkiv/ui": "workspace:*",
+    "qrcode.react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

@@ -1,5 +1,6 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { QRCodeSVG } from "qrcode.react";
 
 import "@zarkiv/ui/styles.css";
 import { FilesApp } from "./files";
@@ -25,6 +26,20 @@ interface LinkRecord {
   createdAt: string;
 }
 
+interface SessionResponse {
+  authenticated: boolean;
+  identity?: Identity;
+}
+
+interface LinkStats {
+  total: number;
+  lastClickedAt: string | null;
+  daily: Array<{ date: string; value: number }>;
+  browsers: Array<{ name: string; value: number }>;
+  countries: Array<{ name: string; value: number }>;
+  referrers: Array<{ name: string; value: number }>;
+}
+
 type LoadState =
   | { status: "loading" }
   | { status: "guest" }
@@ -38,12 +53,19 @@ function App() {
   ) {
     return <FilesApp />;
   }
+  if (window.location.pathname === "/report") {
+    return <ReportApp />;
+  }
 
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   const refresh = async () => {
     try {
-      const session = await request<{ identity: Identity }>("/api/session");
+      const session = await request<SessionResponse>("/api/session");
+      if (!session.authenticated || !session.identity) {
+        setState({ status: "guest" });
+        return;
+      }
       const links = await request<{ data: LinkRecord[] }>("/api/links");
       if (!isIdentity(session.identity) || !Array.isArray(links.data)) {
         throw new Error("Link received an invalid response from its API.");
@@ -54,10 +76,6 @@ function App() {
         links: links.data,
       });
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        setState({ status: "guest" });
-        return;
-      }
       setState({ status: "error", message: messageFrom(error) });
     }
   };
@@ -98,8 +116,11 @@ function Header({ state }: { state: LoadState }) {
           Routes
         </a>
         <a href="/files">Files</a>
+        <a href="/report">Report</a>
         <a href="https://zarkiv.com">System</a>
-        <a href="https://pass.zarkiv.com">
+        <a
+          href={`https://pass.zarkiv.com?returnTo=${encodeURIComponent(window.location.href)}`}
+        >
           {state.status === "ready"
             ? state.identity.name || state.identity.email
             : "Account"}
@@ -127,12 +148,9 @@ function Dashboard({
     <>
       <section className="link-hero">
         <div>
-          <p className="link-kicker">Workspace / {identity.email}</p>
-          <h1>Short links with a clear owner.</h1>
-          <p className="link-lede">
-            Create durable routes on zarkiv.com, then control access, expiry,
-            and lightweight analytics from one place.
-          </p>
+          <p className="link-kicker">LINK / {identity.email}</p>
+          <h1>Shorten. Track. Control.</h1>
+          <p className="link-lede">Routes and temporary files in one place.</p>
         </div>
         <dl className="link-summary">
           <div>
@@ -191,8 +209,8 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
   return (
     <form className="link-create" onSubmit={submit}>
       <div className="link-section-heading">
-        <p className="link-kicker">New route</p>
-        <h2>Point somewhere useful.</h2>
+        <p className="link-kicker">NEW ROUTE</p>
+        <h2>Create link</h2>
       </div>
 
       <label className="link-field link-field-wide">
@@ -247,7 +265,7 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
           className={`link-form-status link-form-status-${status.type}`}
           role="status"
         >
-          {status.message ?? "Routes become available immediately."}
+          {status.message ?? "Ready."}
         </p>
         <button type="submit" disabled={status.type === "loading"}>
           {status.type === "loading" ? "Creating..." : "Create link"}
@@ -267,8 +285,8 @@ function LinkList({
   if (links.length === 0) {
     return (
       <section className="link-list link-empty">
-        <p className="link-kicker">Routes</p>
-        <h2>Your first short link will appear here.</h2>
+        <p className="link-kicker">ROUTES</p>
+        <h2>No links yet.</h2>
       </section>
     );
   }
@@ -276,8 +294,8 @@ function LinkList({
   return (
     <section className="link-list">
       <div className="link-section-heading">
-        <p className="link-kicker">Routes / {links.length}</p>
-        <h2>Owned destinations.</h2>
+        <p className="link-kicker">ROUTES / {links.length}</p>
+        <h2>Your links</h2>
       </div>
       <div className="link-table" role="list">
         {links.map((link) => (
@@ -296,6 +314,9 @@ function LinkRow({
   onRefresh: () => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const expired = link.expiresAt
     ? Date.parse(link.expiresAt) <= Date.now()
     : false;
@@ -340,6 +361,15 @@ function LinkRow({
         >
           Copy
         </button>
+        <button type="button" onClick={() => setShowStats(true)}>
+          Stats
+        </button>
+        <button type="button" onClick={() => setShowQr(true)}>
+          QR
+        </button>
+        <button type="button" onClick={() => setShowEdit(true)}>
+          Edit
+        </button>
         <button
           type="button"
           disabled={busy}
@@ -356,20 +386,414 @@ function LinkRow({
           Delete
         </button>
       </div>
+      {showStats && (
+        <StatsPanel link={link} onClose={() => setShowStats(false)} />
+      )}
+      {showEdit && (
+        <EditPanel
+          link={link}
+          onClose={() => setShowEdit(false)}
+          onSaved={onRefresh}
+        />
+      )}
+      {showQr && <QrPanel link={link} onClose={() => setShowQr(false)} />}
     </article>
   );
 }
 
 function Guest() {
   return (
-    <Notice
-      title="Sign in to manage routes."
-      message="Zarkiv Pass keeps the account boundary separate from Link. After signing in, return here to create and manage zarkiv.com slugs."
-    >
-      <a className="link-primary" href="https://pass.zarkiv.com">
-        Open Zarkiv Pass
-      </a>
-    </Notice>
+    <section className="link-guest">
+      <div className="link-guest-copy">
+        <p className="link-kicker">ZARKIV LINK</p>
+        <h1>Make a short link.</h1>
+        <p>Guest links use an automatic slug.</p>
+        <a
+          className="link-primary"
+          href={`https://pass.zarkiv.com?returnTo=${encodeURIComponent(window.location.href)}`}
+        >
+          Sign in for controls
+        </a>
+      </div>
+      <PublicLinkForm />
+    </section>
+  );
+}
+
+function PublicLinkForm() {
+  const [targetUrl, setTargetUrl] = useState("");
+  const [created, setCreated] = useState<string>();
+  const [state, setState] = useState<FormState>({ status: "idle" });
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setState({ status: "loading" });
+    try {
+      const result = await request<{ shortUrl: string }>("/api/public-links", {
+        method: "POST",
+        body: JSON.stringify({ targetUrl }),
+      });
+      setCreated(result.shortUrl);
+      setState({ status: "success", message: "Link ready." });
+    } catch (error) {
+      setState({ status: "error", message: messageFrom(error) });
+    }
+  }
+
+  return (
+    <form className="link-public-form" onSubmit={submit}>
+      <label className="link-field">
+        <span>Destination</span>
+        <input
+          type="url"
+          value={targetUrl}
+          onChange={(event) => setTargetUrl(event.target.value)}
+          placeholder="https://example.com"
+          required
+        />
+      </label>
+      {created && (
+        <div className="link-public-result">
+          <a href={created} target="_blank" rel="noreferrer">
+            {created}
+          </a>
+          <button
+            type="button"
+            onClick={() => void navigator.clipboard.writeText(created)}
+          >
+            Copy
+          </button>
+        </div>
+      )}
+      {state.message && (
+        <p className={`link-form-status link-form-status-${state.status}`}>
+          {state.message}
+        </p>
+      )}
+      <button type="submit" disabled={state.status === "loading"}>
+        {state.status === "loading" ? "Creating..." : "Shorten"}
+      </button>
+    </form>
+  );
+}
+
+interface FormState {
+  status: "idle" | "loading" | "error" | "success";
+  message?: string;
+}
+
+function EditPanel({
+  link,
+  onClose,
+  onSaved,
+}: {
+  link: LinkRecord;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [targetUrl, setTargetUrl] = useState(link.targetUrl);
+  const [expiresAt, setExpiresAt] = useState(
+    link.expiresAt ? link.expiresAt.slice(0, 16) : "",
+  );
+  const [password, setPassword] = useState("");
+  const [clearPassword, setClearPassword] = useState(false);
+  const [state, setState] = useState<FormState>({ status: "idle" });
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setState({ status: "loading" });
+    try {
+      await request(`/api/links/${encodeURIComponent(link.slug)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          targetUrl,
+          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+          password: clearPassword ? null : password || undefined,
+        }),
+      });
+      await onSaved();
+      onClose();
+    } catch (error) {
+      setState({ status: "error", message: messageFrom(error) });
+    }
+  };
+
+  return (
+    <div className="link-modal-backdrop" role="presentation">
+      <form className="link-stats link-edit" onSubmit={submit}>
+        <header>
+          <div>
+            <p className="link-kicker">EDIT / {link.slug}</p>
+            <h2>Route settings</h2>
+          </div>
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
+        </header>
+        <label className="link-field">
+          <span>Destination</span>
+          <input
+            type="url"
+            value={targetUrl}
+            onChange={(event) => setTargetUrl(event.target.value)}
+            required
+          />
+        </label>
+        <label className="link-field">
+          <span>Expires</span>
+          <input
+            type="datetime-local"
+            value={expiresAt}
+            onChange={(event) => setExpiresAt(event.target.value)}
+          />
+        </label>
+        <label className="link-field">
+          <span>New password</span>
+          <input
+            type="password"
+            minLength={8}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            disabled={clearPassword}
+            placeholder={link.protected ? "Keep current password" : "Optional"}
+          />
+        </label>
+        {link.protected && (
+          <label className="link-check">
+            <input
+              type="checkbox"
+              checked={clearPassword}
+              onChange={(event) => setClearPassword(event.target.checked)}
+            />
+            Remove password
+          </label>
+        )}
+        {state.message && (
+          <p className="link-form-status link-form-status-error">
+            {state.message}
+          </p>
+        )}
+        <button className="link-primary" disabled={state.status === "loading"}>
+          {state.status === "loading" ? "Saving..." : "Save"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function QrPanel({ link, onClose }: { link: LinkRecord; onClose: () => void }) {
+  const download = () => {
+    const svg = document.querySelector<SVGElement>("#link-qr-code");
+    if (!svg) return;
+    const blob = new Blob([new XMLSerializer().serializeToString(svg)], {
+      type: "image/svg+xml",
+    });
+    const anchor = document.createElement("a");
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = `${link.slug}.svg`;
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
+  };
+
+  return (
+    <div className="link-modal-backdrop" role="presentation">
+      <section className="link-stats link-qr" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <p className="link-kicker">QR / {link.slug}</p>
+            <h2>Scan route</h2>
+          </div>
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
+        </header>
+        <div>
+          <QRCodeSVG
+            id="link-qr-code"
+            value={link.shortUrl}
+            size={256}
+            bgColor="#ffffff"
+            fgColor="#000000"
+            level="H"
+          />
+        </div>
+        <button className="link-primary" onClick={download}>
+          Download SVG
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function ReportApp() {
+  const [slug, setSlug] = useState("");
+  const [reason, setReason] = useState("PHISHING");
+  const [details, setDetails] = useState("");
+  const [state, setState] = useState<FormState>({ status: "idle" });
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setState({ status: "loading" });
+    try {
+      await request("/api/reports", {
+        method: "POST",
+        body: JSON.stringify({ slug, reason, details: details || undefined }),
+      });
+      setSlug("");
+      setDetails("");
+      setState({ status: "success", message: "Report received." });
+    } catch (error) {
+      setState({ status: "error", message: messageFrom(error) });
+    }
+  };
+
+  return (
+    <div className="link-app">
+      <header className="link-header">
+        <a className="link-brand" href="/">
+          ZARKIV <span>LINK</span>
+        </a>
+        <nav>
+          <a href="/">Routes</a>
+          <a href="/files">Files</a>
+        </nav>
+      </header>
+      <main className="link-report-page">
+        <form className="link-create" onSubmit={submit}>
+          <div className="link-section-heading">
+            <p className="link-kicker">SAFETY</p>
+            <h1>Report a link</h1>
+          </div>
+          <label className="link-field">
+            <span>Slug</span>
+            <div className="link-prefix-input">
+              <b>zarkiv.com/</b>
+              <input
+                value={slug}
+                onChange={(event) => setSlug(event.target.value)}
+                required
+              />
+            </div>
+          </label>
+          <label className="link-field">
+            <span>Reason</span>
+            <select
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            >
+              <option value="PHISHING">Phishing</option>
+              <option value="MALWARE">Malware</option>
+              <option value="SPAM">Spam</option>
+              <option value="ILLEGAL">Illegal content</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </label>
+          <label className="link-field">
+            <span>Details</span>
+            <textarea
+              value={details}
+              onChange={(event) => setDetails(event.target.value)}
+              maxLength={1000}
+            />
+          </label>
+          {state.message && (
+            <p className={`link-form-status link-form-status-${state.status}`}>
+              {state.message}
+            </p>
+          )}
+          <button disabled={state.status === "loading"}>
+            {state.status === "loading" ? "Sending..." : "Send report"}
+          </button>
+        </form>
+      </main>
+    </div>
+  );
+}
+
+function StatsPanel({
+  link,
+  onClose,
+}: {
+  link: LinkRecord;
+  onClose: () => void;
+}) {
+  const [stats, setStats] = useState<LinkStats>();
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    void request<LinkStats>(`/api/links/${encodeURIComponent(link.slug)}/stats`)
+      .then(setStats)
+      .catch((cause) => setError(messageFrom(cause)));
+  }, [link.slug]);
+
+  const maxDaily = Math.max(
+    1,
+    ...(stats?.daily.map((item) => item.value) ?? []),
+  );
+
+  return (
+    <div className="link-modal-backdrop" role="presentation">
+      <section className="link-stats" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <p className="link-kicker">ANALYTICS / {link.slug}</p>
+            <h2>{stats?.total ?? link.clickCount} clicks</h2>
+          </div>
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
+        </header>
+        {error && (
+          <p className="link-form-status link-form-status-error">{error}</p>
+        )}
+        {!stats && !error && <div className="link-loading" />}
+        {stats && (
+          <>
+            <div className="link-chart" aria-label="Clicks over seven days">
+              {stats.daily.map((item) => (
+                <div key={item.date}>
+                  <i
+                    style={{
+                      height: `${Math.max(4, (item.value / maxDaily) * 100)}%`,
+                    }}
+                  />
+                  <span>{item.date.slice(5)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="link-dimensions">
+              <Dimension title="Browsers" values={stats.browsers} />
+              <Dimension title="Countries" values={stats.countries} />
+              <Dimension title="Referrers" values={stats.referrers} />
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Dimension({
+  title,
+  values,
+}: {
+  title: string;
+  values: Array<{ name: string; value: number }>;
+}) {
+  return (
+    <div>
+      <strong>{title}</strong>
+      {values.length === 0 ? (
+        <p>No data</p>
+      ) : (
+        values.map((item) => (
+          <p key={item.name}>
+            <span>{item.name}</span>
+            <b>{item.value}</b>
+          </p>
+        ))
+      )}
+    </div>
   );
 }
 

@@ -11,6 +11,13 @@ import {
   verifyPassword,
 } from "./lib/crypto";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./lib/mail";
+import {
+  beginOAuth,
+  finishOAuth,
+  oauthFailure,
+  type OAuthProfile,
+  type OAuthProvider,
+} from "./lib/oauth";
 import { rateLimit } from "./lib/rate-limit";
 import {
   createSession,
@@ -89,8 +96,24 @@ const app = new Hono<AppEnv>();
 
 app.onError((cause, context) => {
   console.error("[pass]", cause);
+  if (/no such table/i.test(String(cause))) {
+    return context.json(
+      {
+        error: {
+          code: "service_not_ready",
+          message: "Pass database migrations have not been applied.",
+        },
+      },
+      503,
+    );
+  }
   return context.json(
-    { error: { code: "internal_error", message: "Something went wrong." } },
+    {
+      error: {
+        code: "internal_error",
+        message: "Pass could not complete the request.",
+      },
+    },
     500,
   );
 });
@@ -133,6 +156,69 @@ app.use("/api/*", async (context, next) => {
 app.get("/health", (context) =>
   context.json({ service: "pass", status: "ok" }),
 );
+
+app.get("/ready", async (context) => {
+  const result = await context.env.DB.prepare(
+    `SELECT COUNT(*) AS total
+     FROM sqlite_master
+     WHERE type = 'table'
+       AND name IN ('users', 'identities', 'verification_tokens', 'auth_events')`,
+  ).first<{ total: number }>();
+  const ready = result?.total === 4;
+  return context.json(
+    { service: "pass", status: ready ? "ready" : "migration_required" },
+    ready ? 200 : 503,
+  );
+});
+
+app.get("/api/oauth/providers", (context) =>
+  context.json({
+    google: Boolean(
+      context.env.GOOGLE_CLIENT_ID && context.env.GOOGLE_CLIENT_SECRET,
+    ),
+    github: Boolean(
+      context.env.GITHUB_CLIENT_ID && context.env.GITHUB_CLIENT_SECRET,
+    ),
+  }),
+);
+
+app.get("/api/oauth/:provider", async (context) => {
+  const provider = oauthProvider(context.req.param("provider"));
+  if (!provider) return context.body(null, 404);
+  return beginOAuth(context.req.raw, context.env, provider);
+});
+
+app.get("/api/oauth/callback/:provider", async (context) => {
+  const provider = oauthProvider(context.req.param("provider"));
+  if (!provider) return context.body(null, 404);
+  const result = await finishOAuth(context.req.raw, context.env, provider);
+  if (result instanceof Response) return result;
+
+  const user = await findOrCreateOAuthUser(context.env, result.profile);
+  if (user.disabled_at) {
+    return oauthFailure(context.env, "account_disabled");
+  }
+
+  const identity = toIdentity(user);
+  const created = await createSession(context.env, identity, user.auth_version);
+  await context.env.DB.prepare(
+    `UPDATE users
+     SET last_login_at = datetime('now'), updated_at = datetime('now')
+     WHERE id = ?`,
+  )
+    .bind(user.id)
+    .run();
+  await safeAudit(context.env, {
+    userId: user.id,
+    type: `oauth_${provider}_succeeded`,
+    request: context.req.raw,
+  });
+  context.header(
+    "Set-Cookie",
+    makeSessionCookie(context.req.raw, context.env, created.token),
+  );
+  return context.redirect(result.returnTo, 302);
+});
 
 app.post("/api/register", async (context) => {
   const body = registerSchema.safeParse(await context.req.json());
@@ -237,12 +323,22 @@ app.post("/api/register", async (context) => {
   );
 
   await context.env.DB.batch(statements);
-  await sendVerificationEmail(
-    context.env,
-    body.data.email,
-    body.data.name,
-    verification.raw,
-  );
+  try {
+    await sendVerificationEmail(
+      context.env,
+      body.data.email,
+      body.data.name,
+      verification.raw,
+    );
+  } catch (cause) {
+    console.error("[pass email]", cause);
+    return apiError(
+      context,
+      503,
+      "email_delivery_failed",
+      "Account saved, but the verification email could not be sent. Check Resend, then retry.",
+    );
+  }
   await safeAudit(context.env, {
     userId,
     type: existing ? "registration_restarted" : "registration_created",
@@ -704,6 +800,82 @@ async function findUserByEmail(
     .first<UserRow>();
 }
 
+async function findOrCreateOAuthUser(
+  env: Env,
+  profile: OAuthProfile,
+): Promise<UserRow> {
+  const linked = await env.DB.prepare(
+    `SELECT u.id, u.email, u.name, u.role, u.email_verified_at,
+            u.auth_version, u.disabled_at, i.id AS identity_id,
+            i.password_hash
+     FROM identities i
+     JOIN users u ON u.id = i.user_id
+     WHERE i.provider = ? AND i.provider_subject = ?
+     LIMIT 1`,
+  )
+    .bind(profile.provider, profile.subject)
+    .first<UserRow>();
+  if (linked) return linked;
+
+  const existing = await findUserByEmail(env, profile.email);
+  if (existing) {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO identities
+         (id, user_id, provider, provider_subject, password_hash)
+         VALUES (?, ?, ?, ?, NULL)`,
+      ).bind(
+        crypto.randomUUID(),
+        existing.id,
+        profile.provider,
+        profile.subject,
+      ),
+      env.DB.prepare(
+        `UPDATE users
+         SET email_verified_at = COALESCE(email_verified_at, datetime('now')),
+             name = COALESCE(NULLIF(name, ''), ?),
+             updated_at = datetime('now')
+         WHERE id = ?`,
+      ).bind(profile.name, existing.id),
+    ]);
+    return {
+      ...existing,
+      name: existing.name || profile.name,
+      email_verified_at: existing.email_verified_at ?? new Date().toISOString(),
+    };
+  }
+
+  const userId = crypto.randomUUID();
+  const identityId = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO users (id, email, name, email_verified_at)
+       VALUES (?, ?, ?, datetime('now'))`,
+    ).bind(userId, profile.email, profile.name),
+    env.DB.prepare(
+      `INSERT INTO identities
+       (id, user_id, provider, provider_subject, password_hash)
+       VALUES (?, ?, ?, ?, NULL)`,
+    ).bind(identityId, userId, profile.provider, profile.subject),
+  ]);
+
+  return {
+    id: userId,
+    email: profile.email,
+    name: profile.name,
+    role: "USER",
+    email_verified_at: new Date().toISOString(),
+    auth_version: 1,
+    disabled_at: null,
+    identity_id: identityId,
+    password_hash: null,
+  };
+}
+
+function oauthProvider(value: string): OAuthProvider | null {
+  return value === "google" || value === "github" ? value : null;
+}
+
 async function createVerificationToken(
   _purpose: "EMAIL" | "PASSWORD_RESET",
   ttlMs: number,
@@ -740,7 +912,7 @@ function rateLimitError(context: AppContext, retryAfter: number) {
 
 function apiError(
   context: AppContext,
-  status: 400 | 401 | 403 | 404 | 409 | 415 | 429 | 500,
+  status: 400 | 401 | 403 | 404 | 409 | 415 | 429 | 500 | 503,
   code: string,
   message: string,
 ) {

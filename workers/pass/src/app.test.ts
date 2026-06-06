@@ -71,4 +71,22 @@ describe("Pass HTTP boundary", () => {
 
     expect(response.status).toBe(401);
   });
+
+  it("reports configured OAuth providers without exposing credentials", async () => {
+    const response = await app.request(
+      "https://pass.zarkiv.com/api/oauth/providers",
+      {},
+      {
+        ...baseEnv,
+        GOOGLE_CLIENT_ID: "google-id",
+        GOOGLE_CLIENT_SECRET: "google-secret",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      google: true,
+      github: false,
+    });
+  });
 });
