@@ -48,6 +48,9 @@ describe("production deployment config", () => {
     expect(configs["gateway"]?.services).toEqual([
       { binding: "LINK", service: "product-link" },
       { binding: "DROP", service: "product-drop" },
+      { binding: "PASS", service: "product-pass" },
+      { binding: "PULSE", service: "product-pulse" },
+      { binding: "PORTFOLIO", service: "product-portfolio" },
     ]);
   });
 
