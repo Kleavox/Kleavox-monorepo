@@ -1,13 +1,13 @@
 :root {
   color-scheme: dark;
-  color: #f0f0f0;
-  background: #000;
+  color: #edecf8;
+  background: #070810;
   font-family: var(--kvx-font);
 }
 
 body {
   min-width: 320px;
-  background: radial-gradient(circle, #202020 0.75px, transparent 0.75px), #000;
+  background: radial-gradient(circle, #1d2040 0.75px, transparent 0.75px), #070810;
   background-size: 22px 22px;
 }
 
@@ -40,7 +40,7 @@ button {
 
 .pass-wordmark {
   width: fit-content;
-  color: #a3e635;
+  color: #8b8ef8;
   font-family: var(--kvx-mono);
   font-size: 0.78rem;
   font-weight: 800;
@@ -55,7 +55,7 @@ button {
 .pass-kicker,
 .pass-section-label {
   margin: 0 0 1.2rem;
-  color: #a3e635;
+  color: #8b8ef8;
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
@@ -73,13 +73,13 @@ button {
 
 .pass-intro-copy > p:last-child {
   margin: 2rem 0 0;
-  color: #888;
+  color: var(--pass-muted);
   font-size: 0.95rem;
 }
 
 .pass-assurance {
   margin: 0;
-  color: #4f4f4f;
+  color: var(--pass-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.65rem;
   letter-spacing: 0.14em;
@@ -88,7 +88,7 @@ button {
 .pass-panel {
   padding: 1px;
   border-radius: 28px;
-  background: linear-gradient(145deg, #353535, #151515);
+  background: linear-gradient(145deg, #1d2040, #0d0f1e);
   box-shadow: 0 32px 100px rgb(0 0 0 / 58%);
 }
 
@@ -99,7 +99,7 @@ button {
   flex-direction: column;
   justify-content: center;
   border-radius: 27px;
-  background: rgb(10 10 10 / 96%);
+  background: rgb(7 8 16 / 96%);
   backdrop-filter: blur(20px);
 }
 
@@ -119,7 +119,7 @@ button {
 .pass-account h2,
 .pass-result h2 {
   margin: 0;
-  color: #f0f0f0;
+  color: var(--pass-ink);
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 900;
   letter-spacing: -0.055em;
@@ -129,7 +129,7 @@ button {
 
 .pass-form-heading > p:last-child {
   margin: 0.8rem 0 0;
-  color: #777;
+  color: var(--pass-muted);
   font-size: 0.82rem;
 }
 
@@ -142,7 +142,7 @@ button {
 .pass-field {
   display: grid;
   gap: 0.45rem;
-  color: #a4a4a4;
+  color: var(--pass-muted);
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
@@ -159,7 +159,7 @@ button {
 }
 
 .pass-field small {
-  color: #555;
+  color: var(--pass-quiet);
   font-size: 0.6rem;
   font-weight: 500;
   letter-spacing: 0;
@@ -169,11 +169,11 @@ button {
 .pass-field input {
   width: 100%;
   min-height: 3.15rem;
-  border: 1px solid #292929;
+  border: 1px solid var(--pass-line);
   border-radius: 999px;
   outline: none;
-  background: #111;
-  color: #f0f0f0;
+  background: #0b0c1a;
+  color: var(--pass-ink);
   padding: 0.8rem 1.15rem;
   transition:
     border-color 160ms ease,
@@ -182,13 +182,13 @@ button {
 }
 
 .pass-field input:hover {
-  border-color: #444;
+  border-color: var(--pass-line-bright);
 }
 
 .pass-field input:focus {
-  border-color: #a3e635;
-  background: #151515;
-  box-shadow: 0 0 0 3px rgb(163 230 53 / 12%);
+  border-color: #8b8ef8;
+  background: #0b0c1a;
+  box-shadow: 0 0 0 3px rgb(139 142 248 / 12%);
 }
 
 .pass-primary,
@@ -216,27 +216,27 @@ button {
 
 .pass-primary,
 .pass-primary-link {
-  border: 1px solid #a3e635;
-  background: #a3e635;
-  color: #080808;
+  border: 1px solid #8b8ef8;
+  background: #8b8ef8;
+  color: #0a0b20;
 }
 
 .pass-primary:hover,
 .pass-primary-link:hover {
-  background: #b7f55e;
+  background: #a8aafb;
 }
 
 .pass-secondary,
 .pass-oauth button {
-  border: 1px solid #2d2d2d;
-  background: #111;
-  color: #e8e8e8;
+  border: 1px solid var(--pass-line);
+  background: #0d0f1c;
+  color: var(--pass-ink);
 }
 
 .pass-secondary:hover,
 .pass-oauth button:hover {
-  border-color: #555;
-  background: #171717;
+  border-color: var(--pass-line-bright);
+  background: var(--pass-panel-soft);
 }
 
 .pass-primary:active,
@@ -259,7 +259,7 @@ button {
 }
 
 .pass-oauth button span {
-  color: #a3e635;
+  color: #8b8ef8;
   font-size: 0.65rem;
 }
 
@@ -267,7 +267,7 @@ button {
   height: 1px;
   position: relative;
   margin: 0.35rem 0;
-  background: #242424;
+  background: var(--pass-line);
   text-align: center;
 }
 
@@ -275,8 +275,8 @@ button {
   position: relative;
   top: -0.65rem;
   padding: 0 0.75rem;
-  background: #0a0a0a;
-  color: #555;
+  background: #0d0f1e;
+  color: var(--pass-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.62rem;
 }
@@ -285,7 +285,7 @@ button {
 .pass-switch button {
   border: 0;
   background: none;
-  color: #a3e635;
+  color: #8b8ef8;
   padding: 0;
   font-size: 0.75rem;
   font-weight: 700;
@@ -303,7 +303,7 @@ button {
 
 .pass-switch {
   margin: 0.2rem 0 0;
-  color: #686868;
+  color: var(--pass-quiet);
   font-size: 0.76rem;
   text-align: center;
 }
@@ -325,9 +325,9 @@ button {
 }
 
 .pass-status-success {
-  border-color: rgb(163 230 53 / 28%);
-  background: rgb(163 230 53 / 8%);
-  color: #a3e635;
+  border-color: rgb(139 142 248 / 28%);
+  background: rgb(139 142 248 / 8%);
+  color: #8b8ef8;
 }
 
 .pass-dev-note {
@@ -335,7 +335,7 @@ button {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: rgb(212 240 106 / 6%);
+  background: rgb(139 142 248 / 6%);
   border: 1px solid var(--pass-line);
   border-radius: 8px;
   color: var(--pass-muted);
@@ -358,11 +358,11 @@ button {
   grid-template-columns: 5rem 1fr;
   gap: 1rem;
   padding: 0.9rem 0;
-  border-bottom: 1px solid #252525;
+  border-bottom: 1px solid var(--pass-line);
 }
 
 .pass-account dt {
-  color: #666;
+  color: var(--pass-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -389,7 +389,7 @@ button {
   display: block;
   height: 0.8rem;
   border-radius: 999px;
-  background: #272727;
+  background: var(--pass-line);
   animation: pass-pulse 1.2s ease-in-out infinite alternate;
 }
 
@@ -445,13 +445,15 @@ button {
 }
 
 :root {
-  --pass-base: #090a07;
-  --pass-panel: #11130d;
-  --pass-panel-soft: #171a11;
-  --pass-line: #303522;
-  --pass-ink: #f2f5e9;
-  --pass-muted: #8f9680;
-  --pass-accent: #d4f06a;
+  --pass-base: #070810;
+  --pass-panel: #0d0f1e;
+  --pass-panel-soft: #131728;
+  --pass-line: #1d2040;
+  --pass-line-bright: #2b2f58;
+  --pass-ink: #edecf8;
+  --pass-muted: #797ba8;
+  --pass-quiet: #4f517a;
+  --pass-accent: #8b8ef8;
   color: var(--pass-ink);
   background: var(--pass-base);
 }
@@ -460,13 +462,13 @@ body {
   background:
     radial-gradient(
       circle at 15% 16%,
-      rgb(212 240 106 / 10%),
+      rgb(139 142 248 / 10%),
       transparent 28rem
     ),
     linear-gradient(
       120deg,
       transparent 0 56%,
-      rgb(212 240 106 / 3%) 56% 56.1%,
+      rgb(139 142 248 / 3%) 56% 56.1%,
       transparent 56.1%
     ),
     var(--pass-base);
@@ -562,7 +564,7 @@ body {
 }
 
 .pass-service-map a:hover {
-  background: rgb(212 240 106 / 6%);
+  background: rgb(139 142 248 / 6%);
   color: var(--pass-ink);
 }
 
@@ -578,7 +580,7 @@ body {
   aspect-ratio: 1;
   right: -28%;
   top: 50%;
-  border: 1px solid rgb(212 240 106 / 14%);
+  border: 1px solid rgb(139 142 248 / 14%);
   border-radius: 50%;
   transform: translateY(-50%);
   animation: pass-orbit 22s linear infinite;
@@ -588,7 +590,7 @@ body {
 .pass-orbit::after {
   position: absolute;
   inset: 12%;
-  border: 1px solid rgb(212 240 106 / 9%);
+  border: 1px solid rgb(139 142 248 / 9%);
   border-radius: inherit;
   content: "";
 }
@@ -603,7 +605,7 @@ body {
   height: 9px;
   border-radius: 50%;
   background: var(--pass-accent);
-  box-shadow: 0 0 20px rgb(212 240 106 / 75%);
+  box-shadow: 0 0 20px rgb(139 142 248 / 75%);
 }
 
 .pass-orbit i:first-child {
@@ -672,7 +674,7 @@ body {
   padding: clamp(28px, 4vw, 54px);
   border-radius: 0;
   background:
-    linear-gradient(150deg, rgb(212 240 106 / 4%), transparent 35%), transparent;
+    linear-gradient(150deg, rgb(139 142 248 / 4%), transparent 35%), transparent;
   backdrop-filter: none;
 }
 
@@ -687,13 +689,13 @@ body {
   min-height: 3.25rem;
   border-color: var(--pass-line);
   border-radius: 8px;
-  background: #0b0c08;
+  background: #0b0c1a;
 }
 
 .pass-field input:focus {
   border-color: var(--pass-accent);
-  background: #10120c;
-  box-shadow: 0 0 0 4px rgb(212 240 106 / 7%);
+  background: #0b0c1a;
+  box-shadow: 0 0 0 4px rgb(139 142 248 / 7%);
 }
 
 .pass-primary,
@@ -711,15 +713,15 @@ body {
 
 .pass-primary:hover,
 .pass-primary-link:hover {
-  background: #e6ff88;
-  box-shadow: 0 14px 34px rgb(153 181 62 / 16%);
+  background: #a8aafb;
+  box-shadow: 0 14px 34px rgb(139 142 248 / 18%);
   transform: translateY(-2px);
 }
 
 .pass-secondary,
 .pass-oauth button {
   border-color: var(--pass-line);
-  background: #0d0f0a;
+  background: #0d0f1c;
 }
 
 .pass-oauth button span,
