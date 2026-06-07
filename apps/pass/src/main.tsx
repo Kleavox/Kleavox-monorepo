@@ -103,27 +103,39 @@ function App() {
   }, [mode, providers, route, session]);
 
   return (
-    <div className="pass-wrapper">
-      <header className="pass-header">
-        <div className="kvx-shell pass-header-inner">
-          <a className="kvx-brand" href={ROOT_ORIGIN}>
-            KLEAVOX <span>PASS</span>
+    <main className="kvx-shell-wide pass-layout">
+      <section className="pass-intro" aria-labelledby="pass-title">
+        <a className="kvx-brand" href={ROOT_ORIGIN}>
+          KLEAVOX <span>PASS</span>
+        </a>
+        <div className="pass-intro-copy">
+          <p className="kvx-kicker">IDENTITY / SHARED SESSION</p>
+          <h1 id="pass-title" className="kvx-title">
+            One signal.
+            <br />
+            Every tool.
+          </h1>
+          <p className="kvx-lede">Sign in once for Link, files, and Pulse.</p>
+        </div>
+        <div
+          className="pass-service-map"
+          aria-label="Connected Kleavox services"
+        >
+          <a href={LINK_ORIGIN}>
+            Link <b>ready</b>
           </a>
-          <div className="pass-links">
-            <a href={LINK_ORIGIN}>Link</a>
-            <a href={PULSE_ORIGIN}>Pulse</a>
-          </div>
+          <a href={PULSE_ORIGIN}>
+            Pulse <b>ready</b>
+          </a>
+          <a href={ROOT_ORIGIN}>
+            Kleavox <b>home</b>
+          </a>
         </div>
-      </header>
-      <main className="pass-layout">
-        <div className="pass-panel-wrapper">
-          <div className="pass-panel-glow" aria-hidden="true" />
-          <section className="kvx-panel pass-panel">
-            {content}
-          </section>
-        </div>
-      </main>
-    </div>
+      </section>
+      <section className="kvx-panel">
+        <div className="pass-panel-inner">{content}</div>
+      </section>
+    </main>
   );
 }
 
@@ -228,11 +240,16 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string>();
   const [state, setState] = useState<FormState>({ status: "idle" });
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (password !== confirmPassword) {
+      setState({ status: "error", message: "Passwords do not match." });
+      return;
+    }
     setState({ status: "loading" });
     try {
       const response = await api<{ message: string }>("/api/register", {
@@ -279,6 +296,15 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
         minLength={12}
         value={password}
         onChange={setPassword}
+      />
+      <Field
+        label="Confirm password"
+        name="confirm-password"
+        type="password"
+        autoComplete="new-password"
+        minLength={12}
+        value={confirmPassword}
+        onChange={setConfirmPassword}
       />
       <SecurityChallenge onToken={setTurnstileToken} />
       <p className="pass-switch">
@@ -553,9 +579,9 @@ function Field({
 function SecurityChallenge({ onToken }: { onToken: (token?: string) => void }) {
   if (!turnstileSiteKey) {
     return (
-      <p className="pass-dev-note">
-        Turnstile is bypassed only in non-production environments.
-      </p>
+      <div className="pass-dev-note">
+        <span aria-hidden="true">🔒</span> Security verification loading…
+      </div>
     );
   }
 

@@ -2,7 +2,7 @@
   color-scheme: dark;
   color: #f0f0f0;
   background: #000;
-  font-family: var(--z-font);
+  font-family: var(--kvx-font);
 }
 
 body {
@@ -55,7 +55,7 @@ button {
 .link-header nav a {
   position: relative;
   color: #777;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-decoration: none;
@@ -80,7 +80,7 @@ button {
 .link-kicker {
   margin: 0 0 1rem;
   color: #a3e635;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -137,7 +137,7 @@ button {
 .link-summary dt,
 .link-clicks span {
   color: #666;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -189,7 +189,7 @@ button {
   display: grid;
   gap: 0.45rem;
   color: #888;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -280,7 +280,7 @@ button {
   padding: 0.75rem 1.4rem;
   background: #a3e635;
   color: #080808;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -297,7 +297,7 @@ button {
 .link-form-status {
   margin: 0;
   color: #666;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.65rem;
   line-height: 1.5;
 }
@@ -334,7 +334,7 @@ button {
 
 .link-route a {
   color: #f0f0f0;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.86rem;
   font-weight: 700;
   text-decoration: none;
@@ -359,7 +359,7 @@ button {
   border-radius: 999px;
   padding: 0.3rem 0.55rem;
   color: #777;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.55rem;
   text-transform: uppercase;
 }
@@ -398,7 +398,7 @@ button {
   padding: 0.45rem 0.75rem;
   background: #111;
   color: #aaa;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.6rem;
 }
 
@@ -445,7 +445,7 @@ button {
   min-width: 0;
   overflow: hidden;
   color: #a3e635;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -580,7 +580,7 @@ button {
 .link-chart span {
   padding-bottom: 0.45rem;
   color: #606060;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.55rem;
 }
 
@@ -600,7 +600,7 @@ button {
 .link-dimensions strong {
   display: block;
   margin-bottom: 0.8rem;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.65rem;
   text-transform: uppercase;
 }
@@ -712,7 +712,7 @@ body {
     0 0 0 7rem rgb(185 246 91 / 1.7%),
     0 0 0 14rem rgb(185 246 91 / 1%);
   content: "";
-  animation: link-orbit 18s var(--z-ease) infinite alternate;
+  animation: link-orbit 18s var(--kvx-ease) infinite alternate;
 }
 
 .link-header {
@@ -757,7 +757,7 @@ body {
   content: "";
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 220ms var(--z-ease);
+  transition: transform 220ms var(--kvx-ease);
 }
 
 .link-header nav a:hover::after,
@@ -794,7 +794,7 @@ body {
   letter-spacing: -0.085em;
   line-height: 0.84;
   text-wrap: balance;
-  animation: link-rise 700ms var(--z-ease) both;
+  animation: link-rise 700ms var(--kvx-ease) both;
 }
 
 .link-lede,
@@ -824,7 +824,7 @@ body {
 
 .link-summary dt {
   color: var(--link-muted);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.65rem;
   margin-bottom: 0.5rem;
 }
@@ -874,7 +874,7 @@ body {
 
 .link-compose-heading strong {
   color: var(--link-accent);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.85em;
 }
 
@@ -910,7 +910,7 @@ body {
 .link-create-index,
 .link-public-heading > span {
   color: var(--link-accent);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   padding-top: 6px;
 }
@@ -934,7 +934,7 @@ body {
 
 .link-field > span {
   color: var(--link-muted);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -987,7 +987,7 @@ body {
   font-size: 0.65rem;
   font-weight: 800;
   transition:
-    transform 180ms var(--z-ease),
+    transform 180ms var(--kvx-ease),
     box-shadow 180ms ease,
     background 180ms ease;
 }
@@ -1030,7 +1030,7 @@ body {
   border-color: var(--link-line);
   transition:
     background 180ms ease,
-    transform 180ms var(--z-ease);
+    transform 180ms var(--kvx-ease);
 }
 
 .link-row:hover {

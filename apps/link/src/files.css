@@ -1,7 +1,7 @@
 :root {
   color: #f0f0f0;
   background: #000;
-  font-family: var(--z-font);
+  font-family: var(--kvx-font);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -69,7 +69,7 @@ a {
 
 .drop-header,
 .drop-footer {
-  width: var(--z-shell);
+  width: var(--kvx-shell);
   margin-inline: auto;
 }
 
@@ -116,7 +116,7 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(520px, 0.78fr);
   gap: clamp(54px, 9vw, 148px);
-  width: var(--z-shell);
+  width: var(--kvx-shell);
   min-height: calc(100dvh - 72px);
   margin-inline: auto;
   padding: clamp(64px, 10vh, 112px) 0 72px;
@@ -426,7 +426,7 @@ a {
 
 .drop-result,
 .drop-ledger {
-  width: var(--z-shell);
+  width: var(--kvx-shell);
   margin-inline: auto;
 }
 
@@ -632,7 +632,7 @@ a {
   grid-template-columns: minmax(0, 1fr) minmax(410px, 0.55fr);
   gap: clamp(60px, 10vw, 160px);
   align-items: center;
-  width: var(--z-shell);
+  width: var(--kvx-shell);
   min-height: calc(100dvh - 144px);
   margin-inline: auto;
   padding: 80px 0;
@@ -746,7 +746,7 @@ a {
 }
 
 .drop-report {
-  width: var(--z-shell);
+  width: var(--kvx-shell);
   margin: 0 auto 70px;
   padding-top: 24px;
   border-top: 1px solid var(--line);
@@ -1017,14 +1017,14 @@ a {
 .drop-embedded .drop-create-index {
   grid-row: 1 / 4;
   color: var(--accent);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.7rem;
 }
 
 .drop-embedded .drop-kicker {
   margin-bottom: 7px;
   color: var(--accent);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   letter-spacing: 0.13em;
 }
 
@@ -1067,7 +1067,7 @@ a {
 .drop-zone-action {
   transition:
     background 180ms ease,
-    transform 180ms var(--z-ease);
+    transform 180ms var(--kvx-ease);
 }
 
 .drop-zone-action:hover:not(:disabled) {
@@ -1078,7 +1078,7 @@ a {
   border: 0;
   border-radius: 8px;
   background: var(--accent);
-  transition: transform 220ms var(--z-ease);
+  transition: transform 220ms var(--kvx-ease);
 }
 
 .drop-zone-action:hover .drop-zone-mark {
@@ -1093,7 +1093,7 @@ a {
 .drop-options label > span,
 .drop-unlock > span {
   color: var(--muted);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
 }
 
 .drop-primary,
@@ -1109,7 +1109,7 @@ a {
 
 .drop-embedded .drop-rule {
   border-color: var(--line);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
 }
 
 .drop-embedded .drop-ledger {

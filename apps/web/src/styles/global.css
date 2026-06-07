@@ -9,7 +9,7 @@
   --accent: #a3e635;
   --accent-ink: #10180a;
   --shell: min(1380px, calc(100vw - 48px));
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: var(--base);
   color: var(--ink);
   font-synthesis: none;
@@ -401,8 +401,33 @@ h1 {
   transform: translateX(3px);
 }
 
+.statement-band {
+  min-height: 58vh;
+  padding: 10vh max(24px, calc((100vw - min(1380px, calc(100vw - 48px))) / 2));
+  display: flex;
+  align-items: center;
+  background: var(--accent);
+  background-image: none;
+  color: var(--accent-ink);
+}
+
+.statement-band h2 {
+  max-width: 18ch;
+  margin: 0;
+  font-size: clamp(3rem, 7.4vw, 8rem);
+  font-weight: 580;
+  letter-spacing: -0.065em;
+  line-height: 0.92;
+}
+
+.statement-band .system-desc {
+  color: var(--accent-ink);
+  opacity: 0.85;
+}
+
 .system {
   padding-bottom: clamp(6rem, 12vw, 11rem);
+  padding-top: clamp(6rem, 12vw, 11rem);
 }
 
 .system-title {
@@ -972,17 +997,73 @@ h1 {
   border-color: #303a31;
   background: var(--panel);
   box-shadow: 0 34px 100px rgb(0 0 0 / 38%);
+  transition:
+    transform 340ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 260ms ease,
+    box-shadow 340ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mosaic-item:hover {
-  transform: translateY(-9px) rotate(-0.6deg);
+  z-index: 5;
+  border-color: var(--accent);
+  transform: translateY(-18px) rotate(-2.4deg) scale(1.018);
+  box-shadow: 0 52px 110px rgb(0 0 0 / 62%), 0 0 0 1px rgb(185 246 91 / 24%);
 }
 
+.mosaic-item-2:hover { transform: translateY(-15px) rotate(2.0deg) scale(1.018); }
+.mosaic-item-3:hover { transform: translateY(-16px) rotate(-1.6deg) scale(1.018); }
+.mosaic-item-4:hover { transform: translateY(-14px) rotate(1.8deg) scale(1.018); }
+
+.mosaic-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 110%, var(--accent) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity 380ms ease;
+}
+.mosaic-item:hover::before { opacity: 0.09; }
+
+.mosaic-item span { z-index: 2; position: relative; }
+
 .mosaic-preview {
+  position: relative;
   background:
     linear-gradient(90deg, rgb(185 246 91 / 4%) 1px, transparent 1px),
     linear-gradient(rgb(185 246 91 / 4%) 1px, transparent 1px), #090c09;
   background-size: 24px 24px;
+  animation: card-grid-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes card-grid-drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 12px 12px, 12px 12px; }
+}
+
+.mosaic-preview i {
+  position: relative;
+  overflow: hidden;
+  animation: bar-pulse 5s ease-in-out infinite alternate;
+}
+
+.mosaic-preview i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.42), transparent);
+  animation: bar-shimmer 3.2s ease-in-out infinite;
+}
+
+@keyframes bar-pulse {
+  from { width: 28%; }
+  to   { width: 60%; }
+}
+
+@keyframes bar-shimmer {
+  from { transform: translateX(-220%); }
+  to   { transform: translateX(420%); }
 }
 
 .mosaic-item-2 .mosaic-preview {
@@ -1027,6 +1108,123 @@ h1 {
 .mosaic-item-4 .mosaic-preview i {
   background: #53d8e0;
 }
+
+/* Mosaic card decorative mini-UIs */
+.mosaic-deco {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.52;
+  right: clamp(0.9rem, 3vw, 1.8rem);
+  bottom: clamp(2.8rem, 5vw, 3.8rem);
+  transition: opacity 280ms ease;
+}
+
+.mosaic-item:hover .mosaic-deco { opacity: 0.9; }
+
+.md-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.md-rows span {
+  display: block;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+.md-rows span:nth-child(1) { width: 68px; }
+.md-rows span:nth-child(2) { width: 44px; }
+.md-rows span:nth-child(3) { width: 56px; }
+.md-dots {
+  display: flex;
+  gap: 5px;
+  margin-top: 7px;
+}
+.md-dots b {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.6;
+}
+.md-dots b:first-child { opacity: 1; }
+
+.mosaic-deco-pass { right: clamp(0.9rem, 3vw, 1.8rem); bottom: auto; top: 50%; transform: translateY(-50%); }
+.md-orbit {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.md-orbit i {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid #d4f06a;
+}
+.md-orbit i:first-child {
+  inset: 0;
+  opacity: 0.5;
+  animation: orbit-spin 8s linear infinite;
+}
+.md-orbit i:last-child {
+  inset: 13px;
+  opacity: 0.8;
+  animation: orbit-spin 5s linear infinite reverse;
+}
+.md-orbit i::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4f06a;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+
+.mosaic-deco-pulse { right: clamp(0.9rem, 3vw, 1.8rem); bottom: clamp(2.8rem, 5vw, 3.8rem); }
+.md-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 40px;
+}
+.md-bars i {
+  display: block;
+  width: 6px;
+  height: var(--h, 50%);
+  background: #43d9e6;
+  border-radius: 2px 2px 0 0;
+  animation: bar-breathe 1.8s ease-in-out infinite alternate;
+}
+.md-bars i:nth-child(2) { animation-delay: 0.15s; }
+.md-bars i:nth-child(3) { animation-delay: 0.3s; }
+.md-bars i:nth-child(4) { animation-delay: 0.45s; }
+.md-bars i:nth-child(5) { animation-delay: 0.6s; }
+.md-bars i:nth-child(6) { animation-delay: 0.75s; }
+@keyframes bar-breathe {
+  from { opacity: 0.5; transform: scaleY(0.72); }
+  to   { opacity: 1;   transform: scaleY(1); }
+}
+
+.mosaic-deco-port { right: clamp(0.9rem, 3vw, 1.8rem); bottom: clamp(2.8rem, 5vw, 3.8rem); }
+.md-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.md-grid i {
+  display: block;
+  width: 30px;
+  height: 22px;
+  border-radius: 3px;
+  background: #53d8e0;
+}
+.md-grid i:nth-child(1) { opacity: 0.75; }
+.md-grid i:nth-child(2) { opacity: 0.45; }
+.md-grid i:nth-child(3) { opacity: 0.55; }
+.md-grid i:nth-child(4) { opacity: 0.3; }
 
 .mosaic-item span {
   border-radius: 7px 0 0;
