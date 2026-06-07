@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
-  color: #eeeef6;
-  background: #08080f;
+  color: #eaf4f5;
+  background: #070b0d;
   font-family: Inter, "Segoe UI", sans-serif;
   font-synthesis: none;
 }
@@ -15,8 +15,8 @@ body {
   min-height: 100dvh;
   margin: 0;
   background:
-    radial-gradient(circle at 75% 8%, rgb(34 211 238 / 9%), transparent 28rem),
-    #08080f;
+    radial-gradient(circle at 75% 8%, rgb(61 219 224 / 9%), transparent 28rem),
+    #070b0d;
 }
 
 button,
@@ -35,7 +35,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid #22d3ee;
+  outline: 2px solid #3ddbe0;
   outline-offset: 3px;
 }
 
@@ -53,13 +53,13 @@ select:focus-visible {
   min-height: 68px;
   padding: 0 clamp(20px, 4vw, 56px);
   background: rgb(8 8 15 / 92%);
-  border-bottom: 1px solid #1c1c32;
+  border-bottom: 1px solid var(--pulse-line);
   backdrop-filter: blur(18px);
 }
 
 .pulse-brand,
 .pulse-account {
-  color: #eeeef6;
+  color: var(--pulse-ink);
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.72rem;
   font-weight: 800;
@@ -68,12 +68,12 @@ select:focus-visible {
 }
 
 .pulse-brand span {
-  color: #22d3ee;
+  color: #3ddbe0;
 }
 
 .pulse-account {
   justify-self: end;
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-weight: 500;
   letter-spacing: 0;
 }
@@ -89,12 +89,12 @@ select:focus-visible {
   gap: 64px;
   min-height: 330px;
   padding: 74px clamp(24px, 5vw, 72px);
-  border-bottom: 1px solid #252542;
+  border-bottom: 1px solid var(--pulse-line-bright);
 }
 
 .pulse-kicker {
   margin: 0 0 14px;
-  color: #22d3ee;
+  color: #3ddbe0;
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.67rem;
   font-weight: 800;
@@ -116,7 +116,7 @@ select:focus-visible {
 .pulse-guest section > p:not(.pulse-kicker) {
   max-width: 36rem;
   margin: 28px 0 0;
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-size: 1rem;
   line-height: 1.65;
 }
@@ -133,9 +133,9 @@ select:focus-visible {
   justify-content: center;
   min-height: 46px;
   padding: 0 19px;
-  color: #061216;
-  background: #22d3ee;
-  border: 1px solid #22d3ee;
+  color: #041214;
+  background: #3ddbe0;
+  border: 1px solid #3ddbe0;
   font-weight: 800;
   text-decoration: none;
   cursor: pointer;
@@ -144,14 +144,14 @@ select:focus-visible {
 .pulse-inline-form {
   width: min(100%, 380px);
   padding: 20px;
-  background: #0e0e1c;
-  border: 1px solid #252542;
+  background: var(--pulse-panel-soft);
+  border: 1px solid var(--pulse-line-bright);
 }
 
 .pulse-inline-form label {
   display: grid;
   gap: 8px;
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-size: 0.72rem;
 }
 
@@ -162,9 +162,9 @@ select:focus-visible {
 .pulse-projects select {
   min-height: 40px;
   padding: 0 11px;
-  color: #eeeef6;
-  background: #08080f;
-  border: 1px solid #252542;
+  color: var(--pulse-ink);
+  background: var(--pulse-base);
+  border: 1px solid var(--pulse-line-bright);
   outline: none;
 }
 
@@ -183,25 +183,25 @@ select:focus-visible {
 .pulse-dialog button {
   min-height: 34px;
   padding: 0 11px;
-  color: #6a6a98;
+  color: var(--pulse-muted);
   background: transparent;
-  border: 1px solid #252542;
+  border: 1px solid var(--pulse-line-bright);
   cursor: pointer;
 }
 
 .pulse-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background: #0e0e1c;
-  border-bottom: 1px solid #252542;
+  background: var(--pulse-panel-soft);
+  border-bottom: 1px solid var(--pulse-line-bright);
 }
 
 .pulse-strip > div {
   display: grid;
   gap: 7px;
   padding: 22px clamp(18px, 3vw, 38px);
-  color: #6a6a98;
-  border-right: 1px solid #252542;
+  color: var(--pulse-muted);
+  border-right: 1px solid var(--pulse-line-bright);
 }
 
 .pulse-strip span {
@@ -210,7 +210,7 @@ select:focus-visible {
 }
 
 .pulse-strip strong {
-  color: #eeeef6;
+  color: var(--pulse-ink);
   font-size: 1.8rem;
   letter-spacing: -0.04em;
 }
@@ -232,15 +232,15 @@ select:focus-visible {
 
 .pulse-nodes {
   min-height: 680px;
-  border-right: 1px solid #1c1c32;
+  border-right: 1px solid var(--pulse-line);
 }
 
 .pulse-side {
-  background: #0b0b17;
+  background: var(--pulse-panel);
 }
 
 .pulse-side > section + section {
-  border-top: 1px solid #1c1c32;
+  border-top: 1px solid var(--pulse-line);
 }
 
 .pulse-section-title h2 {
@@ -255,8 +255,8 @@ select:focus-visible {
 }
 
 .pulse-node {
-  background: #0e0e1c;
-  border: 1px solid #252542;
+  background: var(--pulse-panel-soft);
+  border: 1px solid var(--pulse-line-bright);
 }
 
 .pulse-node > header {
@@ -265,7 +265,7 @@ select:focus-visible {
   justify-content: space-between;
   gap: 24px;
   padding: 22px 24px;
-  border-bottom: 1px solid #1c1c32;
+  border-bottom: 1px solid var(--pulse-line);
 }
 
 .pulse-node h3 {
@@ -278,12 +278,12 @@ select:focus-visible {
 .pulse-check p,
 .pulse-muted {
   margin: 0;
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-size: 0.74rem;
 }
 
 .pulse-state {
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.58rem;
   font-weight: 800;
@@ -310,7 +310,7 @@ select:focus-visible {
 }
 
 .pulse-node-time span {
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-size: 0.65rem;
 }
 
@@ -321,18 +321,18 @@ select:focus-visible {
 .pulse-resources {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-bottom: 1px solid #1c1c32;
+  border-bottom: 1px solid var(--pulse-line);
 }
 
 .pulse-resources > div {
   display: grid;
   gap: 5px;
   padding: 17px 20px;
-  border-right: 1px solid #1c1c32;
+  border-right: 1px solid var(--pulse-line);
 }
 
 .pulse-resources span {
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-size: 0.62rem;
 }
 
@@ -345,14 +345,14 @@ select:focus-visible {
   overflow: hidden;
   height: 3px;
   margin-top: 4px;
-  background: #252542;
+  background: var(--pulse-line-bright);
 }
 
 .pulse-resources i::after {
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--resource);
-  background: #22d3ee;
+  background: #3ddbe0;
   content: "";
 }
 
@@ -374,11 +374,11 @@ select:focus-visible {
   gap: 12px;
   align-items: center;
   min-height: 56px;
-  border-top: 1px solid #1c1c32;
+  border-top: 1px solid var(--pulse-line);
 }
 
 .pulse-check > span {
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.67rem;
 }
@@ -392,7 +392,7 @@ select:focus-visible {
 .pulse-event {
   width: 7px;
   height: 7px;
-  background: #6a6a98;
+  background: var(--pulse-muted);
   border-radius: 50%;
 }
 
@@ -422,7 +422,7 @@ select:focus-visible {
 
 .pulse-text-action {
   margin: 0 24px 22px;
-  color: #22d3ee !important;
+  color: #3ddbe0 !important;
   font-size: 0.7rem;
 }
 
@@ -431,7 +431,7 @@ select:focus-visible {
   grid-template-columns: 8px 1fr;
   gap: 13px;
   padding: 15px 0;
-  border-top: 1px solid #1c1c32;
+  border-top: 1px solid var(--pulse-line);
 }
 
 .pulse-incidents article strong {
@@ -440,7 +440,7 @@ select:focus-visible {
 
 .pulse-incidents article p,
 .pulse-incidents time {
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-size: 0.68rem;
   line-height: 1.5;
 }
@@ -467,14 +467,14 @@ select:focus-visible {
   gap: 10px;
   align-items: center;
   padding: 10px 0;
-  border-top: 1px solid #1c1c32;
+  border-top: 1px solid var(--pulse-line);
 }
 
 .pulse-project-list select {
   min-height: 30px;
   width: 84px;
   padding: 0 5px;
-  color: #22d3ee;
+  color: #3ddbe0;
   font-size: 0.58rem;
   text-transform: uppercase;
 }
@@ -495,7 +495,7 @@ select:focus-visible {
 
 .pulse-note-list p {
   margin: 0;
-  color: #9b9bbb;
+  color: var(--pulse-muted);
   font-size: 0.75rem;
   line-height: 1.5;
 }
@@ -507,8 +507,8 @@ select:focus-visible {
 
 .pulse-inline-empty {
   padding: 28px 0;
-  color: #6a6a98;
-  border-top: 1px solid #1c1c32;
+  color: var(--pulse-muted);
+  border-top: 1px solid var(--pulse-line);
   font-size: 0.8rem;
 }
 
@@ -525,8 +525,8 @@ select:focus-visible {
 .pulse-dialog {
   width: min(620px, 100%);
   padding: 32px;
-  background: #0e0e1c;
-  border: 1px solid #252542;
+  background: var(--pulse-panel-soft);
+  border: 1px solid var(--pulse-line-bright);
 }
 
 .pulse-dialog h2 {
@@ -536,15 +536,15 @@ select:focus-visible {
 }
 
 .pulse-dialog > p:not(.pulse-kicker) {
-  color: #6a6a98;
+  color: var(--pulse-muted);
 }
 
 .pulse-dialog pre {
   overflow: auto;
   padding: 16px;
-  color: #22d3ee;
-  background: #08080f;
-  border: 1px solid #252542;
+  color: #3ddbe0;
+  background: var(--pulse-base);
+  border: 1px solid var(--pulse-line-bright);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -556,7 +556,7 @@ select:focus-visible {
 
 .pulse-empty > p:not(.pulse-kicker) {
   max-width: 620px;
-  color: #6a6a98;
+  color: var(--pulse-muted);
   line-height: 1.7;
 }
 
@@ -569,7 +569,7 @@ select:focus-visible {
 .pulse-loading div {
   width: min(800px, 85vw);
   height: 60px;
-  background: #151528;
+  background: var(--pulse-line);
 }
 
 .pulse-loading div:nth-child(2) {
@@ -601,8 +601,8 @@ select:focus-visible {
 
 .pulse-guest-panel {
   overflow: hidden;
-  background: #0e0e1c;
-  border: 1px solid #252542;
+  background: var(--pulse-panel-soft);
+  border: 1px solid var(--pulse-line-bright);
   box-shadow: 0 32px 100px rgb(0 0 0 / 35%);
 }
 
@@ -613,8 +613,8 @@ select:focus-visible {
   align-items: center;
   min-height: 44px;
   padding: 0 14px;
-  color: #6a6a98;
-  border-bottom: 1px solid #1c1c32;
+  color: var(--pulse-muted);
+  border-bottom: 1px solid var(--pulse-line);
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.65rem;
 }
@@ -635,7 +635,7 @@ select:focus-visible {
 .pulse-guest-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border-bottom: 1px solid #1c1c32;
+  border-bottom: 1px solid var(--pulse-line);
 }
 
 .pulse-guest-metrics strong {
@@ -643,11 +643,11 @@ select:focus-visible {
   gap: 6px;
   padding: 25px;
   font-size: 2rem;
-  border-right: 1px solid #1c1c32;
+  border-right: 1px solid var(--pulse-line);
 }
 
 .pulse-guest-metrics i {
-  color: #6a6a98;
+  color: var(--pulse-muted);
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.62rem;
   font-style: normal;
@@ -658,16 +658,16 @@ select:focus-visible {
   width: 100%;
   padding: 30px 20px 15px;
   background:
-    linear-gradient(90deg, rgb(34 211 238 / 5%) 1px, transparent 1px),
-    linear-gradient(rgb(34 211 238 / 5%) 1px, transparent 1px);
+    linear-gradient(90deg, rgb(61 219 224 / 5%) 1px, transparent 1px),
+    linear-gradient(rgb(61 219 224 / 5%) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
 .pulse-guest-panel path {
   fill: none;
-  stroke: #22d3ee;
+  stroke: #3ddbe0;
   stroke-width: 2;
-  filter: drop-shadow(0 0 5px rgb(34 211 238 / 42%));
+  filter: drop-shadow(0 0 5px rgb(61 219 224 / 42%));
 }
 
 @media (max-width: 980px) {
@@ -757,11 +757,12 @@ select:focus-visible {
   --pulse-base: #070b0d;
   --pulse-panel: #0c1316;
   --pulse-panel-soft: #101a1e;
-  --pulse-line: #21343a;
-  --pulse-line-bright: #31515a;
+  --pulse-line: #1f3440;
+  --pulse-line-bright: #2e4d5c;
   --pulse-ink: #eaf4f5;
-  --pulse-muted: #759097;
-  --pulse-accent: #43d9e6;
+  --pulse-muted: #739099;
+  --pulse-quiet: #4d6570;
+  --pulse-accent: #3ddbe0;
   color: var(--pulse-ink);
   background: var(--pulse-base);
   font-family: var(--kvx-font);
@@ -769,8 +770,8 @@ select:focus-visible {
 
 body {
   background:
-    radial-gradient(circle at 80% 3%, rgb(67 217 230 / 11%), transparent 31rem),
-    linear-gradient(90deg, rgb(67 217 230 / 3%) 1px, transparent 1px),
+    radial-gradient(circle at 80% 3%, rgb(61 219 224 / 11%), transparent 31rem),
+    linear-gradient(90deg, rgb(61 219 224 / 3%) 1px, transparent 1px),
     var(--pulse-base);
   background-size:
     auto,
@@ -819,11 +820,11 @@ body {
   height: 420px;
   right: 3%;
   top: 50%;
-  border: 1px solid rgb(67 217 230 / 13%);
+  border: 1px solid rgb(61 219 224 / 13%);
   border-radius: 50%;
   box-shadow:
-    0 0 0 65px rgb(67 217 230 / 2%),
-    0 0 0 130px rgb(67 217 230 / 1%);
+    0 0 0 65px rgb(61 219 224 / 2%),
+    0 0 0 130px rgb(61 219 224 / 1%);
   content: "";
   transform: translateY(-50%);
 }
@@ -909,8 +910,8 @@ body {
 }
 
 .pulse-primary:hover {
-  background: #75edf4;
-  box-shadow: 0 15px 36px rgb(67 217 230 / 16%);
+  background: #7ee8ec;
+  box-shadow: 0 15px 36px rgb(61 219 224 / 16%);
   transform: translateY(-2px);
 }
 
@@ -1037,7 +1038,7 @@ body {
   position: absolute;
   z-index: -1;
   inset: -28px 42px 28px -28px;
-  border: 1px solid rgb(67 217 230 / 13%);
+  border: 1px solid rgb(61 219 224 / 13%);
   content: "";
 }
 

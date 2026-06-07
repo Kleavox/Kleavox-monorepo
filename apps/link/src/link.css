@@ -1,13 +1,13 @@
 :root {
   color-scheme: dark;
-  color: #f0f0f0;
-  background: #000;
+  color: #eaf4f8;
+  background: #070a0d;
   font-family: var(--kvx-font);
 }
 
 body {
   min-width: 320px;
-  background: radial-gradient(circle, #202020 0.75px, transparent 0.75px), #000;
+  background: radial-gradient(circle, #192330 0.75px, transparent 0.75px), #070a0d;
   background-size: 22px 22px;
 }
 
@@ -32,18 +32,18 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #252525;
+  border-bottom: 1px solid var(--link-line);
 }
 
 .link-brand {
-  color: #f0f0f0;
+  color: var(--link-ink);
   font-weight: 900;
   letter-spacing: -0.035em;
   text-decoration: none;
 }
 
 .link-brand span {
-  color: #a3e635;
+  color: #48caf0;
 }
 
 .link-header nav {
@@ -54,7 +54,7 @@ button {
 
 .link-header nav a {
   position: relative;
-  color: #777;
+  color: var(--link-muted);
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   letter-spacing: 0.06em;
@@ -64,7 +64,7 @@ button {
 
 .link-header nav a:hover,
 .link-header nav .link-nav-active {
-  color: #f0f0f0;
+  color: var(--link-ink);
 }
 
 .link-header nav .link-nav-active::after {
@@ -74,12 +74,12 @@ button {
   bottom: -24px;
   left: 0;
   height: 2px;
-  background: #a3e635;
+  background: #48caf0;
 }
 
 .link-kicker {
   margin: 0 0 1rem;
-  color: #a3e635;
+  color: #48caf0;
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
@@ -93,7 +93,7 @@ button {
   align-items: end;
   gap: 4rem;
   padding: clamp(4rem, 10vw, 8rem) 0 3rem;
-  border-bottom: 1px solid #252525;
+  border-bottom: 1px solid var(--link-line);
 }
 
 .link-hero h1,
@@ -112,7 +112,7 @@ button {
 .link-guest-copy > p {
   max-width: 32rem;
   margin: 1.5rem 0 0;
-  color: #777;
+  color: var(--link-muted);
   line-height: 1.6;
 }
 
@@ -120,10 +120,10 @@ button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   margin: 0;
-  border: 1px solid #292929;
+  border: 1px solid var(--link-line);
   border-radius: 20px;
   overflow: hidden;
-  background: #0a0a0a;
+  background: rgb(7 11 15 / 96%);
 }
 
 .link-summary div {
@@ -131,12 +131,12 @@ button {
 }
 
 .link-summary div + div {
-  border-left: 1px solid #292929;
+  border-left: 1px solid var(--link-line);
 }
 
 .link-summary dt,
 .link-clicks span {
-  color: #666;
+  color: var(--link-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
@@ -161,9 +161,9 @@ button {
 .link-list,
 .link-public-form,
 .link-stats {
-  border: 1px solid #292929;
+  border: 1px solid var(--link-line);
   border-radius: 24px;
-  background: rgb(10 10 10 / 96%);
+  background: rgb(7 11 15 / 96%);
 }
 
 .link-create,
@@ -188,7 +188,7 @@ button {
 .link-field {
   display: grid;
   gap: 0.45rem;
-  color: #888;
+  color: var(--link-muted);
   font-family: var(--kvx-mono);
   font-size: 0.65rem;
   font-weight: 700;
@@ -199,11 +199,11 @@ button {
 .link-field input {
   width: 100%;
   min-height: 3.1rem;
-  border: 1px solid #292929;
+  border: 1px solid var(--link-line);
   border-radius: 999px;
   outline: none;
-  background: #111;
-  color: #f0f0f0;
+  background: #070b0f;
+  color: var(--link-ink);
   padding: 0.8rem 1rem;
 }
 
@@ -211,9 +211,9 @@ button {
 .link-field textarea {
   width: 100%;
   padding: 13px 15px;
-  color: #f0f0f0;
-  background: #060606;
-  border: 1px solid #292929;
+  color: var(--link-ink);
+  background: #070b0f;
+  border: 1px solid var(--link-line);
   border-radius: 14px;
   outline: none;
 }
@@ -224,8 +224,8 @@ button {
 }
 
 .link-field input:focus {
-  border-color: #a3e635;
-  box-shadow: 0 0 0 3px rgb(163 230 53 / 12%);
+  border-color: #48caf0;
+  box-shadow: 0 0 0 3px rgb(72 202 240 / 12%);
 }
 
 .link-field-wide {
@@ -243,15 +243,15 @@ button {
   min-height: 3.1rem;
   display: flex;
   align-items: center;
-  border: 1px solid #292929;
+  border: 1px solid var(--link-line);
   border-radius: 999px;
-  background: #111;
+  background: #070b0f;
   overflow: hidden;
 }
 
 .link-prefix-input b {
   padding-left: 1rem;
-  color: #666;
+  color: var(--link-quiet);
   font-size: 0.68rem;
   text-transform: none;
 }
@@ -275,11 +275,11 @@ button {
 .link-public-form > button,
 .link-primary {
   min-height: 3rem;
-  border: 1px solid #a3e635;
+  border: 1px solid #48caf0;
   border-radius: 999px;
   padding: 0.75rem 1.4rem;
-  background: #a3e635;
-  color: #080808;
+  background: #48caf0;
+  color: #031620;
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 800;
@@ -296,7 +296,7 @@ button {
 
 .link-form-status {
   margin: 0;
-  color: #666;
+  color: var(--link-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.65rem;
   line-height: 1.5;
@@ -307,7 +307,7 @@ button {
 }
 
 .link-form-status-success {
-  color: #a3e635;
+  color: #48caf0;
 }
 
 .link-table {
@@ -321,7 +321,7 @@ button {
   gap: 1rem;
   align-items: center;
   padding: 1.1rem 0;
-  border-bottom: 1px solid #242424;
+  border-bottom: 1px solid var(--link-line);
 }
 
 .link-row:last-child {
@@ -333,7 +333,7 @@ button {
 }
 
 .link-route a {
-  color: #f0f0f0;
+  color: var(--link-ink);
   font-family: var(--kvx-mono);
   font-size: 0.86rem;
   font-weight: 700;
@@ -343,7 +343,7 @@ button {
 .link-route p {
   margin: 0.35rem 0 0;
   overflow: hidden;
-  color: #606060;
+  color: var(--link-quiet);
   font-size: 0.72rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -355,18 +355,18 @@ button {
 }
 
 .link-tags span {
-  border: 1px solid #303030;
+  border: 1px solid var(--link-line-bright);
   border-radius: 999px;
   padding: 0.3rem 0.55rem;
-  color: #777;
+  color: var(--link-muted);
   font-family: var(--kvx-mono);
   font-size: 0.55rem;
   text-transform: uppercase;
 }
 
 .link-tags span[data-state="live"] {
-  border-color: rgb(163 230 53 / 28%);
-  color: #a3e635;
+  border-color: rgb(72 202 240 / 28%);
+  color: #48caf0;
 }
 
 .link-clicks {
@@ -393,11 +393,11 @@ button {
 .link-actions button,
 .link-stats header button,
 .link-public-result button {
-  border: 1px solid #303030;
+  border: 1px solid var(--link-line-bright);
   border-radius: 999px;
   padding: 0.45rem 0.75rem;
-  background: #111;
-  color: #aaa;
+  background: #070b0f;
+  color: var(--link-muted);
   font-family: var(--kvx-mono);
   font-size: 0.6rem;
 }
@@ -435,16 +435,16 @@ button {
   grid-template-columns: 1fr auto;
   gap: 0.6rem;
   align-items: center;
-  border: 1px solid rgb(163 230 53 / 28%);
+  border: 1px solid rgb(72 202 240 / 28%);
   border-radius: 14px;
   padding: 0.8rem;
-  background: rgb(163 230 53 / 6%);
+  background: rgb(72 202 240 / 6%);
 }
 
 .link-public-result a {
   min-width: 0;
   overflow: hidden;
-  color: #a3e635;
+  color: #48caf0;
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   text-overflow: ellipsis;
@@ -460,7 +460,7 @@ button {
 
 .link-notice > p:last-of-type {
   max-width: 35rem;
-  color: #777;
+  color: var(--link-muted);
 }
 
 .link-loading {
@@ -468,7 +468,7 @@ button {
   max-width: 26rem;
   height: 1rem;
   border-radius: 999px;
-  background: #252525;
+  background: var(--link-line);
   animation: link-pulse 1.1s ease-in-out infinite alternate;
 }
 
@@ -510,7 +510,7 @@ button {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #777;
+  color: var(--link-muted);
   font-size: 0.78rem;
 }
 
@@ -558,7 +558,7 @@ button {
   gap: 0.5rem;
   align-items: end;
   margin: 2rem 0;
-  border-bottom: 1px solid #292929;
+  border-bottom: 1px solid var(--link-line);
 }
 
 .link-chart div {
@@ -574,12 +574,12 @@ button {
   min-height: 4px;
   display: block;
   border-radius: 5px 5px 0 0;
-  background: #a3e635;
+  background: #48caf0;
 }
 
 .link-chart span {
   padding-bottom: 0.45rem;
-  color: #606060;
+  color: var(--link-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.55rem;
 }
@@ -591,10 +591,10 @@ button {
 }
 
 .link-dimensions > div {
-  border: 1px solid #292929;
+  border: 1px solid var(--link-line);
   border-radius: 16px;
   padding: 1rem;
-  background: #111;
+  background: #070b0f;
 }
 
 .link-dimensions strong {
@@ -610,12 +610,12 @@ button {
   justify-content: space-between;
   gap: 1rem;
   margin: 0.5rem 0;
-  color: #777;
+  color: var(--link-muted);
   font-size: 0.7rem;
 }
 
 .link-dimensions b {
-  color: #a3e635;
+  color: #48caf0;
 }
 
 @media (max-width: 860px) {
@@ -650,7 +650,7 @@ button {
   }
 
   .link-summary div + div {
-    border-top: 1px solid #292929;
+    border-top: 1px solid var(--link-line);
     border-left: 0;
   }
 
@@ -669,15 +669,16 @@ button {
 }
 
 :root {
-  --link-base: #070a08;
-  --link-panel: #0d120f;
-  --link-panel-soft: #111813;
-  --link-line: #263129;
-  --link-line-bright: #3d4d40;
-  --link-ink: #eff5ee;
-  --link-muted: #849087;
-  --link-accent: #b9f65b;
-  --link-accent-deep: #719b32;
+  --link-base: #070a0d;
+  --link-panel: #0c1016;
+  --link-panel-soft: #111a21;
+  --link-line: #192330;
+  --link-line-bright: #253547;
+  --link-ink: #eaf4f8;
+  --link-muted: #7599a8;
+  --link-quiet: #4d6a7a;
+  --link-accent: #48caf0;
+  --link-accent-deep: #2c8fb0;
   color: var(--link-ink);
   background: var(--link-base);
 }
@@ -685,8 +686,8 @@ button {
 html,
 body {
   background:
-    radial-gradient(circle at 12% 9%, rgb(185 246 91 / 9%), transparent 27rem),
-    linear-gradient(90deg, rgb(185 246 91 / 3%) 1px, transparent 1px),
+    radial-gradient(circle at 12% 9%, rgb(72 202 240 / 9%), transparent 27rem),
+    linear-gradient(90deg, rgb(72 202 240 / 3%) 1px, transparent 1px),
     var(--link-base);
   background-size:
     auto,
@@ -706,11 +707,11 @@ body {
   height: 34rem;
   right: -18rem;
   top: 18vh;
-  border: 1px solid rgb(185 246 91 / 18%);
+  border: 1px solid rgb(72 202 240 / 18%);
   border-radius: 50%;
   box-shadow:
-    0 0 0 7rem rgb(185 246 91 / 1.7%),
-    0 0 0 14rem rgb(185 246 91 / 1%);
+    0 0 0 7rem rgb(72 202 240 / 1.7%),
+    0 0 0 14rem rgb(72 202 240 / 1%);
   content: "";
   animation: link-orbit 18s var(--kvx-ease) infinite alternate;
 }
@@ -894,7 +895,7 @@ body {
   border: 0;
   border-radius: 0;
   background:
-    linear-gradient(145deg, rgb(185 246 91 / 4%), transparent 40%),
+    linear-gradient(145deg, rgb(72 202 240 / 4%), transparent 40%),
     var(--link-panel);
 }
 
@@ -948,7 +949,7 @@ body {
   min-height: 48px;
   border-color: var(--link-line);
   border-radius: 6px;
-  background: #090d0a;
+  background: #070b0f;
   padding: 0.75rem 1rem;
   transition:
     border-color 180ms ease,
@@ -968,8 +969,8 @@ body {
 .link-field select:focus,
 .link-field textarea:focus,
 .link-prefix-input:focus-within {
-  border-color: var(--link-accent-deep);
-  box-shadow: 0 0 0 3px rgb(185 246 91 / 8%);
+  border-color: var(--link-accent);
+  box-shadow: 0 0 0 3px rgb(72 202 240 / 8%);
 }
 
 .link-form-footer {
@@ -983,7 +984,7 @@ body {
   border: 1px solid var(--link-accent);
   border-radius: 6px;
   background: var(--link-accent);
-  color: #11190b;
+  color: #031620;
   font-size: 0.65rem;
   font-weight: 800;
   transition:
@@ -995,8 +996,8 @@ body {
 .link-form-footer > button:hover,
 .link-public-form > button:hover,
 .link-primary:hover {
-  background: #ceff80;
-  box-shadow: 0 12px 30px rgb(117 164 52 / 16%);
+  background: #72d9f5;
+  box-shadow: 0 12px 30px rgb(72 202 240 / 18%);
   transform: translateY(-1px);
 }
 
@@ -1034,7 +1035,7 @@ body {
 }
 
 .link-row:hover {
-  background: rgb(185 246 91 / 3%);
+  background: rgb(72 202 240 / 3%);
   transform: translateX(4px);
 }
 
