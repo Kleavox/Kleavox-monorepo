@@ -772,15 +772,16 @@ body {
 }
 
 .link-hero {
-  min-height: 70dvh;
-  padding: clamp(68px, 10vh, 126px) 0 76px;
+  min-height: 60dvh;
+  padding: clamp(60px, 8vh, 100px) 0 60px;
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.48fr);
-  gap: clamp(60px, 12vw, 190px);
+  gap: clamp(40px, 8vw, 120px);
   align-items: end;
   border-bottom: 1px solid var(--link-line);
 }
 
 .link-kicker {
+  margin-bottom: 0.75rem;
   color: var(--link-accent);
   letter-spacing: 0.13em;
 }
@@ -788,10 +789,10 @@ body {
 .link-hero h1,
 .link-guest h1 {
   max-width: 10ch;
-  font-size: clamp(4.2rem, 8.5vw, 9.2rem);
+  font-size: clamp(3.8rem, 8vw, 8.5rem);
   font-weight: 580;
   letter-spacing: -0.085em;
-  line-height: 0.82;
+  line-height: 0.84;
   text-wrap: balance;
   animation: link-rise 700ms var(--z-ease) both;
 }
@@ -799,19 +800,21 @@ body {
 .link-lede,
 .link-guest-copy > p:not(.link-kicker) {
   max-width: 35rem;
+  margin-top: 1.25rem;
   color: var(--link-muted);
-  font-size: clamp(1rem, 1.4vw, 1.18rem);
-  line-height: 1.65;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.6;
 }
 
 .link-summary {
   border-top: 1px solid var(--link-line-bright);
   border-bottom: 1px solid var(--link-line);
+  margin-top: 1.5rem;
 }
 
 .link-summary div {
-  min-height: 126px;
-  padding: 22px 0;
+  min-height: 110px;
+  padding: 1.25rem 0;
   border-left: 0;
 }
 
@@ -822,28 +825,30 @@ body {
 .link-summary dt {
   color: var(--link-muted);
   font-family: var(--z-mono);
-  font-size: 0.66rem;
+  font-size: 0.65rem;
+  margin-bottom: 0.5rem;
 }
 
 .link-summary dd {
   color: var(--link-ink);
-  font-size: clamp(2.7rem, 5vw, 5rem);
+  font-size: clamp(2.5rem, 4.5vw, 4.5rem);
   font-weight: 560;
   letter-spacing: -0.06em;
+  margin: 0;
 }
 
 .link-compose {
   width: min(1480px, calc(100vw - 40px));
   margin-inline: auto;
-  padding: clamp(90px, 12vw, 170px) 0;
+  padding: clamp(60px, 10vw, 140px) 0;
 }
 
 .link-compose-heading {
   display: grid;
-  grid-template-columns: 0.55fr 1.2fr 0.8fr;
-  gap: clamp(24px, 5vw, 80px);
+  grid-template-columns: 0.5fr 1.2fr 0.8fr;
+  gap: clamp(20px, 4vw, 60px);
   align-items: end;
-  margin-bottom: clamp(46px, 7vw, 90px);
+  margin-bottom: clamp(40px, 6vw, 80px);
 }
 
 .link-compose-heading .link-kicker {
@@ -853,38 +858,39 @@ body {
 .link-compose-heading h2 {
   max-width: 11ch;
   margin: 0;
-  font-size: clamp(3rem, 5.6vw, 6.5rem);
+  font-size: clamp(2.8rem, 5.2vw, 6rem);
   font-weight: 570;
   letter-spacing: -0.07em;
-  line-height: 0.9;
+  line-height: 0.92;
 }
 
 .link-compose-heading > p:last-child {
   max-width: 24rem;
   margin: 0;
   color: var(--link-muted);
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.55;
 }
 
 .link-compose-heading strong {
   color: var(--link-accent);
   font-family: var(--z-mono);
-  font-size: 0.82em;
+  font-size: 0.85em;
 }
 
 .link-compose-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   gap: 1px;
-  align-items: start;
+  align-items: stretch;
   background: var(--link-line-bright);
   border: 1px solid var(--link-line-bright);
   box-shadow: 0 44px 120px rgb(0 0 0 / 38%);
 }
 
 .link-create {
-  min-height: 680px;
-  padding: clamp(28px, 4vw, 54px);
+  height: 100%;
+  padding: clamp(24px, 4vw, 48px);
   border: 0;
   border-radius: 0;
   background:
@@ -895,50 +901,67 @@ body {
 .link-section-heading,
 .link-public-heading {
   display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 20px;
+  grid-template-columns: 36px 1fr;
+  gap: 16px;
   align-items: start;
-  margin-bottom: 58px;
+  margin-bottom: 48px;
 }
 
 .link-create-index,
 .link-public-heading > span {
   color: var(--link-accent);
   font-family: var(--z-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
+  padding-top: 6px;
 }
 
 .link-section-heading h2,
 .link-public-heading h2 {
-  margin: 5px 0 0;
-  font-size: clamp(2rem, 4vw, 4rem);
+  margin: 0;
+  font-size: clamp(1.8rem, 3.8vw, 3.6rem);
   font-weight: 580;
   letter-spacing: -0.06em;
 }
 
 .link-field {
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.link-field:last-of-type {
+  margin-bottom: 0;
 }
 
 .link-field > span {
   color: var(--link-muted);
   font-family: var(--z-mono);
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  padding-left: 4px;
 }
 
 .link-field input,
 .link-field select,
 .link-field textarea,
 .link-prefix-input {
-  min-height: 52px;
+  min-height: 48px;
   border-color: var(--link-line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: #090d0a;
+  padding: 0.75rem 1rem;
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
+}
+
+.link-prefix-input {
+  padding: 0;
+}
+
+.link-prefix-input b {
+  padding-left: 1rem;
+  font-size: 0.65rem;
 }
 
 .link-field input:focus,
@@ -946,17 +969,23 @@ body {
 .link-field textarea:focus,
 .link-prefix-input:focus-within {
   border-color: var(--link-accent-deep);
-  box-shadow: 0 0 0 4px rgb(185 246 91 / 7%);
+  box-shadow: 0 0 0 3px rgb(185 246 91 / 8%);
+}
+
+.link-form-footer {
+  margin-top: 2rem;
 }
 
 .link-form-footer > button,
 .link-public-form > button,
 .link-primary {
-  min-height: 52px;
+  min-height: 48px;
   border: 1px solid var(--link-accent);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--link-accent);
   color: #11190b;
+  font-size: 0.65rem;
+  font-weight: 800;
   transition:
     transform 180ms var(--z-ease),
     box-shadow 180ms ease,
@@ -967,20 +996,20 @@ body {
 .link-public-form > button:hover,
 .link-primary:hover {
   background: #ceff80;
-  box-shadow: 0 14px 34px rgb(117 164 52 / 18%);
-  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgb(117 164 52 / 16%);
+  transform: translateY(-1px);
 }
 
 .link-form-footer > button:active,
 .link-public-form > button:active,
 .link-primary:active {
-  transform: translateY(1px);
+  transform: translateY(0);
 }
 
 .link-list {
   width: min(1480px, calc(100vw - 40px));
   margin: 0 auto;
-  padding: 0 0 clamp(100px, 13vw, 180px);
+  padding: 0 0 clamp(80px, 11vw, 150px);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -988,7 +1017,7 @@ body {
 
 .link-list > .link-section-heading {
   border-top: 1px solid var(--link-line-bright);
-  padding-top: 30px;
+  padding-top: 40px;
 }
 
 .link-table {
@@ -996,28 +1025,45 @@ body {
 }
 
 .link-row {
-  min-height: 136px;
+  min-height: 120px;
+  padding: 1.25rem 0;
   border-color: var(--link-line);
   transition:
-    background 200ms ease,
-    transform 200ms var(--z-ease);
+    background 180ms ease,
+    transform 180ms var(--z-ease);
 }
 
 .link-row:hover {
   background: rgb(185 246 91 / 3%);
-  transform: translateX(5px);
+  transform: translateX(4px);
 }
 
-.link-route > a,
-.link-clicks strong {
+.link-route > a {
+  font-size: 0.94rem;
   color: var(--link-accent);
 }
 
+.link-route p {
+  font-size: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.link-clicks strong {
+  font-size: 1.4rem;
+  color: var(--link-accent);
+}
+
+.link-actions {
+  margin-top: 1rem;
+}
+
 .link-actions button {
+  min-height: 32px;
   border-color: var(--link-line);
-  border-radius: 7px;
+  border-radius: 5px;
   background: var(--link-panel);
   color: var(--link-muted);
+  font-size: 0.58rem;
   transition:
     border-color 160ms ease,
     color 160ms ease,
@@ -1031,16 +1077,16 @@ body {
 }
 
 .link-guest {
-  min-height: 76dvh;
-  padding: clamp(74px, 11vh, 132px) 0 82px;
+  min-height: 70dvh;
+  padding: clamp(60px, 10vh, 120px) 0 70px;
   grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.62fr);
-  gap: clamp(54px, 10vw, 150px);
+  gap: clamp(40px, 8vw, 120px);
   align-items: center;
   border-bottom: 1px solid var(--link-line);
 }
 
 .link-public-form {
-  padding: clamp(26px, 4vw, 44px);
+  padding: clamp(24px, 4vw, 40px);
   border: 1px solid var(--link-line-bright);
   border-radius: 0;
   background: var(--link-panel);
@@ -1048,30 +1094,30 @@ body {
 }
 
 .link-public-heading {
-  margin-bottom: 36px;
+  margin-bottom: 32px;
 }
 
 .link-public-heading h2 {
-  font-size: clamp(1.8rem, 3vw, 3rem);
+  font-size: clamp(1.7rem, 2.8vw, 2.8rem);
 }
 
 .link-guest-drop {
   width: min(1480px, calc(100vw - 40px));
   margin: 0 auto;
-  padding: clamp(88px, 12vw, 160px) 0;
+  padding: clamp(70px, 10vw, 140px) 0;
 }
 
 .link-stats,
 .link-edit {
   border: 1px solid var(--link-line-bright);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--link-panel);
 }
 
 @keyframes link-rise {
   from {
     opacity: 0;
-    transform: translateY(28px);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -1081,13 +1127,14 @@ body {
 
 @keyframes link-orbit {
   to {
-    transform: translate3d(-5vw, 6vh, 0) scale(1.08);
+    transform: translate3d(-4vw, 5vh, 0) scale(1.06);
   }
 }
 
 @media (max-width: 980px) {
   .link-compose-heading {
     grid-template-columns: 1fr;
+    gap: 32px;
   }
 
   .link-compose-grid {
@@ -1114,7 +1161,7 @@ body {
   .link-compose,
   .link-list,
   .link-guest-drop {
-    width: calc(100vw - 28px);
+    width: calc(100vw - 24px);
   }
 
   .link-header nav a:nth-child(3) {
@@ -1125,11 +1172,12 @@ body {
   .link-guest {
     min-height: auto;
     grid-template-columns: 1fr;
+    padding-top: 3.5rem;
   }
 
   .link-hero h1,
   .link-guest h1 {
-    font-size: clamp(3.7rem, 18vw, 6rem);
+    font-size: clamp(3.2rem, 16vw, 5.5rem);
   }
 
   .link-summary {
@@ -1137,22 +1185,45 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 
+  .link-summary div {
+    min-height: 100px;
+  }
+
   .link-summary div + div {
     border-top: 0;
     border-left: 1px solid var(--link-line);
-    padding-left: 20px;
+    padding-left: 16px;
   }
 
   .link-compose {
-    padding-block: 84px;
+    padding-block: 72px;
   }
 
   .link-create {
-    padding: 24px 18px 28px;
+    padding: 24px 16px 28px;
   }
 
   .link-field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .link-section-heading,
+  .link-public-heading {
+    margin-bottom: 38px;
+  }
+
+  .link-row {
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+  }
+
+  .link-actions {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
+  }
+
+  .link-clicks {
+    text-align: left;
   }
 }
 
