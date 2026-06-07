@@ -8,6 +8,9 @@ export interface Env {
   ASSETS: Fetcher;
   LINK: Fetcher;
   DROP: Fetcher;
+  PASS: Fetcher;
+  PULSE: Fetcher;
+  PORTFOLIO: Fetcher;
   PUBLIC_ORIGIN: string;
 }
 
@@ -31,6 +34,23 @@ app.all("/link-assets/*", (context) => {
 
 app.all("*", async (context) => {
   const url = new URL(context.req.url);
+  const rootOrigin = new URL(context.env.PUBLIC_ORIGIN);
+  const hostname = url.hostname.toLowerCase();
+
+  if (hostname.endsWith(`.${rootOrigin.hostname}`)) {
+    const subdomain = hostname.replace(`.${rootOrigin.hostname}`, "");
+    
+    if (subdomain === "pass") {
+      return context.env.PASS.fetch(context.req.raw);
+    }
+    if (subdomain === "pulse") {
+      return context.env.PULSE.fetch(context.req.raw);
+    }
+    if (subdomain === "port") {
+      return context.env.PORTFOLIO.fetch(context.req.raw);
+    }
+  }
+
   const redirect = hostRedirect(url, context.env.PUBLIC_ORIGIN);
   if (redirect) return context.redirect(redirect.toString(), 308);
 

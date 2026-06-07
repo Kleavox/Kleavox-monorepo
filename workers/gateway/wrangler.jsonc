@@ -23,6 +23,18 @@
       "binding": "DROP",
       "service": "local-drop",
     },
+    {
+      "binding": "PASS",
+      "service": "local-pass",
+    },
+    {
+      "binding": "PULSE",
+      "service": "local-pulse",
+    },
+    {
+      "binding": "PORTFOLIO",
+      "service": "local-portfolio",
+    },
   ],
   "observability": {
     "enabled": true,

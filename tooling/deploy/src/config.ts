@@ -203,6 +203,9 @@ export function productionConfigs(
       services: [
         { binding: "LINK", service: names.link },
         { binding: "DROP", service: names.drop },
+        { binding: "PASS", service: names.pass },
+        { binding: "PULSE", service: names.pulse },
+        { binding: "PORTFOLIO", service: names.portfolio },
       ],
       ...(canonical ? { routes: routes(rootDomain, `www.${rootDomain}`) } : {}),
     },

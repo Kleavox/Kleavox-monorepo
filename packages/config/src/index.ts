@@ -22,7 +22,7 @@ export function getPublicOrigin(rootOrigin: string, subdomain?: string): string 
       pass: "3001",
       link: "3002",
       pulse: "3003",
-      portfolio: "3004",
+      port: "3004",
     };
     return `http://localhost:${ports[subdomain] || url.port}`;
   }
