@@ -13,7 +13,7 @@ export interface PreparedUpload {
   body: Blob;
   originalSizeBytes: number;
   storedSizeBytes: number;
-  storageEncoding?: "gzip";
+  storageEncoding?: "gzip" | "aes-256-gcm";
   savedBytes: number;
 }
 

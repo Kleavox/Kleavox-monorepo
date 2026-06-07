@@ -194,7 +194,7 @@ function SendView({
         const encrypted = await encrypt(buffer, password);
         prepared = {
           ...prepared,
-          body: new Blob([encrypted], { type: "application/octet-stream" }),
+          body: new Blob([encrypted as any], { type: "application/octet-stream" }),
           storedSizeBytes: encrypted.byteLength,
           storageEncoding: "aes-256-gcm",
         };
@@ -702,7 +702,7 @@ function ReceiveView({ token }: { token: string }) {
         const encryptedBuffer = new Uint8Array(await response.arrayBuffer());
         const decryptedBuffer = await decrypt(encryptedBuffer, password);
 
-        const blob = new Blob([decryptedBuffer], { type: drop.contentType });
+        const blob = new Blob([decryptedBuffer as any], { type: drop.contentType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
