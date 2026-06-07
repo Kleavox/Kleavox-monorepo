@@ -3,7 +3,7 @@ import { hashPassword, hashToken, randomToken, verifyPassword } from "./crypto";
 
 describe("password hashing", () => {
   it("verifies the original password and rejects another password", async () => {
-    const encoded = await hashPassword("correct horse battery staple", 100_000);
+    const encoded = await hashPassword("correct horse battery staple");
 
     await expect(
       verifyPassword(encoded, "correct horse battery staple"),

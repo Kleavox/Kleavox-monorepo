@@ -1,10 +1,3 @@
-declare module "../pkg/kleavox_compression.js" {
-  export default function init(wasm?: WebAssembly.Module | BufferSource): Promise<any>;
-  export function gzip_compress(input: Uint8Array): Uint8Array;
-  export function max_input_bytes(): number;
-  export function should_compress(fileName: string, contentType: string, sizeBytes: number): boolean;
-}
-
 interface CompressionModule {
   default: (wasm?: WebAssembly.Module | BufferSource) => Promise<unknown>;
   gzip_compress: (input: Uint8Array) => Uint8Array;
@@ -20,14 +13,15 @@ let modulePromise: Promise<CompressionModule> | undefined;
 
 async function loadCompression(): Promise<CompressionModule> {
   if (!modulePromise) {
+    // @ts-ignore
     modulePromise = import("../pkg/kleavox_compression.js").then(
       async (module) => {
         await module.default();
-        return module;
+        return module as unknown as CompressionModule;
       },
     );
   }
-  return modulePromise;
+  return modulePromise!;
 }
 
 export interface PreparedUpload {

@@ -49,6 +49,9 @@ app.all("*", async (context) => {
     if (subdomain === "port") {
       return context.env.PORTFOLIO.fetch(context.req.raw);
     }
+    if (subdomain === "link") {
+      return context.env.LINK.fetch(context.req.raw);
+    }
   }
 
   const redirect = hostRedirect(url, context.env.PUBLIC_ORIGIN);

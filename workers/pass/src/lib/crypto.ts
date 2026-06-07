@@ -29,7 +29,12 @@ export async function verifyPassword(
   if (encoded.startsWith("pbkdf2-sha256$")) {
     return verifyLegacyPassword(encoded, password);
   }
-  return rustVerifyPassword(password, encoded);
+  try {
+    const result = await rustVerifyPassword(password, encoded);
+    return result;
+  } catch {
+    return false;
+  }
 }
 
 async function verifyLegacyPassword(

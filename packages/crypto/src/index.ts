@@ -1,11 +1,3 @@
-declare module "../pkg/kleavox_crypto.js" {
-  export default function init(wasm?: WebAssembly.Module | BufferSource): Promise<any>;
-  export function hash_password(password: string, salt: string): string;
-  export function verify_password(password: string, hash: string): boolean;
-  export function encrypt_data(data: Uint8Array, password: string): Uint8Array;
-  export function decrypt_data(data: Uint8Array, password: string): Uint8Array;
-}
-
 interface CryptoModule {
   default: (wasm?: WebAssembly.Module | BufferSource) => Promise<unknown>;
   hash_password: (password: string, salt: string) => string;
@@ -18,10 +10,30 @@ let modulePromise: Promise<CryptoModule> | undefined;
 
 export async function initCrypto(wasm?: WebAssembly.Module | BufferSource): Promise<void> {
   if (modulePromise) return;
+
+  // @ts-ignore
   modulePromise = import("../pkg/kleavox_crypto.js").then(
     async (module) => {
-      await module.default(wasm);
-      return module;
+      try {
+        await module.default(wasm);
+      } catch (error) {
+        if (typeof process !== "undefined" && process.versions && process.versions.node) {
+          try {
+            const fs = await import("node:fs/promises");
+            const path = await import("node:path");
+            // @ts-ignore
+            const dir = typeof import.meta.dirname !== "undefined" ? import.meta.dirname : __dirname;
+            const wasmPath = path.join(dir, "..", "pkg", "kleavox_crypto_bg.wasm");
+            const wasmBuffer = await fs.readFile(wasmPath);
+            await module.default(wasmBuffer);
+            return module as unknown as CryptoModule;
+          } catch (fallbackError) {
+             throw fallbackError;
+          }
+        }
+        throw error;
+      }
+      return module as unknown as CryptoModule;
     },
   );
   await modulePromise;

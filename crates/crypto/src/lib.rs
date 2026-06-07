@@ -14,10 +14,16 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn hash_password(password: &str, salt: &str) -> Result<String, JsValue> {
-    let salt = SaltString::from_b64(salt).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    // Attempt to normalize base64url to standard base64 if needed, or rely on argon2's strictness
+    // Since we control JS, we ensure JS sends standard or base64url without padding.
+    // SaltString::from_b64 requires standard base64 without padding.
+    let standard_salt = salt.replace("-", "+").replace("_", "/");
+    let salt_string = SaltString::from_b64(&standard_salt)
+        .map_err(|e| JsValue::from_str(&format!("Invalid salt: {}", e)))?;
+    
     let argon2 = Argon2::default();
     let password_hash = argon2
-        .hash_password(password.as_bytes(), &salt)
+        .hash_password(password.as_bytes(), &salt_string)
         .map_err(|e| JsValue::from_str(&e.to_string()))?
         .to_string();
     Ok(password_hash)
