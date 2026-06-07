@@ -21,7 +21,7 @@ button {
 }
 
 .pass-layout {
-  width: min(1180px, calc(100vw - 32px));
+  width: min(1500px, calc(100vw - 42px));
   min-height: 100dvh;
   margin: 0 auto;
   display: grid;

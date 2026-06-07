@@ -9,38 +9,26 @@ const products = [
   {
     name: "Link",
     domain: "link",
-    number: "01",
     href: getPublicOrigin(rootOrigin, "link"),
     statement: "One address for links and files.",
-    detail: "Route a destination or send the file itself from one workspace.",
-    capabilities: ["Custom slugs", "Analytics", "Unified routing"],
   },
   {
     name: "Pass",
     domain: "pass",
-    number: "02",
     href: getPublicOrigin(rootOrigin, "pass"),
     statement: "One account.",
-    detail: "Email, Google, and GitHub login for Kleavox.",
-    capabilities: ["Shared session", "OAuth", "Account recovery"],
   },
   {
     name: "Pulse",
     domain: "pulse",
-    number: "03",
     href: getPublicOrigin(rootOrigin, "pulse"),
     statement: "Watch every host.",
-    detail: "Metrics and checks from a small Go agent.",
-    capabilities: ["Host metrics", "Health checks", "Incident history"],
   },
   {
     name: "Port",
-    domain: "portfolio",
-    number: "04",
+    domain: "port",
     href: getPublicOrigin(rootOrigin, "port"),
     statement: "Selected work.",
-    detail: "Selected hardware, software, and infrastructure work.",
-    capabilities: ["Embedded", "Software", "Infrastructure"],
   },
 ];
 ---
@@ -68,29 +56,24 @@ const products = [
   </head>
   <body>
     <header class="site-header">
-      <a class="wordmark" href="/" aria-label="Kleavox home">Kleavox</a>
-      <nav aria-label="Primary navigation">
-        <a href="#products">Products</a>
-        <a href="#system">System</a>
-        <a class="nav-action" href={getPublicOrigin(rootOrigin, "pass")}>Sign in</a>
-      </nav>
+      <div class="shell header-inner">
+        <a class="wordmark" href="/" aria-label="Kleavox home">Kleavox</a>
+        <nav aria-label="Primary navigation">
+          <a class="nav-action" href={getPublicOrigin(rootOrigin, "pass")}>Sign in</a>
+        </nav>
+      </div>
     </header>
 
     <main>
       <section class="hero shell" aria-labelledby="hero-title">
         <div class="hero-copy">
           <p class="eyebrow">KLEAVOX / SYSTEM</p>
-          <h1 id="hero-title">Useful tools.<br />One system.</h1>
+          <h1 id="hero-title">One system.</h1>
           <p class="hero-lede">Public routes, shared identity, and infrastructure signals.</p>
-          <a class="primary-action" href="#products">
-            Open products
+          <a class="primary-action" href={getPublicOrigin(rootOrigin, "pass")}>
+            Open Pass
             <span aria-hidden="true">/</span>
           </a>
-          <div class="route-sample" aria-label="Example Kleavox public address">
-            <span>{rootHost}/</span>
-            <strong>your-slug</strong>
-            <i></i>
-          </div>
         </div>
 
         <div class="product-mosaic" aria-label="Kleavox product previews">
@@ -111,43 +94,13 @@ const products = [
         </div>
       </section>
 
-      <section class="statement-band" aria-label="Kleavox purpose">
-        <p>One address. Four focused systems.</p>
-      </section>
-
-      <section id="products" class="products shell" aria-labelledby="products-title">
-        <div class="section-heading">
-          <p class="section-label">PRODUCTS / 04</p>
-          <h2 id="products-title">Pick a tool.</h2>
-        </div>
-
-        <div class="product-index">
-          {products.map((product) => (
-            <article class="product-row reveal">
-              <div class="product-id">
-                <span>{product.number}</span>
-                <strong>{product.name}</strong>
-              </div>
-              <div class="product-copy">
-                <h3>{product.statement}</h3>
-                <p>{product.detail}</p>
-              </div>
-              <ul aria-label={`${product.name} capabilities`}>
-                {product.capabilities.map((capability) => <li>{capability}</li>)}
-              </ul>
-              <a class="product-link" href={product.href} aria-label={`Open Kleavox ${product.name}`}>
-                Open {product.name}
-                <span aria-hidden="true">/</span>
-              </a>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section id="system" class="system shell" aria-labelledby="system-title">
         <div class="system-title">
           <p class="section-label">ARCHITECTURE</p>
           <h2 id="system-title">One domain.<br />Separate workers.</h2>
+          <p class="system-desc">
+            Kleavox is designed as a unified monorepo. While it appears as a single platform, each product is powered by strictly isolated Cloudflare Workers. This ensures extreme performance at the edge while maintaining deep integration through shared core configurations and identity protocols.
+          </p>
         </div>
 
         <div class="architecture" aria-label="Kleavox architecture">
@@ -171,70 +124,33 @@ const products = [
             ))}
           </div>
         </div>
-
-        <div class="principles">
-          <article>
-            <span>01</span>
-            <h3>Independent</h3>
-            <p>Each product deploys and stores data separately.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <h3>One login</h3>
-            <p>Pass shares identity across products.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <h3>Edge first</h3>
-            <p>TypeScript Workers and a Go host agent.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="closing shell" aria-labelledby="closing-title">
-        <p class="section-label">START</p>
-        <h2 id="closing-title">Create an account.<br />Use every tool.</h2>
-        <div class="closing-actions">
-          <a class="primary-action" href={getPublicOrigin(rootOrigin, "pass")}>
-            Create your account
-            <span aria-hidden="true">/</span>
-          </a>
-          <a class="text-action" href={getPublicOrigin(rootOrigin, "link")}>Open Link</a>
-        </div>
       </section>
     </main>
 
-    <footer class="site-footer shell">
-      <a class="wordmark" href="/">Kleavox</a>
-      <p>Independent tools for public routes and infrastructure.</p>
-      <div>
-        <a href={getPublicOrigin(rootOrigin, "link")}>Link</a>
-        <a href={getPublicOrigin(rootOrigin, "pass")}>Pass</a>
-        <a href={getPublicOrigin(rootOrigin, "pulse")}>Pulse</a>
-        <a href={getPublicOrigin(rootOrigin, "port")}>Port</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <div class="footer-brand">
+          <a class="wordmark" href="/">Kleavox</a>
+          <p>Independent tools for public routes and infrastructure.</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <span>Products</span>
+            <a href={getPublicOrigin(rootOrigin, "link")}>Link</a>
+            <a href={getPublicOrigin(rootOrigin, "pass")}>Pass</a>
+            <a href={getPublicOrigin(rootOrigin, "pulse")}>Pulse</a>
+            <a href={getPublicOrigin(rootOrigin, "port")}>Port</a>
+          </div>
+          <div class="footer-column">
+            <span>Legal</span>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+          </div>
+        </div>
       </div>
-      <span>(c) {new Date().getFullYear()} Kleavox</span>
+      <div class="shell footer-bottom">
+        <span>(c) {new Date().getFullYear()} Kleavox</span>
+      </div>
     </footer>
-
-    <script>
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!reducedMotion && "IntersectionObserver" in window) {
-        document.documentElement.classList.add("motion-ready");
-        const observer = new IntersectionObserver(
-          (entries) => {
-            for (const entry of entries) {
-              if (entry.isIntersecting) {
-                entry.target.classList.add("is-visible");
-                observer.unobserve(entry.target);
-              }
-            }
-          },
-          { threshold: 0.12 },
-        );
-        document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
-      }
-    </script>
   </body>
 </html>

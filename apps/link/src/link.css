@@ -1038,7 +1038,14 @@ body {
   transform: translateX(4px);
 }
 
+.link-route {
+  min-width: 0;
+}
+
 .link-route > a {
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-size: 0.94rem;
   color: var(--link-accent);
 }
@@ -1046,6 +1053,9 @@ body {
 .link-route p {
   font-size: 0.75rem;
   margin-top: 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .link-clicks strong {

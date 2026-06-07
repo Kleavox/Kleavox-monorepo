@@ -755,10 +755,19 @@ app.get("/api/public/:token/download", async (context) => {
   object.writeHttpMetadata(headers);
   headers.set("Content-Disposition", contentDisposition(drop.original_name));
   headers.set("Content-Type", drop.content_type);
-  headers.set("Content-Length", object.size.toString());
   headers.set("Cache-Control", "private, no-store");
   headers.set("X-Content-Type-Options", "nosniff");
-  return new Response(object.body, { headers });
+
+  let body = object.body;
+  if (drop.storage_encoding === "gzip") {
+    // Decompress on the edge so browsers don't mishandle attachment encoding
+    body = body.pipeThrough(new DecompressionStream("gzip"));
+    headers.set("Content-Length", (drop.source_size_bytes ?? object.size).toString());
+  } else {
+    headers.set("Content-Length", object.size.toString());
+  }
+
+  return new Response(body, { headers });
 });
 
 app.delete("/api/public/:token", async (context) => {

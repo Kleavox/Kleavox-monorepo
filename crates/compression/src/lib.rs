@@ -5,9 +5,9 @@ use wasm_bindgen::prelude::*;
 
 const MAX_INPUT_BYTES: usize = 32 * 1024 * 1024;
 const SKIPPED_EXTENSIONS: &[&str] = &[
-    "7z", "aac", "avif", "br", "bz2", "flac", "gif", "gz", "heic", "jpeg", "jpg", "m4a", "m4v",
-    "mkv", "mov", "mp3", "mp4", "ogg", "opus", "pdf", "png", "rar", "tgz", "webm", "webp", "xz",
-    "zip", "zst",
+    "7z", "aac", "apk", "avif", "bin", "br", "bz2", "dmg", "docx", "exe", "flac", "gif", "gz",
+    "heic", "iso", "jpeg", "jpg", "m4a", "m4v", "mkv", "mov", "mp3", "mp4", "ogg", "opus", "pdf",
+    "png", "pptx", "rar", "tgz", "webm", "webp", "xlsx", "xz", "zip", "zst",
 ];
 
 #[wasm_bindgen]
@@ -37,14 +37,17 @@ pub fn should_compress(file_name: &str, content_type: &str, size_bytes: usize) -
         .unwrap_or_default()
         .trim()
         .to_ascii_lowercase();
-    !media_type.starts_with("audio/")
-        && !media_type.starts_with("image/")
-        && !media_type.starts_with("video/")
-        && media_type != "application/pdf"
-        && media_type != "application/zip"
-        && media_type != "application/gzip"
-        && media_type != "application/x-7z-compressed"
-        && media_type != "application/x-rar-compressed"
+
+    let is_compressed_media = media_type.starts_with("audio/")
+        || media_type.starts_with("image/")
+        || media_type.starts_with("video/")
+        || media_type == "application/pdf"
+        || media_type.contains("zip")
+        || media_type.contains("compressed")
+        || media_type.contains("tar")
+        || media_type.starts_with("application/vnd.openxmlformats-officedocument.");
+
+    !is_compressed_media
 }
 
 #[wasm_bindgen]
