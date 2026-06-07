@@ -190,13 +190,16 @@ function SendView({
       let prepared = await prepareUpload(file);
       if (password) {
         setPhase("optimizing");
-        const buffer = new Uint8Array(await prepared.body.arrayBuffer());
+        // Encrypt the raw file directly. Gzip decompression is messy client-side,
+        // so we skip compression entirely for end-to-end encrypted files.
+        const buffer = new Uint8Array(await file.arrayBuffer());
         const encrypted = await encrypt(buffer, password);
         prepared = {
-          ...prepared,
           body: new Blob([encrypted as any], { type: "application/octet-stream" }),
+          originalSizeBytes: file.size,
           storedSizeBytes: encrypted.byteLength,
           storageEncoding: "aes-256-gcm",
+          savedBytes: 0,
         };
       }
       setPhase("preparing");
