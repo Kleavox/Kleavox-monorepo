@@ -4,10 +4,22 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist",
+    "pkg"
+  ],
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir ../../packages/compression/pkg --out-name kleavox_compression --release ../../crates/compression --locked",
-    "test": "cargo test --manifest-path ../../crates/compression/Cargo.toml --locked"
+    "build": "wasm-pack build --target web --out-dir ../../packages/compression/pkg --out-name kleavox_compression --release ../../crates/compression --locked && tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "cargo test --manifest-path ../../crates/compression/Cargo.toml --locked",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }

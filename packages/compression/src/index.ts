@@ -1,5 +1,5 @@
 interface CompressionModule {
-  default: () => Promise<unknown>;
+  default: (wasm?: WebAssembly.Module | BufferSource) => Promise<unknown>;
   gzip_compress: (input: Uint8Array) => Uint8Array;
   max_input_bytes: () => number;
   should_compress: (
@@ -9,62 +9,59 @@ interface CompressionModule {
   ) => boolean;
 }
 
+let modulePromise: Promise<CompressionModule> | undefined;
+
+async function loadCompression(): Promise<CompressionModule> {
+  if (!modulePromise) {
+    // @ts-ignore
+    modulePromise = import("../pkg/kleavox_compression.js").then(
+      async (module) => {
+        await module.default();
+        return module as unknown as CompressionModule;
+      },
+    );
+  }
+  return modulePromise!;
+}
+
 export interface PreparedUpload {
   body: Blob;
   originalSizeBytes: number;
   storedSizeBytes: number;
-  storageEncoding?: "gzip";
+  storageEncoding?: "gzip" | "aes-256-gcm";
   savedBytes: number;
 }
 
-let modulePromise: Promise<CompressionModule> | undefined;
-
 export async function prepareUpload(file: File): Promise<PreparedUpload> {
-  try {
-    const compression = await loadCompression();
-    if (
-      !compression.should_compress(file.name, file.type, file.size) ||
-      file.size > compression.max_input_bytes()
-    ) {
-      return original(file);
-    }
+  const { gzip_compress, max_input_bytes, should_compress } =
+    await loadCompression();
 
-    const source = new Uint8Array(await file.arrayBuffer());
-    const compressed = compression.gzip_compress(source);
-    if (compressed.byteLength >= Math.floor(file.size * 0.9)) {
-      return original(file);
-    }
-
-    const stored = Uint8Array.from(compressed);
+  if (file.size > max_input_bytes() || !should_compress(file.name, file.type, file.size)) {
     return {
-      body: new Blob([stored.buffer], { type: "application/gzip" }),
+      body: file,
       originalSizeBytes: file.size,
-      storedSizeBytes: stored.byteLength,
-      storageEncoding: "gzip",
-      savedBytes: file.size - stored.byteLength,
+      storedSizeBytes: file.size,
+      savedBytes: 0,
     };
-  } catch {
-    return original(file);
   }
-}
 
-function original(file: File): PreparedUpload {
+  const source = new Uint8Array(await file.arrayBuffer());
+  const compressed = gzip_compress(source);
+
+  if (compressed.length >= source.length) {
+    return {
+      body: file,
+      originalSizeBytes: file.size,
+      storedSizeBytes: file.size,
+      savedBytes: 0,
+    };
+  }
+
   return {
-    body: file,
+    body: new Blob([compressed as any], { type: file.type }),
     originalSizeBytes: file.size,
-    storedSizeBytes: file.size,
-    savedBytes: 0,
+    storedSizeBytes: compressed.length,
+    storageEncoding: "gzip",
+    savedBytes: file.size - compressed.length,
   };
-}
-
-async function loadCompression(): Promise<CompressionModule> {
-  if (!modulePromise) {
-    modulePromise = import("../pkg/kleavox_compression.js").then(
-      async (module) => {
-        await module.default();
-        return module;
-      },
-    );
-  }
-  return modulePromise;
 }

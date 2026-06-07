@@ -1,13 +1,25 @@
-const ITERATIONS = 310_000;
-const KEY_LENGTH = 32;
+import { hashPassword as rustHashPassword, verifyPassword as rustVerifyPassword } from "@kleavox/crypto";
 
 export async function hashLinkPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const derived = await derive(password, salt, ITERATIONS);
-  return `pbkdf2-sha256$${ITERATIONS}$${toBase64Url(salt)}$${toBase64Url(derived)}`;
+  return rustHashPassword(password, toBase64Url(salt));
 }
 
 export async function verifyLinkPassword(
+  password: string,
+  encoded: string,
+): Promise<boolean> {
+  if (encoded.startsWith("pbkdf2-sha256$")) {
+    return verifyLegacyPassword(password, encoded);
+  }
+  try {
+    return await rustVerifyPassword(password, encoded);
+  } catch {
+    return false;
+  }
+}
+
+async function verifyLegacyPassword(
   password: string,
   encoded: string,
 ): Promise<boolean> {
@@ -16,7 +28,6 @@ export async function verifyLinkPassword(
   if (
     algorithm !== "pbkdf2-sha256" ||
     !Number.isSafeInteger(iterations) ||
-    iterations < 100_000 ||
     !saltText ||
     !hashText
   ) {
@@ -27,6 +38,8 @@ export async function verifyLinkPassword(
   const actual = await derive(password, fromBase64Url(saltText), iterations);
   return timingSafeEqual(actual, expected);
 }
+
+const KEY_LENGTH = 32;
 
 async function derive(
   password: string,

@@ -1,5 +1,6 @@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { prepareUpload } from "@kleavox/compression";
+import { encrypt, decrypt } from "@kleavox/crypto";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LINK_ORIGIN, PASS_ORIGIN, ROOT_ORIGIN, signInUrl } from "./config";
 import "./files.css";
@@ -65,6 +66,7 @@ interface PublicDrop {
   contentType: string;
   sizeBytes: number;
   storedSizeBytes: number;
+  storageEncoding: string | null;
   compressed: boolean;
   protected: boolean;
   maxDownloads: number | null;
@@ -185,7 +187,18 @@ function SendView({
     let start: UploadStart | undefined;
 
     try {
-      const prepared = await prepareUpload(file);
+      let prepared = await prepareUpload(file);
+      if (password) {
+        setPhase("optimizing");
+        const buffer = new Uint8Array(await prepared.body.arrayBuffer());
+        const encrypted = await encrypt(buffer, password);
+        prepared = {
+          ...prepared,
+          body: new Blob([encrypted as any], { type: "application/octet-stream" }),
+          storedSizeBytes: encrypted.byteLength,
+          storageEncoding: "aes-256-gcm",
+        };
+      }
       setPhase("preparing");
       const response = await fetch("/api/uploads", {
         method: "POST",
@@ -681,6 +694,31 @@ function ReceiveView({ token }: { token: string }) {
         return;
       }
     }
+
+    if (drop.storageEncoding === "aes-256-gcm") {
+      try {
+        const response = await fetch(`/api/public/${token}/download`);
+        if (!response.ok) throw new Error("Download failed");
+        const encryptedBuffer = new Uint8Array(await response.arrayBuffer());
+        const decryptedBuffer = await decrypt(encryptedBuffer, password);
+
+        const blob = new Blob([decryptedBuffer as any], { type: drop.contentType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = drop.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (reason) {
+        setError(
+          reason instanceof Error ? reason.message : "Decryption failed.",
+        );
+      } finally {
+        setUnlocking(false);
+      }
+      return;
+    }
+
     window.location.assign(`/api/public/${token}/download`);
     setUnlocking(false);
   }
@@ -749,7 +787,13 @@ function ReceiveView({ token }: { token: string }) {
                 </div>
                 <div>
                   <dt>Protection</dt>
-                  <dd>{drop.protected ? "Password" : "Link access"}</dd>
+                  <dd>
+                    {drop.storageEncoding === "aes-256-gcm"
+                      ? "End-to-end encrypted"
+                      : drop.protected
+                        ? "Password"
+                        : "Link access"}
+                  </dd>
                 </div>
                 <div>
                   <dt>Expires</dt>

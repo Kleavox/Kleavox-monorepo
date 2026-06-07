@@ -100,7 +100,7 @@ function WorkspaceApp() {
   return (
     <div className="link-app">
       <Header state={state} />
-      <main>
+      <main className="kvx-main">
         {state.status === "loading" && <Loading />}
         {state.status === "guest" && <Guest />}
         {state.status === "error" && (
@@ -121,12 +121,12 @@ function WorkspaceApp() {
 
 function Header({ state }: { state: LoadState }) {
   return (
-    <header className="link-header">
-      <a className="link-brand" href={ROOT_ORIGIN}>
+    <header className="kvx-header">
+      <a className="kvx-brand" href={ROOT_ORIGIN}>
         KLEAVOX <span>LINK</span>
       </a>
-      <nav aria-label="Product navigation">
-        <a className="link-nav-active" href="/">
+      <nav className="kvx-nav" aria-label="Product navigation">
+        <a className="is-active" href="/">
           Create
         </a>
         <a href="/report">Report</a>
@@ -158,16 +158,16 @@ function Dashboard({
   );
 
   return (
-    <>
+    <div className="kvx-shell-wide">
       <section className="link-hero">
         <div>
-          <p className="link-kicker">LINK / {identity.email}</p>
-          <h1>
+          <p className="kvx-kicker">LINK / {identity.email}</p>
+          <h1 className="kvx-title">
             One address.
             <br />
             Any handoff.
           </h1>
-          <p className="link-lede">
+          <p className="kvx-lede">
             Route a destination or send a temporary file from the same
             workspace.
           </p>
@@ -189,7 +189,7 @@ function Dashboard({
 
       <section className="link-compose">
         <header className="link-compose-heading">
-          <p className="link-kicker">CREATE / ONE PUBLIC NAMESPACE</p>
+          <p className="kvx-kicker">CREATE / ONE PUBLIC NAMESPACE</p>
           <h2>What are you sending?</h2>
           <p>
             URLs and files both leave as <strong>{ROOT_HOST}/...</strong>
@@ -202,7 +202,7 @@ function Dashboard({
       </section>
 
       <LinkList links={links} files={files} onRefresh={onRefresh} />
-    </>
+    </div>
   );
 }
 

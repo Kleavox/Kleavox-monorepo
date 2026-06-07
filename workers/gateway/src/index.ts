@@ -49,6 +49,9 @@ app.all("*", async (context) => {
     if (subdomain === "port") {
       return context.env.PORTFOLIO.fetch(context.req.raw);
     }
+    if (subdomain === "link") {
+      return context.env.LINK.fetch(context.req.raw);
+    }
   }
 
   const redirect = hostRedirect(url, context.env.PUBLIC_ORIGIN);
@@ -64,6 +67,7 @@ app.all("*", async (context) => {
     const headers = new Headers(context.req.raw.headers);
     headers.set("x-kleavox-public-host", url.hostname);
     headers.set("x-kleavox-trace-id", crypto.randomUUID());
+
     const response = await context.env.LINK.fetch(
       `http://${INTERNAL_HOSTS.LINK}/internal/resolve/${encodeURIComponent(slug)}`,
       {
