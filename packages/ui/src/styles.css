@@ -26,6 +26,11 @@
 
 * {
   box-sizing: border-box;
+  min-width: 0;
+}
+
+p, h1, h2, h3, h4, h5, h6, a, span, div, strong, b, i {
+  overflow-wrap: break-word;
 }
 
 html {
@@ -36,6 +41,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100dvh;
+  overflow-wrap: break-word;
   background: 
     radial-gradient(circle at 15% 10%, var(--kvx-accent-glow), transparent 30rem),
     var(--kvx-base);

@@ -103,40 +103,27 @@ function App() {
   }, [mode, providers, route, session]);
 
   return (
-    <main className="kvx-shell-wide pass-layout">
-      <section className="pass-intro" aria-labelledby="pass-title">
-        <a className="kvx-brand" href={ROOT_ORIGIN}>
-          KLEAVOX <span>PASS</span>
-        </a>
-        <div className="pass-intro-copy">
-          <p className="kvx-kicker">IDENTITY / SHARED SESSION</p>
-          <h1 id="pass-title" className="kvx-title">
-            One signal.
-            <br />
-            Every tool.
-          </h1>
-          <p className="kvx-lede">Sign in once for Link, files, and Pulse.</p>
+    <div className="pass-wrapper">
+      <header className="pass-header">
+        <div className="kvx-shell pass-header-inner">
+          <a className="kvx-brand" href={ROOT_ORIGIN}>
+            KLEAVOX <span>PASS</span>
+          </a>
+          <div className="pass-links">
+            <a href={LINK_ORIGIN}>Link</a>
+            <a href={PULSE_ORIGIN}>Pulse</a>
+          </div>
         </div>
-        <div
-          className="pass-service-map"
-          aria-label="Connected Kleavox services"
-        >
-          <span>Connected access</span>
-          <a href={LINK_ORIGIN}>
-            Link <b>ready</b>
-          </a>
-          <a href={PULSE_ORIGIN}>
-            Pulse <b>ready</b>
-          </a>
-          <a href={ROOT_ORIGIN}>
-            Kleavox <b>home</b>
-          </a>
+      </header>
+      <main className="pass-layout">
+        <div className="pass-panel-wrapper">
+          <div className="pass-panel-glow" aria-hidden="true" />
+          <section className="kvx-panel pass-panel">
+            {content}
+          </section>
         </div>
-      </section>
-      <section className="kvx-panel">
-        <div className="pass-panel-inner">{content}</div>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
 
