@@ -982,6 +982,7 @@ function publicDrop(drop: DropRow) {
     contentType: drop.content_type,
     sizeBytes: drop.source_size_bytes ?? drop.size_bytes,
     storedSizeBytes: drop.size_bytes,
+    storageEncoding: drop.storage_encoding,
     compressed: drop.storage_encoding === "gzip",
     protected: Boolean(drop.password_hash),
     maxDownloads: drop.max_downloads,

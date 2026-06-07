@@ -92,6 +92,9 @@ importers:
       '@kleavox/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@kleavox/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@kleavox/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -275,6 +278,12 @@ importers:
         specifier: 'catalog:'
         version: 3.2.6(@types/debug@4.1.13)(@types/node@22.19.19)(yaml@2.9.0)
 
+  packages/crypto:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
   packages/testing:
     devDependencies:
       typescript:
@@ -407,6 +416,9 @@ importers:
       '@kleavox/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@kleavox/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@kleavox/pass-app':
         specifier: workspace:*
         version: link:../../apps/pass
