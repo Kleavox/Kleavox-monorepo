@@ -1,8 +1,6 @@
+import { hashPassword as rustHashPassword, verifyPassword as rustVerifyPassword } from "@kleavox/crypto";
+
 const encoder = new TextEncoder();
-const PASSWORD_ALGORITHM = "PBKDF2";
-const PASSWORD_DIGEST = "SHA-256";
-const PASSWORD_ITERATIONS = 600_000;
-const PASSWORD_KEY_BYTES = 32;
 const PASSWORD_SALT_BYTES = 16;
 
 export function randomToken(bytes = 32): string {
@@ -18,21 +16,23 @@ export async function hashToken(value: string): Promise<string> {
 
 export async function hashPassword(
   password: string,
-  iterations = PASSWORD_ITERATIONS,
 ): Promise<string> {
   const salt = new Uint8Array(PASSWORD_SALT_BYTES);
   crypto.getRandomValues(salt);
-  const derived = await derivePassword(password, salt, iterations);
-
-  return [
-    "pbkdf2-sha256",
-    iterations.toString(),
-    encodeBase64Url(salt),
-    encodeBase64Url(derived),
-  ].join("$");
+  return rustHashPassword(password, encodeBase64Url(salt));
 }
 
 export async function verifyPassword(
+  encoded: string,
+  password: string,
+): Promise<boolean> {
+  if (encoded.startsWith("pbkdf2-sha256$")) {
+    return verifyLegacyPassword(encoded, password);
+  }
+  return rustVerifyPassword(password, encoded);
+}
+
+async function verifyLegacyPassword(
   encoded: string,
   password: string,
 ): Promise<boolean> {
@@ -42,7 +42,6 @@ export async function verifyPassword(
   if (
     algorithm !== "pbkdf2-sha256" ||
     !Number.isSafeInteger(iterations) ||
-    iterations < 100_000 ||
     !saltValue ||
     !hashValue
   ) {
@@ -51,7 +50,7 @@ export async function verifyPassword(
 
   try {
     const expected = decodeBase64Url(hashValue);
-    const actual = await derivePassword(
+    const actual = await derivePBKDF2(
       password,
       decodeBase64Url(saltValue),
       iterations,
@@ -60,6 +59,32 @@ export async function verifyPassword(
   } catch {
     return false;
   }
+}
+
+async function derivePBKDF2(
+  password: string,
+  salt: Uint8Array,
+  iterations: number,
+): Promise<Uint8Array> {
+  const saltBuffer = salt.slice().buffer as ArrayBuffer;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt: saltBuffer,
+      iterations,
+    },
+    key,
+    256,
+  );
+  return new Uint8Array(bits);
 }
 
 export async function hashAuditIp(ip: string, secret: string): Promise<string> {
@@ -72,32 +97,6 @@ export async function hashAuditIp(ip: string, secret: string): Promise<string> {
   );
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(ip));
   return encodeBase64Url(new Uint8Array(signature));
-}
-
-async function derivePassword(
-  password: string,
-  salt: Uint8Array,
-  iterations: number,
-): Promise<Uint8Array> {
-  const saltBuffer = salt.slice().buffer as ArrayBuffer;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    PASSWORD_ALGORITHM,
-    false,
-    ["deriveBits"],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    {
-      name: PASSWORD_ALGORITHM,
-      hash: PASSWORD_DIGEST,
-      salt: saltBuffer,
-      iterations,
-    },
-    key,
-    PASSWORD_KEY_BYTES * 8,
-  );
-  return new Uint8Array(bits);
 }
 
 function timingSafeEqual(left: Uint8Array, right: Uint8Array): boolean {
@@ -125,4 +124,3 @@ function decodeBase64Url(value: string): Uint8Array {
   const binary = atob(padded);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
-

@@ -11,6 +11,7 @@
     "./wasm": "./pkg/kleavox_crypto_bg.wasm"
   },
   "files": [
+    "dist",
     "pkg"
   ],
   "scripts": {
