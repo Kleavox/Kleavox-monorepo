@@ -15,7 +15,7 @@
     "pkg"
   ],
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir ../../packages/crypto/pkg --out-name kleavox_crypto --release ../../crates/crypto --locked && tsc -p tsconfig.json",
+    "build": "wasm-pack build --target web --out-dir ../../packages/crypto/pkg --out-name kleavox_crypto --release ../../crates/crypto --locked && node scripts/inline-wasm.mjs && tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "cargo test --manifest-path ../../crates/crypto/Cargo.toml --locked",
     "typecheck": "tsc -p tsconfig.json --noEmit"

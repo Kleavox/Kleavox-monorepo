@@ -1,3 +1,6 @@
+// @ts-ignore - Generated at build time
+import { WASM_BASE64 } from "./wasm-base64";
+
 interface CryptoModule {
   default: (wasm?: WebAssembly.Module | BufferSource) => Promise<unknown>;
   hash_password: (password: string, salt: string) => string;
@@ -8,30 +11,27 @@ interface CryptoModule {
 
 let modulePromise: Promise<CryptoModule> | undefined;
 
-export async function initCrypto(wasm?: WebAssembly.Module | BufferSource): Promise<void> {
+function decodeBase64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+export async function initCrypto(): Promise<void> {
   if (modulePromise) return;
 
   // @ts-ignore
   modulePromise = import("../pkg/kleavox_crypto.js").then(
     async (module) => {
       try {
-        await module.default(wasm);
+        const wasmBuffer = decodeBase64ToUint8Array(WASM_BASE64);
+        await module.default(wasmBuffer);
       } catch (error) {
-        if (typeof process !== "undefined" && process.versions && process.versions.node) {
-          try {
-            const fs = await import("node:fs/promises");
-            const path = await import("node:path");
-            // @ts-ignore
-            const dir = typeof import.meta.dirname !== "undefined" ? import.meta.dirname : __dirname;
-            const wasmPath = path.join(dir, "..", "pkg", "kleavox_crypto_bg.wasm");
-            const wasmBuffer = await fs.readFile(wasmPath);
-            await module.default(wasmBuffer);
-            return module as unknown as CryptoModule;
-          } catch (fallbackError) {
-             throw fallbackError;
-          }
-        }
-        throw error;
+        console.warn("WASM initialization warning:", error);
       }
       return module as unknown as CryptoModule;
     },
