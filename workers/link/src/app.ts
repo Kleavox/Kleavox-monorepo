@@ -69,7 +69,13 @@ app.all("/api/drops", (context) => proxyDrop(context, context.req.path));
 app.all("/api/public/*", (context) => proxyDrop(context, context.req.path));
 
 app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
-  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.LINK) {
+  const url = new URL(context.req.url);
+  if (url.hostname !== INTERNAL_HOSTS.LINK) {
+    return context.body(null, 404);
+  }
+
+  const traceId = context.req.header("x-kleavox-trace-id");
+  if (!traceId && context.env.ENVIRONMENT === "production") {
     return context.body(null, 404);
   }
 

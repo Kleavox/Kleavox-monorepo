@@ -144,11 +144,22 @@ app.use("/api/*", async (context, next) => {
   const origin = context.req.header("origin");
   const requestOrigin = new URL(context.req.url).origin;
   const trustedOrigins = new Set([context.env.PUBLIC_ORIGIN, requestOrigin]);
+  
   if (
     (origin && !trustedOrigins.has(origin)) ||
     (!origin && context.env.ENVIRONMENT === "production")
   ) {
     return apiError(context, 403, "invalid_origin", "Request origin rejected.");
+  }
+
+  const referer = context.req.header("referer");
+  if (
+    context.env.ENVIRONMENT === "production" &&
+    referer &&
+    !referer.startsWith(context.env.PUBLIC_ORIGIN) &&
+    !referer.startsWith(requestOrigin)
+  ) {
+    return apiError(context, 403, "invalid_referer", "Cross-site request blocked.");
   }
 
   return next();
