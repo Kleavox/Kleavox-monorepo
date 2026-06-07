@@ -13,7 +13,7 @@
   --shell: min(1440px, calc(100vw - 48px));
   background: var(--base);
   color: var(--ink);
-  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-family: "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-synthesis: none;
 }
 
@@ -865,7 +865,7 @@ body {
   border-radius: 7px;
   background: var(--cyan);
   box-shadow: 0 9px 28px rgb(83 216 224 / 16%);
-  transition: transform 220ms var(--z-ease, cubic-bezier(0.16, 1, 0.3, 1));
+  transition: transform 220ms var(--kvx-ease, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .port-mark:hover span {
@@ -930,41 +930,6 @@ body {
     24px 24px,
     24px 24px,
     auto;
-}
-
-.signal-ticker {
-  overflow: hidden;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.signal-ticker > div {
-  display: flex;
-  width: max-content;
-  animation: port-ticker 32s linear infinite;
-}
-
-.signal-ticker span {
-  display: flex;
-  min-height: 58px;
-  align-items: center;
-  gap: 28px;
-  padding-inline: 32px;
-  color: var(--muted);
-  font-family: "Cascadia Code", monospace;
-  font-size: 0.67rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.signal-ticker span::after {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 10px var(--cyan);
-  content: "";
 }
 
 .manifesto {
@@ -1086,22 +1051,11 @@ body {
   }
 }
 
-@keyframes port-ticker {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 @media (max-width: 680px) {
   body {
     background-size:
       auto,
       50vw 100%,
       auto;
-  }
-
-  .signal-ticker span {
-    min-height: 50px;
-    padding-inline: 24px;
   }
 }

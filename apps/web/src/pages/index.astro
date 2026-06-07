@@ -86,6 +86,37 @@ const products = [
               <div class="mosaic-preview">
                 <small>KLEAVOX / {product.name.toUpperCase()}</small>
                 <strong>{product.statement}</strong>
+                {index === 0 && (
+                  <div class="mosaic-deco" aria-hidden="true">
+                    <div class="md-rows">
+                      <span></span><span></span><span></span>
+                    </div>
+                    <div class="md-dots">
+                      <b></b><b></b><b></b><b></b><b></b>
+                    </div>
+                  </div>
+                )}
+                {index === 1 && (
+                  <div class="mosaic-deco mosaic-deco-pass" aria-hidden="true">
+                    <div class="md-orbit"><i></i><i></i></div>
+                  </div>
+                )}
+                {index === 2 && (
+                  <div class="mosaic-deco mosaic-deco-pulse" aria-hidden="true">
+                    <div class="md-bars">
+                      <i style="--h:38%"></i><i style="--h:65%"></i>
+                      <i style="--h:48%"></i><i style="--h:85%"></i>
+                      <i style="--h:58%"></i><i style="--h:72%"></i>
+                    </div>
+                  </div>
+                )}
+                {index === 3 && (
+                  <div class="mosaic-deco mosaic-deco-port" aria-hidden="true">
+                    <div class="md-grid">
+                      <i></i><i></i><i></i><i></i>
+                    </div>
+                  </div>
+                )}
                 <i></i>
               </div>
               <span>{product.name} /</span>
@@ -94,15 +125,17 @@ const products = [
         </div>
       </section>
 
-      <section id="system" class="system shell" aria-labelledby="system-title">
-        <div class="system-title">
-          <p class="section-label">ARCHITECTURE</p>
+      <section class="statement-band" aria-labelledby="system-title">
+        <div>
+          <p class="section-label" style="color: var(--accent-ink)">ARCHITECTURE</p>
           <h2 id="system-title">One domain.<br />Separate workers.</h2>
-          <p class="system-desc">
+          <p class="system-desc" style="color: var(--accent-ink)">
             Kleavox is designed as a unified monorepo. While it appears as a single platform, each product is powered by strictly isolated Cloudflare Workers. This ensures extreme performance at the edge while maintaining deep integration through shared core configurations and identity protocols.
           </p>
         </div>
+      </section>
 
+      <section id="system" class="system shell">
         <div class="architecture" aria-label="Kleavox architecture">
           <div class="architecture-domain">
             <span>Public edge</span>
@@ -127,30 +160,18 @@ const products = [
       </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="shell footer-inner">
-        <div class="footer-brand">
-          <a class="wordmark" href="/">Kleavox</a>
-          <p>Independent tools for public routes and infrastructure.</p>
-        </div>
-        <div class="footer-links">
-          <div class="footer-column">
-            <span>Products</span>
-            <a href={getPublicOrigin(rootOrigin, "link")}>Link</a>
-            <a href={getPublicOrigin(rootOrigin, "pass")}>Pass</a>
-            <a href={getPublicOrigin(rootOrigin, "pulse")}>Pulse</a>
-            <a href={getPublicOrigin(rootOrigin, "port")}>Port</a>
-          </div>
-          <div class="footer-column">
-            <span>Legal</span>
-            <a href="/privacy">Privacy</a>
-            <a href="/terms">Terms</a>
-          </div>
-        </div>
+    <footer class="site-footer shell">
+      <a class="wordmark" href="/">Kleavox</a>
+      <p>Independent tools for public routes and infrastructure.</p>
+      <div>
+        <a href={getPublicOrigin(rootOrigin, "link")}>Link</a>
+        <a href={getPublicOrigin(rootOrigin, "pass")}>Pass</a>
+        <a href={getPublicOrigin(rootOrigin, "pulse")}>Pulse</a>
+        <a href={getPublicOrigin(rootOrigin, "port")}>Port</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
       </div>
-      <div class="shell footer-bottom">
-        <span>(c) {new Date().getFullYear()} Kleavox</span>
-      </div>
+      <span>(c) {new Date().getFullYear()} Kleavox</span>
     </footer>
   </body>
 </html>

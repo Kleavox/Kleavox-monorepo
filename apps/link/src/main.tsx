@@ -123,7 +123,7 @@ function Header({ state }: { state: LoadState }) {
   return (
     <header className="kvx-header">
       <a className="kvx-brand" href={ROOT_ORIGIN}>
-        KLEAVOX <span>LINK</span>
+        KLEAV<span>OX</span> / LINK
       </a>
       <nav className="kvx-nav" aria-label="Product navigation">
         <a className="is-active" href="/">
@@ -795,7 +795,7 @@ function ReportApp() {
     <div className="link-app">
       <header className="link-header">
         <a className="link-brand" href="/">
-          KLEAVOX <span>LINK</span>
+          KLEAV<span>OX</span> / LINK
         </a>
         <nav>
           <a href="/">Create</a>

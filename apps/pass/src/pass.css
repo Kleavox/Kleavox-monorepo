@@ -2,7 +2,7 @@
   color-scheme: dark;
   color: #f0f0f0;
   background: #000;
-  font-family: var(--z-font);
+  font-family: var(--kvx-font);
 }
 
 body {
@@ -21,7 +21,7 @@ button {
 }
 
 .pass-layout {
-  width: min(1500px, calc(100vw - 42px));
+  width: min(1180px, calc(100vw - 32px));
   min-height: 100dvh;
   margin: 0 auto;
   display: grid;
@@ -41,7 +41,7 @@ button {
 .pass-wordmark {
   width: fit-content;
   color: #a3e635;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -56,7 +56,7 @@ button {
 .pass-section-label {
   margin: 0 0 1.2rem;
   color: #a3e635;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -80,7 +80,7 @@ button {
 .pass-assurance {
   margin: 0;
   color: #4f4f4f;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.65rem;
   letter-spacing: 0.14em;
 }
@@ -143,7 +143,7 @@ button {
   display: grid;
   gap: 0.45rem;
   color: #a4a4a4;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -202,7 +202,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -277,7 +277,7 @@ button {
   padding: 0 0.75rem;
   background: #0a0a0a;
   color: #555;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.62rem;
 }
 
@@ -313,7 +313,7 @@ button {
   border: 1px solid;
   border-radius: 12px;
   padding: 0.75rem 0.9rem;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   line-height: 1.5;
 }
@@ -331,10 +331,17 @@ button {
 }
 
 .pass-dev-note {
-  margin: 0;
-  color: #555;
-  font-family: var(--z-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgb(212 240 106 / 6%);
+  border: 1px solid var(--pass-line);
+  border-radius: 8px;
+  color: var(--pass-muted);
+  font-family: var(--kvx-mono);
   font-size: 0.62rem;
+  letter-spacing: 0.04em;
   line-height: 1.5;
 }
 
@@ -356,7 +363,7 @@ button {
 
 .pass-account dt {
   color: #666;
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   text-transform: uppercase;
 }
@@ -512,7 +519,7 @@ body {
   letter-spacing: -0.085em;
   line-height: 0.8;
   text-transform: none;
-  animation: pass-enter 750ms var(--z-ease) both;
+  animation: pass-enter 750ms var(--kvx-ease) both;
 }
 
 .pass-intro-copy > p:last-child {
@@ -526,32 +533,32 @@ body {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 1fr repeat(3, minmax(90px, 0.42fr));
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
   align-items: center;
   margin-right: clamp(30px, 6vw, 90px);
   border-top: 1px solid var(--pass-line);
   border-bottom: 1px solid var(--pass-line);
 }
 
-.pass-service-map > span,
 .pass-service-map a {
   min-height: 64px;
   padding: 0 18px;
   display: flex;
   align-items: center;
   color: var(--pass-muted);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.64rem;
   text-decoration: none;
-}
-
-.pass-service-map a {
   justify-content: space-between;
   gap: 12px;
   border-left: 1px solid var(--pass-line);
   transition:
     color 180ms ease,
     background 180ms ease;
+}
+
+.pass-service-map a:first-child {
+  border-left: 0;
 }
 
 .pass-service-map a:hover {
@@ -645,7 +652,7 @@ body {
   padding: 0 18px;
   color: #677054;
   border-bottom: 1px solid var(--pass-line);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.58rem;
   letter-spacing: 0.08em;
 }
@@ -801,11 +808,6 @@ body {
 
   .pass-service-map {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .pass-service-map > span {
-    grid-column: 1 / -1;
-    border-bottom: 1px solid var(--pass-line);
   }
 
   .pass-service-map a:last-child {

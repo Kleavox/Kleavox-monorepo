@@ -78,25 +78,6 @@ select:focus-visible {
   letter-spacing: 0;
 }
 
-.pulse-header-status {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: #6a6a98;
-  font-family: "Cascadia Code", Consolas, monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.pulse-signal {
-  width: 7px;
-  height: 7px;
-  background: #4ade80;
-  border-radius: 50%;
-  box-shadow: 0 0 12px #4ade80;
-}
-
 .pulse-main {
   width: min(1520px, 100%);
   margin: 0 auto;
@@ -718,10 +699,6 @@ select:focus-visible {
     grid-template-columns: 1fr auto;
   }
 
-  .pulse-header-status {
-    display: none;
-  }
-
   .pulse-command {
     min-height: 0;
     padding-top: 52px;
@@ -787,7 +764,7 @@ select:focus-visible {
   --pulse-accent: #43d9e6;
   color: var(--pulse-ink);
   background: var(--pulse-base);
-  font-family: var(--z-font);
+  font-family: var(--kvx-font);
 }
 
 body {
@@ -818,7 +795,6 @@ body {
   color: var(--pulse-accent);
 }
 
-.pulse-header-status,
 .pulse-account {
   color: var(--pulse-muted);
 }
@@ -860,7 +836,7 @@ body {
   font-weight: 570;
   letter-spacing: -0.085em;
   line-height: 0.82;
-  animation: pulse-enter 700ms var(--z-ease) both;
+  animation: pulse-enter 700ms var(--kvx-ease) both;
 }
 
 .pulse-command > div > p:not(.pulse-kicker),
@@ -890,7 +866,7 @@ body {
 
 .pulse-command-readout span {
   color: var(--pulse-muted);
-  font-family: var(--z-mono);
+  font-family: var(--kvx-mono);
   font-size: 0.62rem;
 }
 
@@ -927,7 +903,7 @@ body {
   border-color: var(--pulse-accent);
   background: var(--pulse-accent);
   transition:
-    transform 180ms var(--z-ease),
+    transform 180ms var(--kvx-ease),
     box-shadow 180ms ease,
     background 180ms ease;
 }
@@ -999,7 +975,7 @@ body {
   background: var(--pulse-panel);
   transition:
     border-color 180ms ease,
-    transform 220ms var(--z-ease),
+    transform 220ms var(--kvx-ease),
     box-shadow 220ms ease;
 }
 

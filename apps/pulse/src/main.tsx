@@ -144,12 +144,8 @@ function Header({ state }: { state: AppState }) {
   return (
     <header className="kvx-header">
       <a href={ROOT_ORIGIN} className="kvx-brand">
-        KLEAVOX <span>PULSE</span>
+        KLEAV<span>OX</span> / PULSE
       </a>
-      <div className="pulse-header-status">
-        <span className="pulse-signal" />
-        {state.status === "ready" ? "Online" : "Monitor"}
-      </div>
       <a href={PASS_ORIGIN} className="kvx-nav">
         {state.status === "ready"
           ? state.identity.name || state.identity.email
