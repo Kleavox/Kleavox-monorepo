@@ -4,6 +4,10 @@ import { QRCodeSVG } from "qrcode.react";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
+import { ROOT_HOST, ROOT_ORIGIN, signInUrl } from "./config";
+import { FilesApp } from "./files";
+import type { AccountDrop } from "./files";
+import "./link.css";
 
 interface LinkRecord {
   id: string;
