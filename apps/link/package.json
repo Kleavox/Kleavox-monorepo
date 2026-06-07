@@ -13,6 +13,7 @@
   "dependencies": {
     "@marsidev/react-turnstile": "catalog:",
     "@kleavox/compression": "workspace:*",
+    "@kleavox/core": "workspace:*",
     "@kleavox/ui": "workspace:*",
     "qrcode.react": "catalog:",
     "react": "catalog:",

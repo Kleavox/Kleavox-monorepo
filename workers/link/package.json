@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@kleavox/auth": "workspace:*",
+    "@kleavox/config": "workspace:*",
     "@kleavox/core": "workspace:*",
     "@kleavox/link-app": "workspace:*",
     "hono": "catalog:",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
+    "@kleavox/testing": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"

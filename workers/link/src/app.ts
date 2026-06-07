@@ -1,3 +1,4 @@
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import { verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
@@ -68,7 +69,7 @@ app.all("/api/drops", (context) => proxyDrop(context, context.req.path));
 app.all("/api/public/*", (context) => proxyDrop(context, context.req.path));
 
 app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
-  if (new URL(context.req.url).hostname !== "link.internal") {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.LINK) {
     return context.body(null, 404);
   }
 
@@ -422,7 +423,7 @@ app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
 function proxyDrop(context: AppContext, pathname: string) {
   const source = new URL(context.req.url);
   const destination = new URL(source);
-  destination.hostname = "drop.internal";
+  destination.hostname = INTERNAL_HOSTS.DROP;
   destination.pathname = pathname;
   return context.env.DROP.fetch(new Request(destination, context.req.raw));
 }

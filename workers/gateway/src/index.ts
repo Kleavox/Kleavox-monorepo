@@ -1,3 +1,4 @@
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import { isFileSlug, isReservedSlug } from "@kleavox/core";
 import { Hono } from "hono";
 
@@ -18,13 +19,13 @@ app.get("/health", (context) =>
 
 app.all("/api/public/*", (context) => {
   const url = new URL(context.req.url);
-  url.hostname = "drop.internal";
+  url.hostname = INTERNAL_HOSTS.DROP;
   return context.env.DROP.fetch(new Request(url, context.req.raw));
 });
 
 app.all("/link-assets/*", (context) => {
   const url = new URL(context.req.url);
-  url.hostname = "link.internal";
+  url.hostname = INTERNAL_HOSTS.LINK;
   return context.env.LINK.fetch(new Request(url, context.req.raw));
 });
 
@@ -43,7 +44,7 @@ app.all("*", async (context) => {
     const headers = new Headers(context.req.raw.headers);
     headers.set("x-kleavox-public-host", url.hostname);
     const response = await context.env.LINK.fetch(
-      `http://link.internal/internal/resolve/${encodeURIComponent(slug)}`,
+      `http://${INTERNAL_HOSTS.LINK}/internal/resolve/${encodeURIComponent(slug)}`,
       {
         method: context.req.method,
         headers,
@@ -59,7 +60,7 @@ app.all("*", async (context) => {
 
     if (isFileSlug(slug) && ["GET", "HEAD"].includes(context.req.method)) {
       const appUrl = new URL(context.req.url);
-      appUrl.hostname = "link.internal";
+      appUrl.hostname = INTERNAL_HOSTS.LINK;
       return context.env.LINK.fetch(new Request(appUrl, context.req.raw));
     }
   }

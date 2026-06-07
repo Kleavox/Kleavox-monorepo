@@ -1,3 +1,4 @@
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import { readCookie, verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";

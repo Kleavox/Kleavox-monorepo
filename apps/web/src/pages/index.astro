@@ -1,17 +1,16 @@
 ---
+import { getPublicOrigin } from "@kleavox/config";
 import "../styles/global.css";
 
 const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
 const rootHost = new URL(rootOrigin).host;
-const productOrigin = (subdomain: string) =>
-  new URL(`https://${subdomain}.${rootHost}`).toString().replace(/\/$/u, "");
 
 const products = [
   {
     name: "Link",
     domain: "link",
     number: "01",
-    href: productOrigin("link"),
+    href: getPublicOrigin(rootOrigin, "link"),
     statement: "One address for links and files.",
     detail: "Route a destination or send the file itself from one workspace.",
     capabilities: ["Custom slugs", "Analytics", "Expiring files"],
@@ -20,7 +19,7 @@ const products = [
     name: "Pass",
     domain: "pass",
     number: "02",
-    href: productOrigin("pass"),
+    href: getPublicOrigin(rootOrigin, "pass"),
     statement: "One account.",
     detail: "Email, Google, and GitHub login for Kleavox.",
     capabilities: ["Shared session", "OAuth", "Account recovery"],
@@ -29,16 +28,16 @@ const products = [
     name: "Pulse",
     domain: "pulse",
     number: "03",
-    href: productOrigin("pulse"),
+    href: getPublicOrigin(rootOrigin, "pulse"),
     statement: "Watch every host.",
     detail: "Metrics and checks from a small Go agent.",
     capabilities: ["Host metrics", "Health checks", "Incident history"],
   },
   {
     name: "Port",
-    domain: "port",
+    domain: "portfolio",
     number: "04",
-    href: productOrigin("port"),
+    href: getPublicOrigin(rootOrigin, "portfolio"),
     statement: "Selected work.",
     detail: "Selected hardware, software, and infrastructure work.",
     capabilities: ["Embedded", "Software", "Infrastructure"],
@@ -72,7 +71,7 @@ const products = [
       <nav aria-label="Primary navigation">
         <a href="#products">Products</a>
         <a href="#system">System</a>
-        <a class="nav-action" href={productOrigin("pass")}>Sign in</a>
+        <a class="nav-action" href={getPublicOrigin(rootOrigin, "pass")}>Sign in</a>
       </nav>
     </header>
 
@@ -195,11 +194,11 @@ const products = [
         <p class="section-label">START</p>
         <h2 id="closing-title">Create an account.<br />Use every tool.</h2>
         <div class="closing-actions">
-          <a class="primary-action" href={productOrigin("pass")}>
+          <a class="primary-action" href={getPublicOrigin(rootOrigin, "pass")}>
             Create your account
             <span aria-hidden="true">/</span>
           </a>
-          <a class="text-action" href={productOrigin("link")}>Open Link</a>
+          <a class="text-action" href={getPublicOrigin(rootOrigin, "link")}>Open Link</a>
         </div>
       </section>
     </main>
@@ -208,10 +207,10 @@ const products = [
       <a class="wordmark" href="/">Kleavox</a>
       <p>Independent tools for public routes and infrastructure.</p>
       <div>
-        <a href={productOrigin("link")}>Link</a>
-        <a href={productOrigin("pass")}>Pass</a>
-        <a href={productOrigin("pulse")}>Pulse</a>
-        <a href={productOrigin("port")}>Port</a>
+        <a href={getPublicOrigin(rootOrigin, "link")}>Link</a>
+        <a href={getPublicOrigin(rootOrigin, "pass")}>Pass</a>
+        <a href={getPublicOrigin(rootOrigin, "pulse")}>Pulse</a>
+        <a href={getPublicOrigin(rootOrigin, "portfolio")}>Port</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
       </div>

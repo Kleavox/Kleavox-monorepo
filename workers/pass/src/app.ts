@@ -1,3 +1,4 @@
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import type { Identity } from "@kleavox/core";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
@@ -751,7 +752,7 @@ app.post("/api/sessions/revoke-all", async (context) => {
 });
 
 app.get("/internal/session", async (context) => {
-  if (new URL(context.req.url).hostname !== "pass.internal") {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
     return context.body(null, 404);
   }
 

@@ -11,6 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@kleavox/core": "workspace:*",
     "@kleavox/ui": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"

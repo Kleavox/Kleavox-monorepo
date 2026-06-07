@@ -11,6 +11,8 @@
     "typecheck": "astro check"
   },
   "dependencies": {
+    "@kleavox/config": "workspace:*",
+    "@kleavox/core": "workspace:*",
     "astro": "catalog:"
   },
   "devDependencies": {
