@@ -1,3 +1,4 @@
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import type { Identity } from "@kleavox/core";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
@@ -143,11 +144,22 @@ app.use("/api/*", async (context, next) => {
   const origin = context.req.header("origin");
   const requestOrigin = new URL(context.req.url).origin;
   const trustedOrigins = new Set([context.env.PUBLIC_ORIGIN, requestOrigin]);
+  
   if (
     (origin && !trustedOrigins.has(origin)) ||
     (!origin && context.env.ENVIRONMENT === "production")
   ) {
     return apiError(context, 403, "invalid_origin", "Request origin rejected.");
+  }
+
+  const referer = context.req.header("referer");
+  if (
+    context.env.ENVIRONMENT === "production" &&
+    referer &&
+    !referer.startsWith(context.env.PUBLIC_ORIGIN) &&
+    !referer.startsWith(requestOrigin)
+  ) {
+    return apiError(context, 403, "invalid_referer", "Cross-site request blocked.");
   }
 
   return next();
@@ -751,7 +763,7 @@ app.post("/api/sessions/revoke-all", async (context) => {
 });
 
 app.get("/internal/session", async (context) => {
-  if (new URL(context.req.url).hostname !== "pass.internal") {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
     return context.body(null, 404);
   }
 

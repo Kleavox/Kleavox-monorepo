@@ -1,6 +1,7 @@
+import { INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
 import type { SessionIdentity } from "@kleavox/core";
 
-export const SESSION_COOKIE = "__Secure-kleavox_session";
+export { SESSION_COOKIE };
 
 export interface PassBinding {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
@@ -30,7 +31,7 @@ export async function verifySession(
   const sessionId = readCookie(request, SESSION_COOKIE);
   if (!sessionId) return null;
 
-  const response = await pass.fetch("http://pass.internal/internal/session", {
+  const response = await pass.fetch(INTERNAL_URLS.SESSION_VERIFY, {
     headers: {
       "x-kleavox-session": sessionId,
     },

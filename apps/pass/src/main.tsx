@@ -1,5 +1,6 @@
 import { Turnstile } from "@marsidev/react-turnstile";
-import "@kleavox/ui/styles.css";
+import { createRoot } from "react-dom/client";
+import type { Identity } from "@kleavox/core";
 import {
   type FormEvent,
   StrictMode,
@@ -7,18 +8,12 @@ import {
   useMemo,
   useState,
 } from "react";
-import { createRoot } from "react-dom/client";
+
+import "@kleavox/ui/styles.css";
 import { LINK_ORIGIN, PULSE_ORIGIN, ROOT_ORIGIN } from "./config";
 import "./pass.css";
 
 type Mode = "login" | "register" | "forgot";
-
-interface Identity {
-  id: string;
-  email: string;
-  name: string | null;
-  role: "ADMIN" | "USER";
-}
 
 interface SessionResponse {
   authenticated: boolean;

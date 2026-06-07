@@ -1,19 +1,13 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QRCodeSVG } from "qrcode.react";
+import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
 import { ROOT_HOST, ROOT_ORIGIN, signInUrl } from "./config";
 import { FilesApp } from "./files";
 import type { AccountDrop } from "./files";
 import "./link.css";
-
-interface Identity {
-  id: string;
-  email: string;
-  name: string | null;
-  role: "ADMIN" | "USER";
-}
 
 interface LinkRecord {
   id: string;

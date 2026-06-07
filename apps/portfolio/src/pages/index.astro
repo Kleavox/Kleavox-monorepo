@@ -1,10 +1,9 @@
 ---
+import { getPublicOrigin } from "@kleavox/config";
 import "../styles/global.css";
 
 const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
-const portfolioOrigin =
-  import.meta.env.PUBLIC_PORTFOLIO_ORIGIN ??
-  "https://portfolio.example.com";
+const portfolioOrigin = getPublicOrigin(rootOrigin, "portfolio");
 const portfolioName = "Hafidh Musyafa";
 const portfolioLocation = "Semarang, Indonesia";
 const githubUrl = "https://github.com/Kleavox";

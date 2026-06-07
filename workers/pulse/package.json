@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@kleavox/auth": "workspace:*",
+    "@kleavox/config": "workspace:*",
     "@kleavox/core": "workspace:*",
     "@kleavox/pulse-app": "workspace:*",
     "hono": "catalog:",

@@ -1,15 +1,10 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
 import { PASS_ORIGIN, ROOT_ORIGIN, signInUrl } from "./config";
 import "./pulse.css";
-
-interface Identity {
-  id: string;
-  email: string;
-  name: string | null;
-}
 
 interface SessionResponse {
   authenticated: boolean;
