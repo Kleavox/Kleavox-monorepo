@@ -1,24 +1,25 @@
 :root {
-  --z-base: #0a0d0c;
-  --z-surface: #111511;
-  --z-surface-raised: #171c17;
-  --z-paper: #f0f1eb;
-  --z-paper-raised: #fafbf7;
-  --z-ink: #151812;
-  --z-ink-inverse: #f1f4ee;
-  --z-muted: #697067;
-  --z-muted-inverse: #919a91;
-  --z-line: #c9cdc3;
-  --z-line-dark: #293029;
-  --z-lime: #b8f34b;
-  --z-cyan: #42cbd0;
-  --z-blue: #6f9cff;
-  --z-red: #e36d61;
-  --z-shell: min(1460px, calc(100vw - 48px));
-  --z-font:
-    "Aptos", "Segoe UI Variable", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --z-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  --z-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: dark;
+  --kvx-base: #070908;
+  --kvx-surface: #0e1210;
+  --kvx-surface-raised: #141a17;
+  --kvx-line: #222b26;
+  --kvx-line-bright: #303d36;
+  --kvx-ink: #eff5f0;
+  --kvx-muted: #84938a;
+  --kvx-quiet: #4d5952;
+  
+  /* Fallback accent, to be overridden by apps */
+  --kvx-accent: #a3e635; 
+  --kvx-accent-glow: rgb(163 230 53 / 12%);
+  --kvx-accent-text: #11190b;
+
+  --kvx-font: "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --kvx-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --kvx-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --kvx-shell: min(1280px, calc(100vw - 48px));
+  --kvx-shell-wide: min(1500px, calc(100vw - 48px));
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -35,7 +36,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100dvh;
-  font-family: var(--z-font);
+  background: 
+    radial-gradient(circle at 15% 10%, var(--kvx-accent-glow), transparent 30rem),
+    var(--kvx-base);
+  color: var(--kvx-ink);
+  font-family: var(--kvx-font);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -44,6 +49,7 @@ input,
 select,
 textarea {
   font: inherit;
+  color: inherit;
 }
 
 button,
@@ -51,91 +57,256 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--z-lime);
+  outline: 2px solid var(--kvx-accent);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: var(--z-lime);
-  color: var(--z-ink);
+  background: var(--kvx-accent);
+  color: var(--kvx-accent-text);
 }
 
-.z-product-nav {
+/* ==========================================================================
+   LAYOUT
+   ========================================================================== */
+
+.kvx-shell {
+  width: var(--kvx-shell);
+  margin-inline: auto;
+}
+
+.kvx-shell-wide {
+  width: var(--kvx-shell-wide);
+  margin-inline: auto;
+}
+
+.kvx-header {
+  position: sticky;
+  z-index: 40;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: var(--z-shell);
   min-height: 72px;
-  margin-inline: auto;
-  border-bottom: 1px solid currentColor;
-  border-bottom-color: color-mix(in srgb, currentColor 18%, transparent);
+  padding: 0 clamp(20px, 4vw, 40px);
+  background: color-mix(in srgb, var(--kvx-base) 85%, transparent);
+  border-bottom: 1px solid var(--kvx-line);
+  backdrop-filter: blur(16px);
 }
 
-.z-product-brand {
-  font-size: 0.94rem;
-  font-weight: 850;
-  letter-spacing: -0.035em;
-  text-decoration: none;
+.kvx-brand {
+  font-family: var(--kvx-mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
 
-.z-product-brand span {
-  color: var(--product-accent, var(--z-lime));
-  font-weight: 550;
+.kvx-brand span {
+  color: var(--kvx-accent);
 }
 
-.z-product-tabs {
+.kvx-nav {
   display: flex;
   align-items: center;
-  gap: clamp(16px, 2.8vw, 38px);
+  gap: clamp(16px, 3vw, 36px);
 }
 
-.z-product-tabs a {
-  color: inherit;
-  font-size: 0.78rem;
-  font-weight: 650;
-  opacity: 0.62;
-  text-decoration: none;
-  transition:
-    color 160ms ease,
-    opacity 160ms ease;
+.kvx-nav a {
+  color: var(--kvx-muted);
+  font-family: var(--kvx-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 150ms ease;
 }
 
-.z-product-tabs a:hover,
-.z-product-tabs a[aria-current="page"] {
-  color: var(--product-accent, var(--z-lime));
-  opacity: 1;
+.kvx-nav a:hover,
+.kvx-nav .is-active {
+  color: var(--kvx-ink);
 }
 
-.z-kicker {
-  margin: 0;
-  color: var(--product-accent, var(--z-lime));
-  font-family: var(--z-mono);
+.kvx-main {
+  min-height: calc(100dvh - 72px);
+}
+
+/* ==========================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+
+.kvx-kicker {
+  margin: 0 0 1rem;
+  color: var(--kvx-accent);
+  font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.kvx-title {
+  margin: 0;
+  max-width: 12ch;
+  font-size: clamp(3.2rem, 7.5vw, 7rem);
+  font-weight: 600;
+  letter-spacing: -0.07em;
+  line-height: 0.85;
+  text-wrap: balance;
+  animation: kvx-fade-up 700ms var(--kvx-ease) both;
+}
+
+.kvx-lede {
+  max-width: 38rem;
+  margin: 1.5rem 0 0;
+  color: var(--kvx-muted);
+  font-size: clamp(1rem, 1.4vw, 1.15rem);
+  line-height: 1.65;
+}
+
+/* ==========================================================================
+   COMPONENTS
+   ========================================================================== */
+
+.kvx-button,
+.kvx-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  border-radius: 6px;
+  font-family: var(--kvx-mono);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms var(--kvx-ease),
+    box-shadow 180ms ease;
+}
+
+.kvx-button-primary {
+  background: var(--kvx-accent);
+  color: var(--kvx-accent-text);
+  border: 1px solid var(--kvx-accent);
+}
+
+.kvx-button-primary:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 12px 30px var(--kvx-accent-glow);
+  transform: translateY(-1px);
+}
+
+.kvx-button-primary:active {
+  transform: translateY(1px);
+}
+
+.kvx-button-secondary {
+  background: var(--kvx-surface);
+  color: var(--kvx-ink);
+  border: 1px solid var(--kvx-line);
+}
+
+.kvx-button-secondary:hover {
+  background: var(--kvx-surface-raised);
+  border-color: var(--kvx-line-bright);
+}
+
+.kvx-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.kvx-field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.kvx-field > label,
+.kvx-field > span {
+  color: var(--kvx-muted);
+  font-family: var(--kvx-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-left: 4px;
+}
+
+.kvx-input,
+.kvx-select,
+.kvx-textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  background: var(--kvx-base);
+  border: 1px solid var(--kvx-line);
+  border-radius: 6px;
+  color: var(--kvx-ink);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.kvx-input:focus,
+.kvx-select:focus,
+.kvx-textarea:focus {
+  border-color: var(--kvx-accent);
+  background: var(--kvx-surface);
+  box-shadow: 0 0 0 3px var(--kvx-accent-glow);
+}
+
+.kvx-panel {
+  background: var(--kvx-surface);
+  border: 1px solid var(--kvx-line);
+  border-radius: 12px;
+  padding: clamp(24px, 4vw, 40px);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 40%);
+}
+
+.kvx-divider {
+  height: 1px;
+  background: var(--kvx-line);
+  margin: 1.5rem 0;
+}
+
+@keyframes kvx-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (max-width: 680px) {
   :root {
-    --z-shell: calc(100vw - 30px);
+    --kvx-shell: calc(100vw - 32px);
+    --kvx-shell-wide: calc(100vw - 32px);
   }
 
-  .z-product-tabs {
-    gap: 15px;
+  .kvx-header {
+    padding: 0 20px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
   *,
   *::before,
   *::after {

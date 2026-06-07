@@ -103,19 +103,19 @@ function App() {
   }, [mode, providers, route, session]);
 
   return (
-    <main className="pass-layout">
+    <main className="kvx-shell-wide pass-layout">
       <section className="pass-intro" aria-labelledby="pass-title">
-        <a className="pass-wordmark" href={ROOT_ORIGIN}>
+        <a className="kvx-brand" href={ROOT_ORIGIN}>
           KLEAVOX <span>PASS</span>
         </a>
         <div className="pass-intro-copy">
-          <p className="pass-kicker">IDENTITY / SHARED SESSION</p>
-          <h1 id="pass-title">
+          <p className="kvx-kicker">IDENTITY / SHARED SESSION</p>
+          <h1 id="pass-title" className="kvx-title">
             One signal.
             <br />
             Every tool.
           </h1>
-          <p>Sign in once for Link, files, and Pulse.</p>
+          <p className="kvx-lede">Sign in once for Link, files, and Pulse.</p>
         </div>
         <div
           className="pass-service-map"
@@ -132,22 +132,9 @@ function App() {
             Kleavox <b>home</b>
           </a>
         </div>
-        <div className="pass-orbit" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </div>
       </section>
-      <section className="pass-panel">
-        <header className="pass-panel-head">
-          <span>AUTH CHANNEL</span>
-          <b>ENCRYPTED</b>
-        </header>
+      <section className="kvx-panel">
         <div className="pass-panel-inner">{content}</div>
-        <footer className="pass-panel-foot">
-          <span>7 day session</span>
-          <span>revocable</span>
-        </footer>
       </section>
     </main>
   );
