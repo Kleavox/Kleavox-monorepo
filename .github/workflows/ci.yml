@@ -66,13 +66,6 @@ jobs:
       - run: rustup target add wasm32-unknown-unknown
       - run: cargo install wasm-pack --locked --version 0.15.0
 
-      # Turborepo builds @kleavox/compression and @kleavox/crypto in parallel, and both
-      # invoke `wasm-pack`, which lazily installs wasm-bindgen-cli into a shared cache dir
-      # (~/.cache/.wasm-pack/.wasm-bindgen-cargo-install-<version>). On a clean runner this
-      # races: two concurrent `cargo install --root <shared-dir>` runs collide while moving
-      # their build output into place, failing with "Directory not empty (os error 39)".
-      # Run wasm-pack once here, serially, so wasm-bindgen-cli is already cached before the
-      # parallel package builds kick off.
       - name: Warm wasm-bindgen-cli cache
         run: wasm-pack build --target web --out-dir /tmp/wasm-pack-warmup --release crates/compression --locked
 
