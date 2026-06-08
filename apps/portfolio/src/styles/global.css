@@ -1,15 +1,15 @@
 :root {
   color-scheme: dark;
-  --base: #080b10;
-  --surface: #0d1219;
-  --surface-raised: #121a23;
-  --line: #1e2b38;
-  --line-bright: #2e4254;
-  --ink: #eef5f5;
-  --muted: #82919c;
-  --quiet: #4c5b66;
-  --cyan: #31d7e8;
-  --lime: #b8f34b;
+  --base: #07090f;
+  --surface: #0c1019;
+  --surface-raised: #111823;
+  --line: #1c2838;
+  --line-bright: #2a3f55;
+  --ink: #edf4f8;
+  --muted: #7b95a5;
+  --quiet: #4e6575;
+  --indigo: #8b8ef8;
+  --lime: #c5f243;
   --shell: min(1440px, calc(100vw - 48px));
   background: var(--base);
   color: var(--ink);
@@ -30,13 +30,25 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 70% 10%, rgb(49 215 232 / 8%), transparent 30rem),
+    radial-gradient(circle at 72% 8%, rgb(139 142 248 / 8%), transparent 32rem),
+    radial-gradient(circle at 10% 60%, rgb(197 242 67 / 5%), transparent 28rem),
+    linear-gradient(90deg, rgb(139 142 248 / 2%) 1px, transparent 1px),
     var(--base);
+  background-size:
+    auto,
+    auto,
+    12.5vw 100%,
+    auto;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+::selection {
+  background: var(--lime);
+  color: #101609;
 }
 
 a:focus-visible {
@@ -51,7 +63,7 @@ a:focus-visible {
   left: 10px;
   padding: 10px 14px;
   background: var(--lime);
-  color: #11170a;
+  color: #101609;
   transform: translateY(-150%);
 }
 
@@ -88,8 +100,8 @@ a:focus-visible {
   width: 34px;
   height: 34px;
   place-items: center;
-  background: var(--cyan);
-  color: #061013;
+  background: var(--lime);
+  color: #101609;
   font-size: 0.72rem;
   font-weight: 900;
 }
@@ -114,7 +126,7 @@ a:focus-visible {
 }
 
 .port-nav nav a:hover {
-  color: var(--cyan);
+  color: var(--lime);
 }
 
 .port-nav .nav-system {
@@ -151,9 +163,12 @@ a:focus-visible {
   text-transform: uppercase;
 }
 
-.hero-copy .mono-label,
+.hero-copy .mono-label {
+  color: var(--lime);
+}
+
 .section-heading .mono-label {
-  color: var(--cyan);
+  color: var(--indigo);
 }
 
 h1,
@@ -173,8 +188,9 @@ p {
 }
 
 .hero-copy h1 em {
-  color: var(--cyan);
+  color: var(--lime);
   font-style: normal;
+  font-weight: 700;
 }
 
 .hero-intro {
@@ -209,7 +225,7 @@ p {
 }
 
 .signal-action:hover {
-  background: #caff66;
+  background: #d6ff6e;
   transform: translateY(-2px);
 }
 
@@ -222,6 +238,14 @@ p {
   border-bottom: 1px solid var(--line-bright);
   padding: 10px 0;
   font-size: 0.82rem;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.quiet-action:hover {
+  color: var(--ink);
+  border-color: var(--muted);
 }
 
 .instrument-stack {
@@ -269,13 +293,13 @@ p {
 .instrument header i {
   width: 6px;
   height: 6px;
-  background: var(--cyan);
-  box-shadow: 0 0 9px var(--cyan);
+  background: var(--indigo);
+  box-shadow: 0 0 9px var(--indigo);
   border-radius: 50%;
 }
 
 .instrument header b {
-  color: var(--cyan);
+  color: var(--indigo);
   font-weight: 500;
 }
 
@@ -286,8 +310,8 @@ p {
   place-items: center;
   overflow: hidden;
   background:
-    linear-gradient(90deg, rgb(49 215 232 / 4%) 1px, transparent 1px),
-    linear-gradient(rgb(49 215 232 / 4%) 1px, transparent 1px);
+    linear-gradient(90deg, rgb(139 142 248 / 4%) 1px, transparent 1px),
+    linear-gradient(rgb(139 142 248 / 4%) 1px, transparent 1px);
   background-size: 24px 24px;
   perspective: 700px;
 }
@@ -295,13 +319,13 @@ p {
 .board-model {
   width: 230px;
   height: 144px;
-  border: 1px solid var(--cyan);
+  border: 1px solid var(--indigo);
   background:
     radial-gradient(circle at 25% 28%, var(--lime) 0 3px, transparent 4px),
-    radial-gradient(circle at 75% 72%, var(--cyan) 0 3px, transparent 4px),
-    linear-gradient(135deg, rgb(49 215 232 / 14%), rgb(184 243 75 / 5%));
+    radial-gradient(circle at 75% 72%, var(--indigo) 0 3px, transparent 4px),
+    linear-gradient(135deg, rgb(139 142 248 / 14%), rgb(197 242 67 / 5%));
   box-shadow:
-    inset 0 0 40px rgb(49 215 232 / 8%),
+    inset 0 0 40px rgb(139 142 248 / 8%),
     0 25px 50px rgb(0 0 0 / 45%);
   transform: rotateX(58deg) rotateZ(-28deg);
   transform-style: preserve-3d;
@@ -316,12 +340,12 @@ p {
 
 .board-model::before {
   inset: 27px 34px;
-  border: 1px solid rgb(49 215 232 / 60%);
+  border: 1px solid rgb(139 142 248 / 60%);
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0 8px,
-      rgb(49 215 232 / 24%) 9px 10px
+      rgb(139 142 248 / 24%) 9px 10px
     ),
     #0b141b;
 }
@@ -332,7 +356,7 @@ p {
   inset: 51px 94px;
   background: #122532;
   border: 1px solid var(--line-bright);
-  box-shadow: 0 0 24px rgb(49 215 232 / 18%);
+  box-shadow: 0 0 24px rgb(139 142 248 / 18%);
 }
 
 .axis {
@@ -346,7 +370,7 @@ p {
 .axis-x {
   right: 20%;
   top: 48%;
-  color: var(--cyan);
+  color: var(--indigo);
 }
 
 .axis-y {
@@ -364,14 +388,14 @@ p {
   display: block;
   width: 100%;
   height: 112px;
-  background: #091017;
+  background: #090f15;
 }
 
 .signal-panel path {
   fill: none;
   stroke: var(--lime);
   stroke-width: 1.6;
-  filter: drop-shadow(0 0 4px rgb(184 243 75 / 42%));
+  filter: drop-shadow(0 0 4px rgb(197 242 67 / 42%));
   stroke-dasharray: 900;
   animation: signal-flow 4s linear infinite;
 }
@@ -392,12 +416,12 @@ p {
   min-height: 65vh;
   align-items: center;
   padding: 10vh max(24px, calc((100vw - min(1440px, calc(100vw - 48px))) / 2));
-  background: var(--cyan);
-  color: #061216;
+  background: var(--lime);
+  color: #101609;
 }
 
 .manifesto .mono-label {
-  color: #174a52;
+  color: rgb(16 22 9 / 55%);
 }
 
 .manifesto > p:last-child {
@@ -448,7 +472,7 @@ p {
 }
 
 .project-row:hover {
-  color: var(--cyan);
+  color: var(--indigo);
   transform: translateX(5px);
 }
 
@@ -527,7 +551,7 @@ p {
 
 .discipline-list span,
 .timeline time {
-  color: var(--cyan);
+  color: var(--indigo);
   font-family: monospace;
   font-size: 0.68rem;
 }
@@ -678,6 +702,14 @@ p {
 .port-footer div {
   display: flex;
   gap: 22px;
+}
+
+.port-footer a {
+  transition: color 150ms ease;
+}
+
+.port-footer a:hover {
+  color: var(--lime);
 }
 
 .not-found {
@@ -832,24 +864,26 @@ p {
 }
 
 :root {
-  --base: #070c10;
-  --surface: #0c141a;
-  --surface-raised: #111d25;
-  --line: #1f343f;
-  --line-bright: #315362;
-  --ink: #edf7f7;
-  --muted: #8199a2;
-  --quiet: #506d78;
-  --cyan: #53d8e0;
-  --lime: #bde96c;
+  --base: #07090f;
+  --surface: #0c1019;
+  --surface-raised: #111823;
+  --line: #1c2838;
+  --line-bright: #2a3f55;
+  --ink: #edf4f8;
+  --muted: #7b95a5;
+  --quiet: #4e6575;
+  --indigo: #8b8ef8;
+  --lime: #c5f243;
 }
 
 body {
   background:
-    radial-gradient(circle at 73% 7%, rgb(83 216 224 / 10%), transparent 31rem),
-    linear-gradient(90deg, rgb(83 216 224 / 2.5%) 1px, transparent 1px),
+    radial-gradient(circle at 72% 8%, rgb(139 142 248 / 8%), transparent 32rem),
+    radial-gradient(circle at 10% 60%, rgb(197 242 67 / 5%), transparent 28rem),
+    linear-gradient(90deg, rgb(139 142 248 / 2%) 1px, transparent 1px),
     var(--base);
   background-size:
+    auto,
     auto,
     12.5vw 100%,
     auto;
@@ -863,8 +897,8 @@ body {
 
 .port-mark span {
   border-radius: 7px;
-  background: var(--cyan);
-  box-shadow: 0 9px 28px rgb(83 216 224 / 16%);
+  background: var(--lime);
+  box-shadow: 0 9px 28px rgb(197 242 67 / 18%);
   transition: transform 220ms var(--kvx-ease, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
@@ -896,7 +930,7 @@ body {
   bottom: -0.08em;
   left: 0;
   height: 0.035em;
-  background: var(--lime);
+  background: var(--indigo);
   content: "";
   transform: scaleX(0);
   transform-origin: left;
@@ -912,7 +946,7 @@ body {
 }
 
 .instrument-stack:hover .instrument-primary {
-  border-color: var(--cyan);
+  border-color: var(--indigo);
   transform: translate3d(-5px, -5px, 0);
 }
 
@@ -923,9 +957,9 @@ body {
 
 .axis-stage {
   background:
-    linear-gradient(90deg, rgb(83 216 224 / 4%) 1px, transparent 1px),
-    linear-gradient(rgb(83 216 224 / 4%) 1px, transparent 1px),
-    radial-gradient(circle at 50% 50%, rgb(83 216 224 / 5%), transparent 60%);
+    linear-gradient(90deg, rgb(139 142 248 / 4%) 1px, transparent 1px),
+    linear-gradient(rgb(139 142 248 / 4%) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgb(139 142 248 / 5%), transparent 60%);
   background-size:
     24px 24px,
     24px 24px,
@@ -936,7 +970,7 @@ body {
   position: relative;
   min-height: 72vh;
   background:
-    linear-gradient(90deg, rgb(6 18 21 / 8%) 1px, transparent 1px), var(--cyan);
+    linear-gradient(90deg, rgb(6 18 21 / 8%) 1px, transparent 1px), var(--lime);
   background-size:
     12.5vw 100%,
     auto;
@@ -965,7 +999,7 @@ body {
 .project-row::before {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgb(83 216 224 / 7%), transparent 55%);
+  background: linear-gradient(90deg, rgb(139 142 248 / 7%), transparent 55%);
   content: "";
   opacity: 0;
   transform: translateX(-12%);
@@ -988,7 +1022,7 @@ body {
 .contact-form {
   border-radius: 10px;
   background:
-    linear-gradient(145deg, rgb(83 216 224 / 4%), transparent 45%),
+    linear-gradient(145deg, rgb(139 142 248 / 4%), transparent 45%),
     var(--surface);
   box-shadow: 0 30px 90px rgb(0 0 0 / 24%);
 }
@@ -1013,8 +1047,8 @@ body {
 
 .contact-form input:focus,
 .contact-form textarea:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 4px rgb(83 216 224 / 7%);
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px rgb(197 242 67 / 8%);
   outline: none;
 }
 

@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import "@kleavox/ui/styles.css";
-import { LINK_ORIGIN, PULSE_ORIGIN, ROOT_ORIGIN } from "./config";
+import { ROOT_ORIGIN } from "./config";
 import "./pass.css";
 
 type Mode = "login" | "register" | "forgot";
@@ -105,8 +105,8 @@ function App() {
   return (
     <main className="kvx-shell-wide pass-layout">
       <section className="pass-intro" aria-labelledby="pass-title">
-        <a className="kvx-brand" href={ROOT_ORIGIN}>
-          KLEAVOX <span>PASS</span>
+        <a className="pass-wordmark" href={ROOT_ORIGIN}>
+          Kleav<b>ox</b> <span>/ Pass</span>
         </a>
         <div className="pass-intro-copy">
           <p className="kvx-kicker">IDENTITY / SHARED SESSION</p>
@@ -115,26 +115,30 @@ function App() {
             <br />
             Every tool.
           </h1>
-          <p className="kvx-lede">Sign in once for Link, files, and Pulse.</p>
+          <p className="kvx-lede">
+            Sign in once to unlock Link, file drops, and Pulse — all under the
+            same identity.
+          </p>
         </div>
-        <div
-          className="pass-service-map"
-          aria-label="Connected Kleavox services"
-        >
-          <a href={LINK_ORIGIN}>
-            Link <b>ready</b>
-          </a>
-          <a href={PULSE_ORIGIN}>
-            Pulse <b>ready</b>
-          </a>
-          <a href={ROOT_ORIGIN}>
-            Kleavox <b>home</b>
-          </a>
+        <div className="pass-orbit" aria-hidden="true">
+          <i></i>
+          <i></i>
+          <i></i>
         </div>
       </section>
-      <section className="kvx-panel">
-        <div className="pass-panel-inner">{content}</div>
-      </section>
+      <div className="pass-panel-wrap">
+        <section className="pass-panel">
+          <div className="pass-panel-head">
+            <span>KLEAVOX / PASS</span>
+            <b>AUTH / v2.1</b>
+          </div>
+          <div className="pass-panel-inner">{content}</div>
+          <div className="pass-panel-foot">
+            <span>Secure · Edge-native</span>
+            <span>pass.kleavox.xyz</span>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

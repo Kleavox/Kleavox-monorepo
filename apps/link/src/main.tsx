@@ -408,7 +408,7 @@ function FileRow({
       </div>
       <div className="link-tags">
         <span data-state={state.toLowerCase()}>{state}</span>
-        <span>File</span>
+        <span className="link-tag-file">File</span>
         {Boolean(file.protected) && <span>Protected</span>}
       </div>
       <div className="link-clicks">
