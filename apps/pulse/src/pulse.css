@@ -747,6 +747,11 @@ select:focus-visible {
   --pulse-muted: #739099;
   --pulse-quiet: #4d6570;
   --pulse-accent: #3ddbe0;
+
+  --kvx-accent: var(--pulse-accent);
+  --kvx-accent-glow: rgb(61 219 224 / 12%);
+  --kvx-accent-text: #041214;
+
   color: var(--pulse-ink);
   background: var(--pulse-base);
   font-family: var(--kvx-font);

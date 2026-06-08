@@ -9,6 +9,7 @@ export const INTERNAL_HOSTS = {
 
 export const INTERNAL_URLS = {
   SESSION_VERIFY: `http://${INTERNAL_HOSTS.PASS}/internal/session`,
+  SESSION_LOGOUT: `http://${INTERNAL_HOSTS.PASS}/internal/logout`,
 } as const;
 
 export function getPublicOrigin(rootOrigin: string, subdomain?: string): string {

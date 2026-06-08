@@ -490,17 +490,9 @@ function Account({
           className="pass-primary"
           type="button"
           disabled={state.status === "loading"}
-          onClick={() => void perform("/api/logout")}
-        >
-          Sign out
-        </button>
-        <button
-          className="pass-secondary"
-          type="button"
-          disabled={state.status === "loading"}
           onClick={() => void perform("/api/sessions/revoke-all")}
         >
-          Sign out everywhere
+          Sign out
         </button>
       </div>
       <Status state={state} />

@@ -1,4 +1,4 @@
-import { INTERNAL_HOSTS } from "@kleavox/config";
+import { INTERNAL_HOSTS, SESSION_COOKIE } from "@kleavox/config";
 import type { Identity } from "@kleavox/core";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
@@ -773,6 +773,47 @@ app.get("/internal/session", async (context) => {
   const session = await getSession(context.env, token);
   if (!session) return context.json({ error: "unauthorized" }, 401);
   return context.json(session);
+});
+
+app.post("/internal/logout", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
+    return context.body(null, 404);
+  }
+
+  const token = context.req.header("x-kleavox-session");
+  if (!token) return context.json({ error: "unauthorized" }, 401);
+
+  const session = await getSession(context.env, token);
+  if (!session) return context.json({ error: "unauthorized" }, 401);
+
+  const row = await context.env.DB.prepare(
+    `UPDATE users
+     SET auth_version = auth_version + 1, updated_at = datetime('now')
+     WHERE id = ?
+     RETURNING auth_version`,
+  )
+    .bind(session.identity.id)
+    .first<{ auth_version: number }>();
+
+  if (row) {
+    await invalidateUserSessions(
+      context.env,
+      session.identity.id,
+      row.auth_version,
+    );
+  }
+
+  await safeAudit(context.env, {
+    userId: session.identity.id,
+    type: "sessions_revoked",
+    request: context.req.raw,
+  });
+
+  const root = context.env.ROOT_DOMAIN.toLowerCase();
+  return context.json({
+    ok: true,
+    cookie: `${SESSION_COOKIE}=; Path=/; Domain=.${root}; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
+  });
 });
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
