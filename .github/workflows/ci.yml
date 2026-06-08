@@ -65,6 +65,10 @@ jobs:
 
       - run: rustup target add wasm32-unknown-unknown
       - run: cargo install wasm-pack --locked --version 0.15.0
+
+      - name: Warm wasm-bindgen-cli cache
+        run: wasm-pack build --target web --out-dir /tmp/wasm-pack-warmup --release crates/compression --locked
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
