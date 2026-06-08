@@ -10,9 +10,11 @@
   --kvx-quiet: #4d5952;
   
   /* Fallback accent, to be overridden by apps */
-  --kvx-accent: #a3e635; 
+  --kvx-accent: #a3e635;
   --kvx-accent-glow: rgb(163 230 53 / 12%);
   --kvx-accent-text: #11190b;
+
+  --kvx-brand-purple: #8b8ef8;
 
   --kvx-font: "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --kvx-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
@@ -119,6 +121,10 @@ textarea:focus-visible {
 
 .kvx-brand span {
   color: var(--kvx-accent);
+}
+
+.kvx-brand span.kvx-brand-app {
+  color: var(--kvx-brand-purple);
 }
 
 .kvx-nav {

@@ -432,6 +432,11 @@ button {
   --pass-muted: #797ba8;
   --pass-quiet: #4f517a;
   --pass-accent: #8b8ef8;
+
+  --kvx-accent: var(--pass-accent);
+  --kvx-accent-glow: rgb(139 142 248 / 12%);
+  --kvx-accent-text: #0a0b20;
+
   color: var(--pass-ink);
   background: var(--pass-base);
 }
@@ -482,7 +487,7 @@ body {
 }
 
 .pass-wordmark span {
-  color: var(--pass-muted);
+  color: var(--kvx-brand-purple);
   font-weight: 600;
 }
 

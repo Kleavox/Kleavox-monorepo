@@ -97,9 +97,17 @@ function WorkspaceApp() {
     void refresh();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await request("/api/logout", { method: "POST" });
+    } finally {
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="link-app">
-      <Header state={state} />
+      <Header state={state} onLogout={handleLogout} />
       <main className="kvx-main">
         {state.status === "loading" && <Loading />}
         {state.status === "guest" && <Guest />}
@@ -119,11 +127,26 @@ function WorkspaceApp() {
   );
 }
 
-function Header({ state }: { state: LoadState }) {
+function Header({
+  state,
+  onLogout,
+}: {
+  state: LoadState;
+  onLogout: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [menuOpen]);
+
   return (
     <header className="kvx-header">
       <a className="kvx-brand" href={ROOT_ORIGIN}>
-        KLEAV<span>OX</span> / LINK
+        KLEAV<span>OX</span> <span className="kvx-brand-app">/ LINK</span>
       </a>
       <nav className="kvx-nav" aria-label="Product navigation">
         <a className="is-active" href="/">
@@ -131,11 +154,33 @@ function Header({ state }: { state: LoadState }) {
         </a>
         <a href="/report">Report</a>
         <a href={ROOT_ORIGIN}>System</a>
-        <a href={signInUrl()}>
-          {state.status === "ready"
-            ? state.identity.name || state.identity.email
-            : "Account"}
-        </a>
+        {state.status === "ready" ? (
+          <div className="link-account">
+            <button
+              type="button"
+              className="link-account-trigger"
+              aria-expanded={menuOpen}
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuOpen((open) => !open);
+              }}
+            >
+              {state.identity.name || state.identity.email}
+            </button>
+            {menuOpen && (
+              <div
+                className="link-account-menu"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button type="button" onClick={onLogout}>
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <a href={signInUrl()}>Account</a>
+        )}
       </nav>
     </header>
   );
@@ -312,6 +357,8 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
   );
 }
 
+const LINKS_PER_PAGE = 8;
+
 function LinkList({
   links,
   files,
@@ -321,20 +368,33 @@ function LinkList({
   files: AccountDrop[];
   onRefresh: () => Promise<void>;
 }) {
-  const activity = [
-    ...links.map((link) => ({
-      kind: "link" as const,
-      createdAt: link.createdAt,
-      value: link,
-    })),
-    ...files.map((file) => ({
-      kind: "file" as const,
-      createdAt: file.created_at,
-      value: file,
-    })),
-  ].sort(
-    (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+  const activity = useMemo(
+    () =>
+      [
+        ...links.map((link) => ({
+          kind: "link" as const,
+          createdAt: link.createdAt,
+          value: link,
+        })),
+        ...files.map((file) => ({
+          kind: "file" as const,
+          createdAt: file.created_at,
+          value: file,
+        })),
+      ].sort(
+        (left, right) =>
+          Date.parse(right.createdAt) - Date.parse(left.createdAt),
+      ),
+    [links, files],
   );
+
+  const pageCount = Math.max(1, Math.ceil(activity.length / LINKS_PER_PAGE));
+  const [page, setPage] = useState(1);
+  const currentPage = Math.min(page, pageCount);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activity.length]);
 
   if (activity.length === 0) {
     return (
@@ -345,6 +405,9 @@ function LinkList({
     );
   }
 
+  const start = (currentPage - 1) * LINKS_PER_PAGE;
+  const pageItems = activity.slice(start, start + LINKS_PER_PAGE);
+
   return (
     <section className="link-list">
       <div className="link-section-heading">
@@ -352,7 +415,7 @@ function LinkList({
         <h2>Links and files</h2>
       </div>
       <div className="link-table" role="list">
-        {activity.map((item) =>
+        {pageItems.map((item) =>
           item.kind === "link" ? (
             <LinkRow
               key={`link-${item.value.id}`}
@@ -368,6 +431,27 @@ function LinkList({
           ),
         )}
       </div>
+      {pageCount > 1 && (
+        <nav className="link-pagination" aria-label="Activity pages">
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
+            Prev
+          </button>
+          <span>
+            Page {currentPage} / {pageCount}
+          </span>
+          <button
+            type="button"
+            disabled={currentPage >= pageCount}
+            onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </section>
   );
 }
@@ -795,7 +879,7 @@ function ReportApp() {
     <div className="link-app">
       <header className="link-header">
         <a className="link-brand" href="/">
-          KLEAV<span>OX</span> / LINK
+          KLEAV<span>OX</span> <span className="kvx-brand-app">/ LINK</span>
         </a>
         <nav>
           <a href="/">Create</a>
@@ -984,6 +1068,7 @@ async function request<T = unknown>(
 ): Promise<T> {
   const response = await fetch(path, {
     ...init,
+    credentials: "include",
     headers: {
       ...(init.body ? { "content-type": "application/json" } : {}),
       ...init.headers,

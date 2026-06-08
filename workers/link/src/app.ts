@@ -1,5 +1,5 @@
-import { INTERNAL_HOSTS } from "@kleavox/config";
-import { verifySession } from "@kleavox/auth";
+import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
+import { readCookie, verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -140,6 +140,21 @@ app.get("/api/session", async (context) => {
   return session
     ? context.json({ authenticated: true, identity: session.identity })
     : context.json({ authenticated: false });
+});
+
+app.post("/api/logout", async (context) => {
+  const token = readCookie(context.req.raw, SESSION_COOKIE);
+  if (token) {
+    const result = await context.env.PASS.fetch(INTERNAL_URLS.SESSION_LOGOUT, {
+      method: "POST",
+      headers: { "x-kleavox-session": token },
+    });
+    if (result.ok) {
+      const body = await result.json<{ cookie?: string }>();
+      if (body.cookie) context.header("Set-Cookie", body.cookie);
+    }
+  }
+  return context.json({ ok: true });
 });
 
 app.post("/api/public-links", async (context) => {

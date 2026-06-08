@@ -144,7 +144,7 @@ function Header({ state }: { state: AppState }) {
   return (
     <header className="kvx-header">
       <a href={ROOT_ORIGIN} className="kvx-brand">
-        KLEAV<span>OX</span> / PULSE
+        KLEAV<span>OX</span> <span className="kvx-brand-app">/ PULSE</span>
       </a>
       <a href={PASS_ORIGIN} className="kvx-nav">
         {state.status === "ready"
