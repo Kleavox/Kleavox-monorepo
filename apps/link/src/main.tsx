@@ -146,7 +146,7 @@ function Header({
   return (
     <header className="kvx-header">
       <a className="kvx-brand" href={ROOT_ORIGIN}>
-        KLEAV<span>OX</span> <span className="kvx-brand-app">/ LINK</span>
+        KLEAV<span>OX</span> <span>/ LINK</span>
       </a>
       <nav className="kvx-nav" aria-label="Product navigation">
         <a className="is-active" href="/">
@@ -619,8 +619,8 @@ function LinkRow({
 function Guest() {
   return (
     <>
-      <section className="link-guest">
-        <div className="link-guest-copy">
+      <section className="link-guest-hero">
+        <div className="link-guest-intro">
           <p className="link-kicker">KLEAVOX LINK / PUBLIC</p>
           <h1>
             Send a URL.
@@ -634,10 +634,30 @@ function Guest() {
         </div>
         <PublicLinkForm />
       </section>
-      <section className="link-guest-drop">
+      <section className="link-guest-files">
         <FilesApp embedded />
       </section>
+      <GuestFooter />
     </>
+  );
+}
+
+function GuestFooter() {
+  return (
+    <footer className="link-guest-footer">
+      <div className="link-guest-footer-inner">
+        <span className="link-guest-footer-wm">
+          KLEAV<span>OX</span> <span>/ LINK</span>
+        </span>
+        <div className="link-guest-footer-links">
+          <a href={`${ROOT_ORIGIN}/privacy`}>Privacy</a>
+          <a href={`${ROOT_ORIGIN}/terms`}>Terms</a>
+        </div>
+        <span className="link-guest-footer-copy">
+          &copy; {new Date().getFullYear()} Kleavox
+        </span>
+      </div>
+    </footer>
   );
 }
 
@@ -879,7 +899,7 @@ function ReportApp() {
     <div className="link-app">
       <header className="link-header">
         <a className="link-brand" href="/">
-          KLEAV<span>OX</span> <span className="kvx-brand-app">/ LINK</span>
+          KLEAV<span>OX</span> <span>/ LINK</span>
         </a>
         <nav>
           <a href="/">Create</a>

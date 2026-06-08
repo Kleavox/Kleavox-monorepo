@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@kleavox/auth": "workspace:*",
     "@kleavox/config": "workspace:*",
     "@kleavox/core": "workspace:*",
     "@kleavox/web-app": "workspace:*",

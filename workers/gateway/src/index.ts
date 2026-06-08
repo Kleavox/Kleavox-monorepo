@@ -1,4 +1,5 @@
-import { INTERNAL_HOSTS } from "@kleavox/config";
+import { readCookie, verifySession } from "@kleavox/auth";
+import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
 import { isFileSlug, isReservedSlug } from "@kleavox/core";
 import { Hono } from "hono";
 
@@ -19,6 +20,28 @@ const app = new Hono<{ Bindings: Env }>();
 app.get("/health", (context) =>
   context.json({ service: "gateway", status: "ok" }),
 );
+
+app.get("/api/session", async (context) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  return session
+    ? context.json({ authenticated: true, identity: session.identity })
+    : context.json({ authenticated: false });
+});
+
+app.post("/api/logout", async (context) => {
+  const token = readCookie(context.req.raw, SESSION_COOKIE);
+  if (token) {
+    const result = await context.env.PASS.fetch(INTERNAL_URLS.SESSION_LOGOUT, {
+      method: "POST",
+      headers: { "x-kleavox-session": token },
+    });
+    if (result.ok) {
+      const body = await result.json<{ cookie?: string }>();
+      if (body.cookie) context.header("Set-Cookie", body.cookie);
+    }
+  }
+  return context.json({ ok: true });
+});
 
 app.all("/api/public/*", (context) => {
   const url = new URL(context.req.url);

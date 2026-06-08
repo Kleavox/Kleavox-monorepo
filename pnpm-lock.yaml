@@ -349,6 +349,9 @@ importers:
 
   workers/gateway:
     dependencies:
+      '@kleavox/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@kleavox/config':
         specifier: workspace:*
         version: link:../../packages/config

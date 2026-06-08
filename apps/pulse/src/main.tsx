@@ -130,6 +130,7 @@ function App() {
           />
         )}
       </main>
+      {state.status === "guest" && <GuestFooter />}
       {enrollment && (
         <EnrollmentDialog
           enrollment={enrollment}
@@ -144,7 +145,7 @@ function Header({ state }: { state: AppState }) {
   return (
     <header className="kvx-header">
       <a href={ROOT_ORIGIN} className="kvx-brand">
-        KLEAV<span>OX</span> <span className="kvx-brand-app">/ PULSE</span>
+        KLEAV<span>OX</span> <span>/ PULSE</span>
       </a>
       <a href={PASS_ORIGIN} className="kvx-nav">
         {state.status === "ready"
@@ -755,6 +756,25 @@ function Guest() {
         </svg>
       </div>
     </main>
+  );
+}
+
+function GuestFooter() {
+  return (
+    <footer className="pulse-footer">
+      <div className="pulse-footer-inner">
+        <span className="pulse-footer-wm">
+          KLEAV<span>OX</span> <span>/ PULSE</span>
+        </span>
+        <div className="pulse-footer-links">
+          <a href={`${ROOT_ORIGIN}/privacy`}>Privacy</a>
+          <a href={`${ROOT_ORIGIN}/terms`}>Terms</a>
+        </div>
+        <span className="pulse-footer-copy">
+          &copy; {new Date().getFullYear()} Kleavox
+        </span>
+      </div>
+    </footer>
   );
 }
 
