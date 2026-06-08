@@ -6,31 +6,12 @@ const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
 const rootHost = new URL(rootOrigin).host;
 
 const products = [
-  {
-    name: "Link",
-    domain: "link",
-    href: getPublicOrigin(rootOrigin, "link"),
-    statement: "One address for links and files.",
-  },
-  {
-    name: "Pass",
-    domain: "pass",
-    href: getPublicOrigin(rootOrigin, "pass"),
-    statement: "One account.",
-  },
-  {
-    name: "Pulse",
-    domain: "pulse",
-    href: getPublicOrigin(rootOrigin, "pulse"),
-    statement: "Watch every host.",
-  },
-  {
-    name: "Port",
-    domain: "port",
-    href: getPublicOrigin(rootOrigin, "port"),
-    statement: "Selected work.",
-  },
+  { name: "Link", href: getPublicOrigin(rootOrigin, "link") },
+  { name: "Pass", href: getPublicOrigin(rootOrigin, "pass") },
+  { name: "Pulse", href: getPublicOrigin(rootOrigin, "pulse") },
+  { name: "Port", href: getPublicOrigin(rootOrigin, "port") },
 ];
+const [link, pass, pulse, port] = products;
 ---
 
 <!doctype html>
@@ -42,7 +23,7 @@ const products = [
       name="description"
       content="Kleavox is a focused ecosystem for routes, temporary files, identity, and infrastructure monitoring."
     />
-    <meta name="theme-color" content="#070908" />
+    <meta name="theme-color" content="#070810" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta property="og:title" content="Kleavox | Focused systems" />
     <meta
@@ -55,123 +36,97 @@ const products = [
     <title>Kleavox | Focused systems</title>
   </head>
   <body>
-    <header class="site-header">
-      <div class="shell header-inner">
-        <a class="wordmark" href="/" aria-label="Kleavox home">Kleavox</a>
-        <nav aria-label="Primary navigation">
-          <a class="nav-action" href={getPublicOrigin(rootOrigin, "pass")}>Sign in</a>
-        </nav>
+    <header class="hdr">
+      <div class="shell hdr-inner">
+        <a class="wm" href="/" aria-label="Kleavox home">Kleav<b>ox</b></a>
+        <a class="btn-nav" href={pass.href}>Sign in</a>
       </div>
     </header>
 
     <main>
-      <section class="hero shell" aria-labelledby="hero-title">
+      <section class="hero shell">
         <div class="hero-copy">
-          <p class="eyebrow">KLEAVOX / SYSTEM</p>
-          <h1 id="hero-title">One system.</h1>
-          <p class="hero-lede">Public routes, shared identity, and infrastructure signals.</p>
-          <a class="primary-action" href={getPublicOrigin(rootOrigin, "pass")}>
-            Open Pass
-            <span aria-hidden="true">/</span>
-          </a>
-        </div>
-
-        <div class="product-mosaic" aria-label="Kleavox product previews">
-          {products.map((product, index) => (
-            <a
-              class={`mosaic-item mosaic-item-${index + 1}`}
-              href={product.href}
-              aria-label={`Open Kleavox ${product.name}`}
-            >
-              <div class="mosaic-preview">
-                <small>KLEAVOX / {product.name.toUpperCase()}</small>
-                <strong>{product.statement}</strong>
-                {index === 0 && (
-                  <div class="mosaic-deco" aria-hidden="true">
-                    <div class="md-rows">
-                      <span></span><span></span><span></span>
-                    </div>
-                    <div class="md-dots">
-                      <b></b><b></b><b></b><b></b><b></b>
-                    </div>
-                  </div>
-                )}
-                {index === 1 && (
-                  <div class="mosaic-deco mosaic-deco-pass" aria-hidden="true">
-                    <div class="md-orbit"><i></i><i></i></div>
-                  </div>
-                )}
-                {index === 2 && (
-                  <div class="mosaic-deco mosaic-deco-pulse" aria-hidden="true">
-                    <div class="md-bars">
-                      <i style="--h:38%"></i><i style="--h:65%"></i>
-                      <i style="--h:48%"></i><i style="--h:85%"></i>
-                      <i style="--h:58%"></i><i style="--h:72%"></i>
-                    </div>
-                  </div>
-                )}
-                {index === 3 && (
-                  <div class="mosaic-deco mosaic-deco-port" aria-hidden="true">
-                    <div class="md-grid">
-                      <i></i><i></i><i></i><i></i>
-                    </div>
-                  </div>
-                )}
-                <i></i>
-              </div>
-              <span>{product.name} /</span>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      <section class="statement-band" aria-labelledby="system-title">
-        <div>
-          <p class="section-label" style="color: var(--accent-ink)">ARCHITECTURE</p>
-          <h2 id="system-title">One domain.<br />Separate workers.</h2>
-          <p class="system-desc" style="color: var(--accent-ink)">
-            Kleavox is designed as a unified monorepo. While it appears as a single platform, each product is powered by strictly isolated Cloudflare Workers. This ensures extreme performance at the edge while maintaining deep integration through shared core configurations and identity protocols.
+          <p class="kicker">KLEAVOX / SYSTEM</p>
+          <h1>One<br />system.</h1>
+          <p class="hero-lede">
+            Public routes, shared identity, and infrastructure signals — all under one deliberate, edge-native platform.
           </p>
-        </div>
-      </section>
-
-      <section id="system" class="system shell">
-        <div class="architecture" aria-label="Kleavox architecture">
-          <div class="architecture-domain">
-            <span>Public edge</span>
+          <div class="hero-acts">
+            <a class="btn-p" href={pass.href}>Open Pass <span aria-hidden="true">→</span></a>
+            <a class="btn-t" href={pass.href}>Sign in</a>
+          </div>
+          <div class="route-sample" aria-hidden="true">
             <strong>{rootHost}</strong>
-            <p>Website, short routes, and temporary file delivery.</p>
+            <span>/launch</span>
+            <i></i>
           </div>
-          <div class="architecture-route" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div class="architecture-products">
-            {products.map((product) => (
-              <a href={product.href}>
-                <strong>{product.name}</strong>
-                <span>{product.domain}.{rootHost}</span>
-              </a>
-            ))}
-          </div>
+        </div>
+
+        <div class="mosaic" aria-label="Kleavox products">
+          <a class="mc mc1" href={link.href} aria-label="Open Kleavox Link">
+            <div class="mc-in">
+              <span class="mc-label">KLEAVOX / LINK</span>
+              <strong>One address for links.</strong>
+              <div class="mc-deco mc-deco-link" aria-hidden="true">
+                <span></span><span></span><span></span>
+                <div><b></b><b></b><b></b><b></b></div>
+              </div>
+              <div class="mc-bar"></div>
+            </div>
+            <span class="mc-tag">Link /</span>
+          </a>
+          <a class="mc mc2" href={pass.href} aria-label="Open Kleavox Pass">
+            <div class="mc-in">
+              <span class="mc-label">KLEAVOX / PASS</span>
+              <strong>One account.</strong>
+              <div class="mc-deco mc-deco-pass" aria-hidden="true">
+                <div class="orb"><i></i><i></i></div>
+              </div>
+              <div class="mc-bar"></div>
+            </div>
+            <span class="mc-tag">Pass /</span>
+          </a>
+          <a class="mc mc3" href={port.href} aria-label="Open Kleavox Port">
+            <div class="mc-in">
+              <span class="mc-label">KLEAVOX / PORT</span>
+              <strong>Selected work.</strong>
+              <div class="mc-deco mc-deco-port" aria-hidden="true">
+                <i></i><i></i><i></i><i></i>
+              </div>
+              <div class="mc-bar"></div>
+            </div>
+            <span class="mc-tag">Port /</span>
+          </a>
+          <a class="mc mc4" href={pulse.href} aria-label="Open Kleavox Pulse">
+            <div class="mc-in">
+              <span class="mc-label">KLEAVOX / PULSE</span>
+              <strong>Watch every host.</strong>
+              <div class="mc-deco mc-deco-pulse" aria-hidden="true">
+                <i style="height:38%"></i><i style="height:62%"></i>
+                <i style="height:48%"></i><i style="height:82%"></i>
+                <i style="height:55%"></i><i style="height:70%"></i>
+              </div>
+              <div class="mc-bar"></div>
+            </div>
+            <span class="mc-tag">Pulse /</span>
+          </a>
         </div>
       </section>
     </main>
 
-    <footer class="site-footer shell">
-      <a class="wordmark" href="/">Kleavox</a>
-      <p>Independent tools for public routes and infrastructure.</p>
-      <div>
-        <a href={getPublicOrigin(rootOrigin, "link")}>Link</a>
-        <a href={getPublicOrigin(rootOrigin, "pass")}>Pass</a>
-        <a href={getPublicOrigin(rootOrigin, "pulse")}>Pulse</a>
-        <a href={getPublicOrigin(rootOrigin, "port")}>Port</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
+    <footer class="ftr">
+      <div class="shell ftr-inner">
+        <span class="ftr-wm">Kleav<b>ox</b></span>
+        <div class="ftr-links">
+          <a href={link.href}>Link</a>
+          <a href={pass.href}>Pass</a>
+          <a href={pulse.href}>Pulse</a>
+          <a href={port.href}>Port</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </div>
+        <span class="ftr-copy">&copy; {new Date().getFullYear()} Kleavox</span>
       </div>
-      <span>(c) {new Date().getFullYear()} Kleavox</span>
     </footer>
   </body>
 </html>
