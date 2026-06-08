@@ -39,7 +39,22 @@ const [link, pass, pulse, port] = products;
     <header class="hdr">
       <div class="shell hdr-inner">
         <a class="wm" href="/" aria-label="Kleavox home">Kleav<b>ox</b></a>
-        <a class="btn-nav" href={pass.href}>Sign in</a>
+        <div class="account" data-account>
+          <a class="btn-nav" href={pass.href} data-signin>Sign in</a>
+          <div class="account-menu" data-account-menu hidden>
+            <button
+              type="button"
+              class="account-trigger"
+              data-account-trigger
+              aria-expanded="false"
+            >
+              <span data-account-name></span>
+            </button>
+            <div class="account-dropdown" data-account-dropdown hidden>
+              <button type="button" data-logout>Sign out</button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -53,7 +68,6 @@ const [link, pass, pulse, port] = products;
           </p>
           <div class="hero-acts">
             <a class="btn-p" href={pass.href}>Open Pass <span aria-hidden="true">→</span></a>
-            <a class="btn-t" href={pass.href}>Sign in</a>
           </div>
           <div class="route-sample" aria-hidden="true">
             <strong>{rootHost}</strong>
@@ -128,5 +142,57 @@ const [link, pass, pulse, port] = products;
         <span class="ftr-copy">&copy; {new Date().getFullYear()} Kleavox</span>
       </div>
     </footer>
+
+    <script>
+      const account = document.querySelector<HTMLElement>("[data-account]");
+      const signIn = document.querySelector<HTMLElement>("[data-signin]");
+      const menu = document.querySelector<HTMLElement>("[data-account-menu]");
+      const trigger = document.querySelector<HTMLButtonElement>(
+        "[data-account-trigger]",
+      );
+      const dropdown = document.querySelector<HTMLElement>(
+        "[data-account-dropdown]",
+      );
+      const name = document.querySelector<HTMLElement>("[data-account-name]");
+      const logout = document.querySelector<HTMLButtonElement>("[data-logout]");
+
+      const closeMenu = () => {
+        dropdown?.setAttribute("hidden", "");
+        trigger?.setAttribute("aria-expanded", "false");
+      };
+
+      trigger?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = trigger.getAttribute("aria-expanded") === "true";
+        if (open) {
+          closeMenu();
+        } else {
+          dropdown?.removeAttribute("hidden");
+          trigger.setAttribute("aria-expanded", "true");
+        }
+      });
+
+      dropdown?.addEventListener("click", (event) => event.stopPropagation());
+      window.addEventListener("click", closeMenu);
+
+      logout?.addEventListener("click", async () => {
+        try {
+          await fetch("/api/logout", { method: "POST", credentials: "include" });
+        } finally {
+          window.location.reload();
+        }
+      });
+
+      fetch("/api/session", { credentials: "include" })
+        .then((response) => (response.ok ? response.json() : { authenticated: false }))
+        .then((data: { authenticated: boolean; identity?: { name?: string; email?: string } }) => {
+          if (!data.authenticated || !data.identity) return;
+          if (name) name.textContent = data.identity.name || data.identity.email || "Account";
+          signIn?.setAttribute("hidden", "");
+          menu?.removeAttribute("hidden");
+          account?.classList.add("is-authenticated");
+        })
+        .catch(() => {});
+    </script>
   </body>
 </html>

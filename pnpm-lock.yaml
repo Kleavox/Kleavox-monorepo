@@ -98,9 +98,6 @@ importers:
       '@kleavox/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@marsidev/react-turnstile':
-        specifier: 'catalog:'
-        version: 1.5.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       qrcode.react:
         specifier: 'catalog:'
         version: 4.2.0(react@19.2.7)
@@ -349,6 +346,9 @@ importers:
 
   workers/gateway:
     dependencies:
+      '@kleavox/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@kleavox/config':
         specifier: workspace:*
         version: link:../../packages/config

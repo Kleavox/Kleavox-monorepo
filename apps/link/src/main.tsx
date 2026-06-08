@@ -1,6 +1,13 @@
-import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  StrictMode,
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { createRoot } from "react-dom/client";
-import { QRCodeSVG } from "qrcode.react";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
@@ -8,6 +15,8 @@ import { ROOT_HOST, ROOT_ORIGIN, signInUrl } from "./config";
 import { FilesApp } from "./files";
 import type { AccountDrop } from "./files";
 import "./link.css";
+
+const QrPanel = lazy(() => import("./QrPanel"));
 
 interface LinkRecord {
   id: string;
@@ -146,7 +155,7 @@ function Header({
   return (
     <header className="kvx-header">
       <a className="kvx-brand" href={ROOT_ORIGIN}>
-        KLEAV<span>OX</span> <span className="kvx-brand-app">/ LINK</span>
+        KLEAV<span>OX</span> <span>/ LINK</span>
       </a>
       <nav className="kvx-nav" aria-label="Product navigation">
         <a className="is-active" href="/">
@@ -611,7 +620,11 @@ function LinkRow({
           onSaved={onRefresh}
         />
       )}
-      {showQr && <QrPanel link={link} onClose={() => setShowQr(false)} />}
+      {showQr && (
+        <Suspense fallback={null}>
+          <QrPanel link={link} onClose={() => setShowQr(false)} />
+        </Suspense>
+      )}
     </article>
   );
 }
@@ -619,8 +632,8 @@ function LinkRow({
 function Guest() {
   return (
     <>
-      <section className="link-guest">
-        <div className="link-guest-copy">
+      <section className="link-guest-hero">
+        <div className="link-guest-intro">
           <p className="link-kicker">KLEAVOX LINK / PUBLIC</p>
           <h1>
             Send a URL.
@@ -634,10 +647,30 @@ function Guest() {
         </div>
         <PublicLinkForm />
       </section>
-      <section className="link-guest-drop">
+      <section className="link-guest-files">
         <FilesApp embedded />
       </section>
+      <GuestFooter />
     </>
+  );
+}
+
+function GuestFooter() {
+  return (
+    <footer className="link-guest-footer">
+      <div className="link-guest-footer-inner">
+        <span className="link-guest-footer-wm">
+          KLEAV<span>OX</span> <span>/ LINK</span>
+        </span>
+        <div className="link-guest-footer-links">
+          <a href={`${ROOT_ORIGIN}/privacy`}>Privacy</a>
+          <a href={`${ROOT_ORIGIN}/terms`}>Terms</a>
+        </div>
+        <span className="link-guest-footer-copy">
+          &copy; {new Date().getFullYear()} Kleavox
+        </span>
+      </div>
+    </footer>
   );
 }
 
@@ -809,50 +842,6 @@ function EditPanel({
   );
 }
 
-function QrPanel({ link, onClose }: { link: LinkRecord; onClose: () => void }) {
-  const download = () => {
-    const svg = document.querySelector<SVGElement>("#link-qr-code");
-    if (!svg) return;
-    const blob = new Blob([new XMLSerializer().serializeToString(svg)], {
-      type: "image/svg+xml",
-    });
-    const anchor = document.createElement("a");
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = `${link.slug}.svg`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
-  };
-
-  return (
-    <div className="link-modal-backdrop" role="presentation">
-      <section className="link-stats link-qr" role="dialog" aria-modal="true">
-        <header>
-          <div>
-            <p className="link-kicker">QR / {link.slug}</p>
-            <h2>Scan route</h2>
-          </div>
-          <button type="button" onClick={onClose}>
-            Close
-          </button>
-        </header>
-        <div>
-          <QRCodeSVG
-            id="link-qr-code"
-            value={link.shortUrl}
-            size={256}
-            bgColor="#ffffff"
-            fgColor="#000000"
-            level="H"
-          />
-        </div>
-        <button className="link-primary" onClick={download}>
-          Download SVG
-        </button>
-      </section>
-    </div>
-  );
-}
-
 function ReportApp() {
   const [slug, setSlug] = useState("");
   const [reason, setReason] = useState("PHISHING");
@@ -879,7 +868,7 @@ function ReportApp() {
     <div className="link-app">
       <header className="link-header">
         <a className="link-brand" href="/">
-          KLEAV<span>OX</span> <span className="kvx-brand-app">/ LINK</span>
+          KLEAV<span>OX</span> <span>/ LINK</span>
         </a>
         <nav>
           <a href="/">Create</a>

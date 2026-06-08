@@ -1,30 +1,49 @@
-import { SESSION_COOKIE } from "@kleavox/auth";
+import { SESSION_COOKIE, VERIFICATION_COOKIE } from "@kleavox/auth";
 import type { Env } from "../env";
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
+
+export const VERIFICATION_TTL_SECONDS = {
+  basic: 60 * 60 * 24,
+  fresh: 60 * 30,
+} as const;
 
 export function makeSessionCookie(
   request: Request,
   env: Env,
   token: string,
 ): string {
-  return serializeCookie(request, env, token, SESSION_TTL_SECONDS);
+  return serializeCookie(request, env, SESSION_COOKIE, token, SESSION_TTL_SECONDS);
 }
 
 export function clearSessionCookie(request: Request, env: Env): string {
-  return serializeCookie(request, env, "", 0);
+  return serializeCookie(request, env, SESSION_COOKIE, "", 0);
+}
+
+export function makeVerificationCookie(
+  request: Request,
+  env: Env,
+  token: string,
+  maxAge: number,
+): string {
+  return serializeCookie(request, env, VERIFICATION_COOKIE, token, maxAge);
+}
+
+export function clearVerificationCookie(request: Request, env: Env): string {
+  return serializeCookie(request, env, VERIFICATION_COOKIE, "", 0);
 }
 
 function serializeCookie(
   request: Request,
   env: Env,
+  name: string,
   value: string,
   maxAge: number,
 ): string {
   const host = new URL(request.url).hostname.toLowerCase();
   const rootDomain = env.ROOT_DOMAIN.toLowerCase();
   const attributes = [
-    `${SESSION_COOKIE}=${encodeURIComponent(value)}`,
+    `${name}=${encodeURIComponent(value)}`,
     "Path=/",
     "HttpOnly",
     "Secure",

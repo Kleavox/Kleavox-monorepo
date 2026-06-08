@@ -172,6 +172,68 @@ h1 {
   border-color: var(--muted);
 }
 
+.account {
+  position: relative;
+}
+
+.account-trigger {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 1rem;
+  background: none;
+  border: 1px solid var(--line-bright);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 160ms ease;
+}
+
+.account-trigger:hover,
+.account-trigger[aria-expanded="true"] {
+  background: var(--panel-raised);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.account-dropdown {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 12px);
+  right: 0;
+  min-width: 160px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line-bright);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 35%);
+}
+
+.account-dropdown button {
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.account-dropdown button:hover {
+  background: var(--line);
+  color: var(--accent);
+}
+
 /* ── Hero ── */
 .hero {
   display: grid;
@@ -244,19 +306,6 @@ h1 {
   transform: translateY(0);
 }
 
-.btn-t {
-  color: var(--muted);
-  font-size: 0.9rem;
-  border-bottom: 1px solid var(--line-bright);
-  padding-bottom: 2px;
-  transition: all 160ms ease;
-}
-
-.btn-t:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
 /* Route sample */
 .route-sample {
   width: min(100%, 360px);
@@ -304,6 +353,7 @@ h1 {
 
 .mc {
   position: absolute;
+  z-index: 0;
   overflow: hidden;
   border: 1px solid var(--line-bright);
   border-radius: 10px;

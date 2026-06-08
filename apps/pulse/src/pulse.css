@@ -658,6 +658,56 @@ select:focus-visible {
   filter: drop-shadow(0 0 5px rgb(61 219 224 / 42%));
 }
 
+.pulse-footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--pulse-line);
+  background: var(--pulse-panel);
+}
+
+.pulse-footer-inner {
+  width: min(1520px, calc(100% - 48px));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pulse-footer-wm {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
+}
+
+.pulse-footer-wm span {
+  color: var(--pulse-accent);
+}
+
+.pulse-footer-links {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pulse-footer-links a {
+  color: var(--pulse-muted);
+  font-family: var(--kvx-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  transition: color 150ms ease;
+}
+
+.pulse-footer-links a:hover {
+  color: var(--pulse-accent);
+}
+
+.pulse-footer-copy {
+  color: var(--pulse-quiet);
+  font-family: var(--kvx-mono);
+  font-size: 0.62rem;
+}
+
 @media (max-width: 980px) {
   .pulse-command,
   .pulse-grid,

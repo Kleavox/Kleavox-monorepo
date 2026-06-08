@@ -1,13 +1,16 @@
-import type { Env } from "../env";
+export interface TurnstileEnv {
+  ENVIRONMENT: "development" | "preview" | "production";
+  TURNSTILE_SECRET_KEY?: string;
+}
 
 interface TurnstileResponse {
   success: boolean;
 }
 
 export async function verifyTurnstile(
-  env: Env,
+  env: TurnstileEnv,
   token: string | undefined,
-  request: Request,
+  ip: string,
 ): Promise<boolean> {
   if (!env.TURNSTILE_SECRET_KEY) {
     return env.ENVIRONMENT !== "production";
@@ -17,7 +20,6 @@ export async function verifyTurnstile(
   const body = new FormData();
   body.set("secret", env.TURNSTILE_SECRET_KEY);
   body.set("response", token);
-  const ip = request.headers.get("cf-connecting-ip");
   if (ip) body.set("remoteip", ip);
 
   const response = await fetch(
@@ -25,5 +27,7 @@ export async function verifyTurnstile(
     { method: "POST", body },
   );
   if (!response.ok) return false;
-  return (await response.json<TurnstileResponse>()).success;
+
+  const result = await response.json<TurnstileResponse>();
+  return result.success;
 }

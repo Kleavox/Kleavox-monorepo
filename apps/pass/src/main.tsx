@@ -6,6 +6,7 @@ import {
   StrictMode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -53,7 +54,8 @@ function App() {
   const route = window.location.pathname;
 
   useEffect(() => {
-    if (route === "/verify" || route === "/reset") return;
+    if (route === "/verify" || route === "/reset" || route === "/challenge")
+      return;
     void Promise.all([
       api<SessionResponse>("/api/session"),
       api<OAuthProviders>("/api/oauth/providers"),
@@ -72,6 +74,7 @@ function App() {
   const content = useMemo(() => {
     if (route === "/verify") return <VerifyEmail />;
     if (route === "/reset") return <ResetPassword />;
+    if (route === "/challenge") return <ChallengePage />;
     if (session === null) return <LoadingState />;
     if (session.authenticated && session.user) {
       return (
@@ -245,7 +248,6 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState<string>();
   const [state, setState] = useState<FormState>({ status: "idle" });
 
   async function submit(event: FormEvent) {
@@ -260,10 +262,13 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
         name,
         email,
         password,
-        turnstileToken,
       });
       setState({ status: "success", message: response.message });
     } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "challenge_failed") {
+        redirectToChallenge("fresh");
+        return;
+      }
       setState({ status: "error", message: errorMessage(cause) });
     }
   }
@@ -310,8 +315,7 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
         value={confirmPassword}
         onChange={setConfirmPassword}
       />
-      <SecurityChallenge onToken={setTurnstileToken} />
-      <p className="pass-switch">
+      <p className="pass-switch pass-form-trailing">
         Already registered?{" "}
         <button type="button" onClick={() => onModeChange("login")}>
           Sign in
@@ -327,7 +331,6 @@ function ForgotPassword({
   onModeChange: (mode: Mode) => void;
 }) {
   const [email, setEmail] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState<string>();
   const [state, setState] = useState<FormState>({ status: "idle" });
 
   async function submit(event: FormEvent) {
@@ -336,10 +339,13 @@ function ForgotPassword({
     try {
       const response = await api<{ message: string }>("/api/password/forgot", {
         email,
-        turnstileToken,
       });
       setState({ status: "success", message: response.message });
     } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "challenge_failed") {
+        redirectToChallenge("fresh");
+        return;
+      }
       setState({ status: "error", message: errorMessage(cause) });
     }
   }
@@ -360,9 +366,8 @@ function ForgotPassword({
         value={email}
         onChange={setEmail}
       />
-      <SecurityChallenge onToken={setTurnstileToken} />
       <button
-        className="pass-text-action"
+        className="pass-text-action pass-form-trailing"
         type="button"
         onClick={() => onModeChange("login")}
       >
@@ -572,25 +577,66 @@ function Field({
   );
 }
 
-function SecurityChallenge({ onToken }: { onToken: (token?: string) => void }) {
-  if (!turnstileSiteKey) {
-    return (
-      <div className="pass-dev-note">
-        <span aria-hidden="true">🔒</span> Security verification loading…
-      </div>
-    );
+function ChallengePage() {
+  const params = new URLSearchParams(window.location.search);
+  const scope: "basic" | "fresh" = params.get("scope") === "fresh" ? "fresh" : "basic";
+  const returnToParam = params.get("returnTo");
+  const [state, setState] = useState<FormState>({ status: "loading" });
+  const submitted = useRef(false);
+
+  async function onToken(token?: string) {
+    if (!token || submitted.current) return;
+    submitted.current = true;
+    try {
+      const response = await api<{ ok: true; returnTo: string }>(
+        "/api/challenge",
+        { token, scope, returnTo: returnToParam ?? undefined },
+      );
+      window.location.assign(response.returnTo);
+    } catch (cause) {
+      submitted.current = false;
+      setState({ status: "error", message: errorMessage(cause) });
+    }
   }
 
   return (
-    <div className="pass-turnstile">
-      <Turnstile
-        siteKey={turnstileSiteKey}
-        onSuccess={(token) => onToken(token)}
-        onExpire={() => onToken(undefined)}
-        options={{ theme: "dark", size: "flexible" }}
-      />
-    </div>
+    <section className="pass-result" aria-label="Security check">
+      <p className="pass-section-label">Kleavox Pass</p>
+      <h2>Just a moment</h2>
+      {state.status === "error" ? (
+        <Status state={state} />
+      ) : (
+        <div className="pass-loading-lines" aria-label="Verifying">
+          <span />
+          <span />
+        </div>
+      )}
+      {turnstileSiteKey ? (
+        <div className="pass-turnstile pass-turnstile-invisible">
+          <Turnstile
+            siteKey={turnstileSiteKey}
+            onSuccess={onToken}
+            onExpire={() => {
+              submitted.current = false;
+            }}
+            options={{ size: "invisible", appearance: "interaction-only" }}
+          />
+        </div>
+      ) : (
+        <p className="pass-dev-note">
+          <span aria-hidden="true">🔒</span> Security verification unavailable in
+          this environment.
+        </p>
+      )}
+    </section>
   );
+}
+
+function redirectToChallenge(scope: "basic" | "fresh") {
+  const url = new URL("/challenge", window.location.origin);
+  url.searchParams.set("scope", scope);
+  url.searchParams.set("returnTo", window.location.href);
+  window.location.assign(url);
 }
 
 function Status({ state }: { state: FormState }) {
@@ -644,6 +690,15 @@ function LoadingState() {
   );
 }
 
+class ApiError extends Error {
+  code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 async function api<T = { ok: boolean }>(
   path: string,
   body?: Record<string, unknown>,
@@ -656,7 +711,7 @@ async function api<T = { ok: boolean }>(
   });
   const data = (await response.json()) as T & ApiFailure;
   if (!response.ok) {
-    throw new Error(data.error?.message || "Request failed.");
+    throw new ApiError(data.error?.message || "Request failed.", data.error?.code);
   }
   return data;
 }
