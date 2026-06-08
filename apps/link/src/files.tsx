@@ -1,8 +1,13 @@
-import { Turnstile } from "@marsidev/react-turnstile";
 import { prepareUpload } from "@kleavox/compression";
 import { encrypt, decrypt } from "@kleavox/crypto";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LINK_ORIGIN, PASS_ORIGIN, ROOT_ORIGIN, signInUrl } from "./config";
+import {
+  challengeUrl,
+  LINK_ORIGIN,
+  PASS_ORIGIN,
+  ROOT_ORIGIN,
+  signInUrl,
+} from "./config";
 import "./files.css";
 
 interface Policy {
@@ -76,10 +81,6 @@ interface PublicDrop {
   createdAt: string;
 }
 
-const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
-  | string
-  | undefined;
-
 export function FilesApp({
   embedded = false,
   onChanged,
@@ -116,8 +117,6 @@ function SendView({
   const [retentionSeconds, setRetentionSeconds] = useState(3600);
   const [maxDownloads, setMaxDownloads] = useState(3);
   const [password, setPassword] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState<string>();
-  const [turnstileKey, setTurnstileKey] = useState(0);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<
     "idle" | "optimizing" | "preparing" | "uploading" | "finishing"
@@ -171,10 +170,6 @@ function SendView({
 
   async function sendFile() {
     if (!file || !session || phase !== "idle") return;
-    if (!session.authenticated && turnstileSiteKey && !turnstileToken) {
-      setError("Complete the security check before uploading.");
-      return;
-    }
     if (password && password.length < 8) {
       setError("Passwords need at least 8 characters.");
       return;
@@ -215,7 +210,6 @@ function SendView({
           retentionSeconds,
           maxDownloads,
           password: password || undefined,
-          turnstileToken,
         }),
       });
       start = await readApi<UploadStart>(response);
@@ -282,11 +276,13 @@ function SendView({
           headers: { Authorization: `Bearer ${start.manageToken}` },
         });
       }
+      if (reason instanceof ApiError && reason.code === "CHALLENGE_FAILED") {
+        window.location.assign(challengeUrl("basic"));
+        return;
+      }
       setError(
         reason instanceof Error ? reason.message : "The upload did not finish.",
       );
-      setTurnstileToken(undefined);
-      setTurnstileKey((value) => value + 1);
     } finally {
       setPhase("idle");
     }
@@ -460,22 +456,6 @@ function SendView({
               />
             </label>
           </div>
-
-          {!session?.authenticated && (
-            <div className="drop-challenge">
-              {turnstileSiteKey ? (
-                <Turnstile
-                  key={turnstileKey}
-                  siteKey={turnstileSiteKey}
-                  onSuccess={setTurnstileToken}
-                  onExpire={() => setTurnstileToken(undefined)}
-                  options={{ theme: "light", size: "flexible" }}
-                />
-              ) : (
-                <p>Security challenge is bypassed in local development.</p>
-              )}
-            </div>
-          )}
 
           {busy && (
             <div className="drop-progress" aria-live="polite">
@@ -965,12 +945,25 @@ function uploadPart(
   });
 }
 
+class ApiError extends Error {
+  code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 async function readApi<T = unknown>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as {
     message?: string;
+    code?: string;
   };
   if (!response.ok) {
-    throw new Error(payload.message || "The request could not be completed.");
+    throw new ApiError(
+      payload.message || "The request could not be completed.",
+      payload.code,
+    );
   }
   return payload as T;
 }

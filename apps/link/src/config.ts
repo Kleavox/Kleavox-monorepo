@@ -11,3 +11,13 @@ export function signInUrl(returnTo = window.location.href): string {
   url.searchParams.set("returnTo", returnTo);
   return url.toString();
 }
+
+export function challengeUrl(
+  scope: "basic" | "fresh",
+  returnTo = window.location.href,
+): string {
+  const url = new URL("/challenge", PASS_ORIGIN);
+  url.searchParams.set("scope", scope);
+  url.searchParams.set("returnTo", returnTo);
+  return url.toString();
+}

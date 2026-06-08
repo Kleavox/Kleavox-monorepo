@@ -1,10 +1,16 @@
+import { readCookie, VERIFICATION_COOKIE, verifyTurnstile } from "@kleavox/auth";
 import { INTERNAL_HOSTS, SESSION_COOKIE } from "@kleavox/config";
 import type { Identity } from "@kleavox/core";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import type { Env } from "./env";
 import { writeAuditEvent } from "./lib/audit";
-import { clearSessionCookie, makeSessionCookie } from "./lib/cookies";
+import {
+  clearSessionCookie,
+  makeSessionCookie,
+  makeVerificationCookie,
+  VERIFICATION_TTL_SECONDS,
+} from "./lib/cookies";
 import {
   hashPassword,
   hashToken,
@@ -16,6 +22,7 @@ import {
   beginOAuth,
   finishOAuth,
   oauthFailure,
+  safeReturnTo,
   type OAuthProfile,
   type OAuthProvider,
 } from "./lib/oauth";
@@ -27,7 +34,6 @@ import {
   invalidateUserSessions,
   readSessionToken,
 } from "./lib/session";
-import { verifyTurnstile } from "./lib/turnstile";
 
 type AppEnv = { Bindings: Env };
 type AppContext = Context<AppEnv>;
@@ -42,6 +48,13 @@ interface UserRow {
   disabled_at: string | null;
   identity_id: string | null;
   password_hash: string | null;
+}
+
+interface VerificationRecord {
+  scope: "basic" | "fresh";
+  issuedAt: number;
+  expiresAt: number;
+  ip: string;
 }
 
 interface TokenRow {
@@ -71,7 +84,6 @@ const registerSchema = z.object({
   email: emailSchema,
   name: z.string().trim().min(1).max(80),
   password: passwordSchema,
-  turnstileToken: z.string().max(4096).optional(),
 });
 
 const loginSchema = z.object({
@@ -81,7 +93,6 @@ const loginSchema = z.object({
 
 const emailActionSchema = z.object({
   email: emailSchema,
-  turnstileToken: z.string().max(4096).optional(),
 });
 
 const tokenActionSchema = z.object({
@@ -91,6 +102,12 @@ const tokenActionSchema = z.object({
 const resetPasswordSchema = z.object({
   token: tokenSchema,
   password: passwordSchema,
+});
+
+const challengeSchema = z.object({
+  token: z.string().min(1).max(4096),
+  scope: z.enum(["basic", "fresh"]),
+  returnTo: z.string().max(2048).optional(),
 });
 
 const app = new Hono<AppEnv>();
@@ -254,7 +271,13 @@ app.post("/api/register", async (context) => {
     );
   }
 
-  if (!(await verifyTurnstile(context.env, body.data.turnstileToken, ip))) {
+  if (
+    !(await checkVerification(
+      context.env,
+      readCookie(context.req.raw, VERIFICATION_COOKIE),
+      "fresh",
+    ))
+  ) {
     return apiError(
       context,
       400,
@@ -382,7 +405,13 @@ app.post("/api/verification/resend", async (context) => {
   );
   if (!limit.allowed) return rateLimitError(context, limit.retryAfter);
 
-  if (!(await verifyTurnstile(context.env, body.data.turnstileToken, ip))) {
+  if (
+    !(await checkVerification(
+      context.env,
+      readCookie(context.req.raw, VERIFICATION_COOKIE),
+      "fresh",
+    ))
+  ) {
     return apiError(
       context,
       400,
@@ -608,7 +637,13 @@ app.post("/api/password/forgot", async (context) => {
   );
   if (!limit.allowed) return rateLimitError(context, limit.retryAfter);
 
-  if (!(await verifyTurnstile(context.env, body.data.turnstileToken, ip))) {
+  if (
+    !(await checkVerification(
+      context.env,
+      readCookie(context.req.raw, VERIFICATION_COOKIE),
+      "fresh",
+    ))
+  ) {
     return apiError(
       context,
       400,
@@ -816,6 +851,65 @@ app.post("/internal/logout", async (context) => {
   });
 });
 
+app.post("/api/challenge", async (context) => {
+  const body = challengeSchema.safeParse(await context.req.json());
+  if (!body.success) {
+    return apiError(context, 400, "invalid_input", firstIssue(body.error));
+  }
+
+  const ip = clientIp(context.req.raw);
+  if (!(await verifyTurnstile(context.env, body.data.token, ip))) {
+    return apiError(
+      context,
+      400,
+      "challenge_failed",
+      "Security challenge failed.",
+    );
+  }
+
+  const token = randomToken();
+  const ttl = VERIFICATION_TTL_SECONDS[body.data.scope];
+  const issuedAt = Date.now();
+  const record: VerificationRecord = {
+    scope: body.data.scope,
+    issuedAt,
+    expiresAt: issuedAt + ttl * 1000,
+    ip,
+  };
+  await context.env.SESSIONS.put(
+    `verification:${await hashToken(token)}`,
+    JSON.stringify(record),
+    { expirationTtl: ttl },
+  );
+
+  context.header(
+    "Set-Cookie",
+    makeVerificationCookie(context.req.raw, context.env, token, ttl),
+  );
+
+  return context.json({
+    ok: true,
+    returnTo: safeReturnTo(body.data.returnTo ?? null, context.env),
+  });
+});
+
+app.get("/internal/challenge", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
+    return context.body(null, 404);
+  }
+
+  const scope = context.req.query("scope");
+  if (scope !== "basic" && scope !== "fresh") {
+    return apiError(context, 400, "invalid_input", "Invalid scope.");
+  }
+
+  const token = context.req.header("x-kleavox-verification") ?? null;
+  const verified = await checkVerification(context.env, token, scope);
+  if (!verified) return context.json({ error: "unauthorized" }, 401);
+
+  return context.json({ ok: true });
+});
+
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
 
 function normalizeEmail(value: string): string {
@@ -824,6 +918,22 @@ function normalizeEmail(value: string): string {
 
 function clientIp(request: Request): string {
   return request.headers.get("cf-connecting-ip") ?? "local";
+}
+
+async function checkVerification(
+  env: Env,
+  token: string | null,
+  scope: "basic" | "fresh",
+): Promise<boolean> {
+  if (!token) return false;
+
+  const record = await env.SESSIONS.get<VerificationRecord>(
+    `verification:${await hashToken(token)}`,
+    "json",
+  );
+  if (!record || record.expiresAt <= Date.now()) return false;
+
+  return record.scope === "fresh" || record.scope === scope;
 }
 
 function toIdentity(user: UserRow): Identity {

@@ -10,7 +10,6 @@ export const createUploadSchema = z
     retentionSeconds: z.number().int().positive().optional(),
     maxDownloads: z.number().int().positive().optional(),
     password: z.string().min(8).max(128).optional(),
-    turnstileToken: z.string().max(4096).optional(),
   })
   .superRefine((value, context) => {
     const storedSize = value.storedSizeBytes ?? value.sizeBytes;

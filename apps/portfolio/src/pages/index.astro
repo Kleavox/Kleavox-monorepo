@@ -31,7 +31,7 @@ const projects = [
     description:
       "A Cloudflare-first ecosystem for identity, short routes, temporary file delivery, and infrastructure monitoring.",
     stack: "TypeScript / Workers / D1 / R2 / Go",
-    href: rootOrigin,
+    href: "https://github.com/Kleavox/kleavox-monorepo",
   },
   {
     index: "02",
@@ -39,9 +39,9 @@ const projects = [
     status: "assembled",
     type: "embedded hardware",
     description:
-      "A modular controller platform with swappable sensor boards and a compact firmware interface.",
+      "A modular controller platform built around a custom PCB, with swappable sensor boards and a compact firmware interface.",
     stack: "KiCad / ESP32 / IMU / Rust",
-    href: githubUrl,
+    href: "https://github.com/Kleavox/DeltaT32",
   },
   {
     index: "03",
@@ -51,7 +51,7 @@ const projects = [
     description:
       "A mobile operations surface combining live status, announcements, and location-aware workflows.",
     stack: "Flutter / Dart / REST / Geolocation",
-    href: githubUrl,
+    href: "https://github.com/doswall/doswall-mobile",
   },
 ];
 
@@ -148,8 +148,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
       <section class="manifesto">
         <p class="mono-label">OPERATING PRINCIPLE</p>
         <p>
-          Build the physical thing early. Instrument it. Make the system
-          readable. Then give the interface enough room to explain itself.
+          Build the physical thing first, instrument it honestly, and let the
+          interface explain what the system already makes visible.
         </p>
       </section>
 
@@ -218,8 +218,10 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
       </section>
 
       <section id="contact" class="contact-section">
-        <p class="mono-label">03 / CONTACT</p>
-        <h2>Let&apos;s build something.</h2>
+        <header class="section-heading">
+          <p class="mono-label">03 / CONTACT</p>
+          <h2>Let&apos;s build something.</h2>
+        </header>
         <div class="contact-grid">
           <div class="contact-copy">
             <p>Embedded systems, IoT, web products, or infrastructure.</p>
