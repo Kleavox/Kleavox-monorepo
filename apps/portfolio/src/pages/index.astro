@@ -53,6 +53,16 @@ const projects = [
     stack: "Flutter / Dart / REST / Geolocation",
     href: githubUrl,
   },
+  {
+    index: "04",
+    name: "Kleavox Port",
+    status: "shipped",
+    type: "personal site",
+    description:
+      "This portfolio: an Astro and React build shipped to Cloudflare Workers, with Resend-delivered contact messages and Turnstile-verified forms.",
+    stack: "Astro / React / Tailwind / Workers / Resend",
+    href: "https://github.com/Kleavox/deauport",
+  },
 ];
 
 const timeline = [
@@ -148,8 +158,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
       <section class="manifesto">
         <p class="mono-label">OPERATING PRINCIPLE</p>
         <p>
-          Build the physical thing early. Instrument it. Make the system
-          readable. Then give the interface enough room to explain itself.
+          Build the physical thing first, instrument it honestly, and let the
+          interface explain what the system already makes visible.
         </p>
       </section>
 
@@ -218,8 +228,10 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
       </section>
 
       <section id="contact" class="contact-section">
-        <p class="mono-label">03 / CONTACT</p>
-        <h2>Let&apos;s build something.</h2>
+        <header class="section-heading">
+          <p class="mono-label">03 / CONTACT</p>
+          <h2>Let&apos;s build something.</h2>
+        </header>
         <div class="contact-grid">
           <div class="contact-copy">
             <p>Embedded systems, IoT, web products, or infrastructure.</p>

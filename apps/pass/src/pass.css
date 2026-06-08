@@ -290,6 +290,10 @@ button {
   text-align: center;
 }
 
+.pass-form-trailing {
+  margin-top: 1.6rem;
+}
+
 .pass-status {
   margin: 0;
   border: 1px solid;
@@ -329,6 +333,10 @@ button {
 
 .pass-turnstile {
   min-height: 65px;
+}
+
+.pass-turnstile-invisible {
+  min-height: 0;
 }
 
 .pass-account dl {

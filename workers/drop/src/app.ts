@@ -1,5 +1,5 @@
 import { INTERNAL_HOSTS } from "@kleavox/config";
-import { readCookie, verifySession } from "@kleavox/auth";
+import { readCookie, verifyChallenge, verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -32,7 +32,6 @@ import {
   USER_POLICY,
 } from "./lib/limits";
 import { createFileSlug } from "./lib/slug";
-import { verifyTurnstile } from "./lib/turnstile";
 import {
   createUploadSchema,
   reportSchema,
@@ -171,11 +170,7 @@ app.post("/api/uploads", async (context) => {
   if (!identity && !guestSecret) return configurationError(context);
   if (
     !identity &&
-    !(await verifyTurnstile(
-      context.env,
-      body.data.turnstileToken,
-      context.req.raw,
-    ))
+    !(await verifyChallenge(context.req.raw, context.env.PASS, "basic"))
   ) {
     return context.json(
       { code: "CHALLENGE_FAILED", message: "Security challenge failed." },

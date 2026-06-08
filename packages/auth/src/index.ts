@@ -1,7 +1,14 @@
-import { INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
+import {
+  INTERNAL_URLS,
+  SESSION_COOKIE,
+  VERIFICATION_COOKIE,
+} from "@kleavox/config";
 import type { SessionIdentity } from "@kleavox/core";
 
-export { SESSION_COOKIE };
+export { SESSION_COOKIE, VERIFICATION_COOKIE };
+export { verifyTurnstile, type TurnstileEnv } from "./turnstile";
+
+export type VerificationScope = "basic" | "fresh";
 
 export interface PassBinding {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
@@ -39,4 +46,24 @@ export async function verifySession(
 
   if (!response.ok) return null;
   return response.json<SessionIdentity>();
+}
+
+export async function verifyChallenge(
+  request: Request,
+  pass: PassBinding,
+  scope: VerificationScope,
+): Promise<boolean> {
+  const token = readCookie(request, VERIFICATION_COOKIE);
+  if (!token) return false;
+
+  const url = new URL(INTERNAL_URLS.VERIFICATION_CHECK);
+  url.searchParams.set("scope", scope);
+
+  const response = await pass.fetch(url, {
+    headers: {
+      "x-kleavox-verification": token,
+    },
+  });
+
+  return response.ok;
 }

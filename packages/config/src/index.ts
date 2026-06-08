@@ -1,4 +1,5 @@
 export const SESSION_COOKIE = "__Secure-kleavox_session";
+export const VERIFICATION_COOKIE = "__Secure-kleavox_verified";
 
 export const INTERNAL_HOSTS = {
   PASS: "pass.internal",
@@ -10,6 +11,7 @@ export const INTERNAL_HOSTS = {
 export const INTERNAL_URLS = {
   SESSION_VERIFY: `http://${INTERNAL_HOSTS.PASS}/internal/session`,
   SESSION_LOGOUT: `http://${INTERNAL_HOSTS.PASS}/internal/logout`,
+  VERIFICATION_CHECK: `http://${INTERNAL_HOSTS.PASS}/internal/challenge`,
 } as const;
 
 export function getPublicOrigin(rootOrigin: string, subdomain?: string): string {

@@ -629,7 +629,6 @@ p {
   display: grid;
   grid-template-columns: 0.7fr 1fr;
   gap: clamp(50px, 10vw, 140px);
-  margin-top: 50px;
 }
 
 .contact-copy p {

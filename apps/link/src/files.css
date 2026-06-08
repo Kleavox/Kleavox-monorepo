@@ -272,6 +272,7 @@ a {
 .drop-options {
   display: grid;
   grid-template-columns: 1fr 0.72fr;
+  margin-bottom: 22px;
 }
 
 .drop-options label,
@@ -330,18 +331,6 @@ a {
 .drop-unlock input::placeholder {
   color: #666;
   font-weight: 500;
-}
-
-.drop-challenge {
-  padding: 17px 22px;
-  border-bottom: 1px solid var(--line);
-}
-
-.drop-challenge p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.76rem;
-  line-height: 1.4;
 }
 
 .drop-progress {

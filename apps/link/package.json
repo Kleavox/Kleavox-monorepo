@@ -11,7 +11,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@marsidev/react-turnstile": "catalog:",
     "@kleavox/compression": "workspace:*",
     "@kleavox/core": "workspace:*",
     "@kleavox/crypto": "workspace:*",
