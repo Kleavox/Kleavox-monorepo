@@ -80,6 +80,27 @@ export async function getSession(
   };
 }
 
+export async function updateSessionIdentity(
+  env: Env,
+  token: string,
+  identity: Identity,
+): Promise<void> {
+  const sessionId = await hashToken(token);
+  const stored = await env.SESSIONS.get<StoredSession>(
+    `session:${sessionId}`,
+    "json",
+  );
+  if (!stored || Date.parse(stored.expiresAt) <= Date.now()) return;
+
+  stored.identity = identity;
+  const remainingSeconds = Math.floor(
+    (Date.parse(stored.expiresAt) - Date.now()) / 1000,
+  );
+  await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(stored), {
+    expirationTtl: Math.max(60, remainingSeconds),
+  });
+}
+
 export async function deleteSession(env: Env, token: string): Promise<void> {
   await env.SESSIONS.delete(`session:${await hashToken(token)}`);
 }
