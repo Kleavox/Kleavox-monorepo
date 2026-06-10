@@ -71,7 +71,10 @@ const timeline = [
   ["ONGOING", "Embedded research", "Sensors, controllers, and edge workloads"],
 ];
 
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
+const turnstileSiteKey =
+  import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ||
+  // Cloudflare's public always-pass test key, dev builds only.
+  (import.meta.env.DEV ? "1x00000000000000000000AA" : "");
 ---
 
 <!doctype html>

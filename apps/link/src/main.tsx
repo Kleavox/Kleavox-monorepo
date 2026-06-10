@@ -11,7 +11,7 @@ import { createRoot } from "react-dom/client";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
-import { ROOT_HOST, ROOT_ORIGIN, signInUrl } from "./config";
+import { ROOT_HOST, ROOT_ORIGIN, challengeUrl, signInUrl } from "./config";
 import { FilesApp } from "./files";
 import type { AccountDrop } from "./files";
 import "./link.css";
@@ -690,6 +690,10 @@ function PublicLinkForm() {
       setCreated(result.shortUrl);
       setState({ status: "success", message: "Link ready." });
     } catch (error) {
+      if (error instanceof ApiError && error.code === "CHALLENGE_FAILED") {
+        window.location.assign(challengeUrl("basic"));
+        return;
+      }
       setState({ status: "error", message: messageFrom(error) });
     }
   }
@@ -860,6 +864,10 @@ function ReportApp() {
       setDetails("");
       setState({ status: "success", message: "Report received." });
     } catch (error) {
+      if (error instanceof ApiError && error.code === "CHALLENGE_FAILED") {
+        window.location.assign(challengeUrl("basic"));
+        return;
+      }
       setState({ status: "error", message: messageFrom(error) });
     }
   };
@@ -1046,6 +1054,7 @@ class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message);
   }
@@ -1064,9 +1073,9 @@ async function request<T = unknown>(
     },
   });
   if (response.status === 204) return undefined as T;
-  let data: { message?: string };
+  let data: { message?: string; code?: string };
   try {
-    data = (await response.json()) as { message?: string };
+    data = (await response.json()) as { message?: string; code?: string };
   } catch {
     throw new ApiError(
       "Link received an invalid response from its API.",
@@ -1077,6 +1086,7 @@ async function request<T = unknown>(
     throw new ApiError(
       data.message ?? "The request could not be completed.",
       response.status,
+      data.code,
     );
   }
   return data as T;

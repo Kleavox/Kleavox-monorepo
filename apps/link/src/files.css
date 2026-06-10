@@ -674,6 +674,7 @@ a {
 
 .drop-receipt dd {
   margin: 9px 0 0;
+  overflow-wrap: anywhere;
   font-size: 0.92rem;
   font-weight: 750;
 }
@@ -958,6 +959,35 @@ a {
 
   .drop-receipt dl div:nth-child(odd) {
     border-right: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .drop-options {
+    grid-template-columns: 1fr;
+  }
+
+  .drop-options label {
+    border-right: 0;
+  }
+
+  .drop-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .drop-row-state {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .drop-zone-action,
+  .drop-file {
+    padding: 22px 16px;
+  }
+
+  .drop-receipt dl div {
+    padding: 16px;
   }
 }
 

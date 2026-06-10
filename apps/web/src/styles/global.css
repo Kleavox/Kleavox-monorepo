@@ -919,6 +919,20 @@ h1 {
   }
 }
 
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: clamp(3.2rem, 16vw, 4.5rem);
+  }
+
+  .mosaic {
+    min-height: 340px;
+  }
+
+  .route-sample {
+    font-size: 0.66rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

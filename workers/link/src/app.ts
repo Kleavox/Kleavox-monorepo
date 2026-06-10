@@ -1,5 +1,5 @@
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
-import { readCookie, verifySession } from "@kleavox/auth";
+import { readCookie, verifyChallenge, verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -169,6 +169,16 @@ app.post("/api/public-links", async (context) => {
     return context.json(
       { code: "RATE_LIMITED", message: "Try again in a minute." },
       429,
+    );
+  }
+
+  if (
+    !(await verifySession(context.req.raw, context.env.PASS)) &&
+    !(await verifyChallenge(context.req.raw, context.env.PASS, "basic"))
+  ) {
+    return context.json(
+      { code: "CHALLENGE_FAILED", message: "Security challenge failed." },
+      403,
     );
   }
 
@@ -415,6 +425,16 @@ app.get("/api/links/:slug/stats", requireSession, async (context) => {
 });
 
 app.post("/api/reports", async (context) => {
+  if (
+    !(await verifySession(context.req.raw, context.env.PASS)) &&
+    !(await verifyChallenge(context.req.raw, context.env.PASS, "basic"))
+  ) {
+    return context.json(
+      { code: "CHALLENGE_FAILED", message: "Security challenge failed." },
+      403,
+    );
+  }
+
   const body = z
     .object({
       slug: z.string().min(2).max(50),

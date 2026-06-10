@@ -369,8 +369,15 @@ button {
   transition: opacity 150ms ease;
 }
 
-.link-row:hover .link-actions {
+.link-row:hover .link-actions,
+.link-row:focus-within .link-actions {
   opacity: 1;
+}
+
+@media (hover: none) {
+  .link-actions {
+    opacity: 1;
+  }
 }
 
 .link-actions button,
@@ -728,6 +735,42 @@ button {
 
   .link-tags {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .link-modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .link-stats {
+    max-height: 92dvh;
+  }
+
+  .link-chart {
+    height: 150px;
+    gap: 0.3rem;
+  }
+
+  .link-chart div {
+    font-size: 0.58rem;
+  }
+
+  .link-qr > div {
+    padding: 16px;
+  }
+
+  .link-row {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .link-clicks {
+    text-align: left;
+  }
+
+  .link-actions {
+    flex-wrap: wrap;
   }
 }
 

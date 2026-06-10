@@ -893,6 +893,14 @@ app.post("/api/challenge", async (context) => {
   });
 });
 
+app.get("/api/challenge/status", async (context) => {
+  const scopeParam = context.req.query("scope");
+  const scope: "basic" | "fresh" = scopeParam === "basic" ? "basic" : "fresh";
+  const token = readCookie(context.req.raw, VERIFICATION_COOKIE);
+  const verified = await checkVerification(context.env, token, scope);
+  return context.json({ verified });
+});
+
 app.get("/internal/challenge", async (context) => {
   if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
     return context.body(null, 404);
