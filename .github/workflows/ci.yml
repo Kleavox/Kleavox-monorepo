@@ -142,6 +142,9 @@ jobs:
           restore-keys: |
             rust-${{ runner.os }}-
 
+      - name: Warm wasm-bindgen-cli cache
+        run: wasm-pack build --target web --out-dir /tmp/wasm-pack-warmup --release crates/compression --locked
+
       - run: pnpm install --frozen-lockfile
 
       - name: Cache Playwright browsers
