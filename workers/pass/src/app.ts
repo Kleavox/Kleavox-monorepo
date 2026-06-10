@@ -648,8 +648,7 @@ app.get("/api/session", async (context) => {
 });
 
 app.get("/api/account", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -667,8 +666,7 @@ app.get("/api/account", async (context) => {
 });
 
 app.patch("/api/account", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -698,8 +696,7 @@ app.patch("/api/account", async (context) => {
 });
 
 app.delete("/api/account", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -772,8 +769,7 @@ app.delete("/api/account", async (context) => {
 });
 
 app.post("/api/account/password", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -975,8 +971,7 @@ app.post("/api/password/reset", async (context) => {
 });
 
 app.get("/api/sessions", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -997,8 +992,7 @@ app.get("/api/sessions", async (context) => {
 });
 
 app.delete("/api/sessions/:id", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -1224,6 +1218,11 @@ function sessionClient(request: Request) {
     userAgent: request.headers.get("user-agent"),
     ip: request.headers.get("cf-connecting-ip"),
   };
+}
+
+async function currentSession(context: AppContext) {
+  const token = readSessionToken(context.req.raw);
+  return token ? await getSession(context.env, token) : null;
 }
 
 async function checkVerification(

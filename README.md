@@ -136,6 +136,33 @@ without spending Worker CPU.
 sessions, finalizes stuck completions, deletes expired or exhausted drops, and
 garbage-collects old rows.
 
+## Admin
+
+Pulse is the operator console and is restricted to the `ADMIN` role: every
+Pulse API endpoint rejects non-admin sessions, the dashboard shows a
+"restricted" panel for signed-in non-admins, and Pulse links on the gateway
+home page only appear for an admin session. The abuse-report inbox lives in
+the Pulse dashboard (Moderation section): it lists short-link and file
+reports, and supports resolve/reject, disabling a reported link, and deleting
+a reported file. Pulse proxies these actions to the link and drop workers via
+service bindings; the target workers re-check the `ADMIN` role themselves.
+
+Promotion to admin is deliberate and manual — there is no endpoint for it:
+
+```bash
+pnpm exec wrangler d1 execute DB --local --config workers/pass/wrangler.jsonc \
+  --command "UPDATE users SET role = 'ADMIN' WHERE email = '<your-email>'"
+```
+
+For production, run the same statement with `--remote` against the rendered
+deploy config.
+
+Two hard rules: admins cannot delete user accounts (no such endpoint exists —
+account deletion is strictly self-service, and works for OAuth-only accounts
+too since it requires only a session, a fresh challenge, and typing the
+account email), and admins cannot read users' passwords or session tokens
+(only hashes are stored).
+
 ## Cloudflare Resources
 
 Authenticate Wrangler only on the operator's machine:

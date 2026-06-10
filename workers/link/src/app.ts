@@ -38,6 +38,10 @@ const createSchema = z.object({
   expiresAt: z.string().optional(),
 });
 
+const reportUpdateSchema = z.object({
+  status: z.enum(["OPEN", "RESOLVED", "REJECTED"]),
+});
+
 const updateSchema = z.object({
   targetUrl: z.string().min(1).max(2048).optional(),
   password: z.string().min(8).max(128).nullable().optional(),
@@ -183,6 +187,24 @@ const requireSession: MiddlewareHandler<{
       { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
       401,
     );
+  }
+  context.set("session", session);
+  await next();
+};
+
+const requireAdmin: MiddlewareHandler<{
+  Bindings: Env;
+  Variables: Variables;
+}> = async (context, next) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  if (!session) {
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
+      401,
+    );
+  }
+  if (session.identity.role !== "ADMIN") {
+    return context.json({ code: "FORBIDDEN", message: "Admin only." }, 403);
   }
   context.set("session", session);
   await next();
@@ -510,6 +532,35 @@ app.post("/api/reports", async (context) => {
     )
     .run();
   return context.json({ ok: true }, 202);
+});
+
+app.get("/api/admin/reports", requireAdmin, async (context) => {
+  const reports = await context.env.DB.prepare(
+    `SELECT r.id, r.link_id, r.reason, r.details, r.status, r.created_at,
+            r.resolved_at, l.slug, l.target_url, l.disabled_at
+     FROM reports r
+     LEFT JOIN links l ON l.id = r.link_id
+     ORDER BY CASE r.status WHEN 'OPEN' THEN 0 ELSE 1 END, r.created_at DESC
+     LIMIT 200`,
+  ).all();
+  return context.json({ reports: reports.results });
+});
+
+app.patch("/api/admin/reports/:id", requireAdmin, async (context) => {
+  const body = reportUpdateSchema.safeParse(await readJson(context));
+  if (!body.success) return invalidBody(context);
+  const updated = await context.env.DB.prepare(
+    `UPDATE reports
+     SET status = ?,
+         resolved_at = CASE WHEN ? = 'OPEN' THEN NULL ELSE datetime('now') END
+     WHERE id = ?`,
+  )
+    .bind(body.data.status, body.data.status, context.req.param("id"))
+    .run();
+  if ((updated.meta.changes ?? 0) !== 1) {
+    return context.json({ code: "NOT_FOUND", message: "Unknown report." }, 404);
+  }
+  return context.json({ updated: true });
 });
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));

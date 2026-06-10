@@ -1,3 +1,4 @@
+import { escapeHtml } from "@kleavox/core";
 import type { Env } from "../env";
 
 export interface IncidentEmail {
@@ -67,13 +68,4 @@ export async function sendIncidentEmail(
   if (!response.ok) {
     throw new Error(`Resend responded with ${response.status}`);
   }
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

@@ -477,6 +477,13 @@ const PROVIDER_LABELS: Record<string, string> = {
   github: "GitHub",
 };
 
+function redirectToFreshChallenge() {
+  const url = new URL("/challenge", window.location.origin);
+  url.searchParams.set("scope", "fresh");
+  url.searchParams.set("returnTo", window.location.href);
+  window.location.assign(url);
+}
+
 interface DeviceSession {
   id: string;
   createdAt: string;
@@ -554,10 +561,7 @@ function Account({
       onSignedOut();
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "challenge_failed") {
-        const url = new URL("/challenge", window.location.origin);
-        url.searchParams.set("scope", "fresh");
-        url.searchParams.set("returnTo", window.location.href);
-        window.location.assign(url);
+        redirectToFreshChallenge();
         return;
       }
       setState({ status: "error", message: errorMessage(cause) });
@@ -632,10 +636,7 @@ function Account({
       });
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "challenge_failed") {
-        const url = new URL("/challenge", window.location.origin);
-        url.searchParams.set("scope", "fresh");
-        url.searchParams.set("returnTo", window.location.href);
-        window.location.assign(url);
+        redirectToFreshChallenge();
         return;
       }
       setState({ status: "error", message: errorMessage(cause) });

@@ -72,7 +72,7 @@ app.get("/health", (context) =>
   context.json({ service: "pulse", status: "ok" }),
 );
 
-const requireSession: MiddlewareHandler<{
+const requireAdmin: MiddlewareHandler<{
   Bindings: Env;
   Variables: Variables;
 }> = async (context, next) => {
@@ -81,6 +81,12 @@ const requireSession: MiddlewareHandler<{
     return context.json(
       { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
       401,
+    );
+  }
+  if (session.identity.role !== "ADMIN") {
+    return context.json(
+      { code: "FORBIDDEN", message: "Pulse is restricted to the operator." },
+      403,
     );
   }
   context.set("session", session);
@@ -94,7 +100,37 @@ app.get("/api/session", async (context) => {
     : context.json({ authenticated: false });
 });
 
-app.get("/api/overview", requireSession, async (context) => {
+app.all("/api/admin/link/*", requireAdmin, (context) =>
+  proxyAdmin(
+    context,
+    context.env.LINK,
+    INTERNAL_HOSTS.LINK,
+    context.req.path.replace(/^\/api\/admin\/link/u, "/api"),
+  ),
+);
+
+app.all("/api/admin/drop/*", requireAdmin, (context) =>
+  proxyAdmin(
+    context,
+    context.env.DROP,
+    INTERNAL_HOSTS.DROP,
+    context.req.path.replace(/^\/api\/admin\/drop/u, "/api"),
+  ),
+);
+
+function proxyAdmin(
+  context: PulseContext,
+  binding: Fetcher,
+  hostname: string,
+  pathname: string,
+) {
+  const destination = new URL(context.req.url);
+  destination.hostname = hostname;
+  destination.pathname = pathname;
+  return binding.fetch(new Request(destination, context.req.raw));
+}
+
+app.get("/api/overview", requireAdmin, async (context) => {
   const ownerId = context.get("session").identity.id;
   const [nodes, checks, incidents, projects, notes] = await Promise.all([
     context.env.DB.prepare(
@@ -154,7 +190,7 @@ app.get("/api/overview", requireSession, async (context) => {
   });
 });
 
-app.post("/api/nodes", requireSession, async (context) => {
+app.post("/api/nodes", requireAdmin, async (context) => {
   const body = z
     .object({
       name: z.string().trim().min(1).max(100),
@@ -196,7 +232,7 @@ app.post("/api/nodes", requireSession, async (context) => {
   );
 });
 
-app.post("/api/nodes/:id/enrollment", requireSession, async (context) => {
+app.post("/api/nodes/:id/enrollment", requireAdmin, async (context) => {
   const node = await ownedNode(context);
   if (!node) return context.json({ code: "NOT_FOUND" }, 404);
 
@@ -221,7 +257,7 @@ app.post("/api/nodes/:id/enrollment", requireSession, async (context) => {
   });
 });
 
-app.delete("/api/nodes/:id", requireSession, async (context) => {
+app.delete("/api/nodes/:id", requireAdmin, async (context) => {
   const node = await ownedNode(context);
   if (!node) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM nodes WHERE id = ?")
@@ -230,7 +266,7 @@ app.delete("/api/nodes/:id", requireSession, async (context) => {
   return context.body(null, 204);
 });
 
-app.get("/api/nodes/:id/metrics", requireSession, async (context) => {
+app.get("/api/nodes/:id/metrics", requireAdmin, async (context) => {
   const node = await ownedNode(context);
   if (!node) return context.json({ code: "NOT_FOUND" }, 404);
   const hours = Math.min(
@@ -251,7 +287,7 @@ app.get("/api/nodes/:id/metrics", requireSession, async (context) => {
   return context.json({ data: metrics.results });
 });
 
-app.post("/api/checks", requireSession, async (context) => {
+app.post("/api/checks", requireAdmin, async (context) => {
   const body = z
     .object({
       nodeId: z.string().uuid(),
@@ -296,7 +332,7 @@ app.post("/api/checks", requireSession, async (context) => {
   return context.json({ id }, 201);
 });
 
-app.patch("/api/checks/:id", requireSession, async (context) => {
+app.patch("/api/checks/:id", requireAdmin, async (context) => {
   const check = await ownedCheck(context);
   if (!check) return context.json({ code: "NOT_FOUND" }, 404);
   const body = z
@@ -334,7 +370,7 @@ app.patch("/api/checks/:id", requireSession, async (context) => {
   return context.json({ ok: true });
 });
 
-app.delete("/api/checks/:id", requireSession, async (context) => {
+app.delete("/api/checks/:id", requireAdmin, async (context) => {
   const check = await ownedCheck(context);
   if (!check) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM checks WHERE id = ?")
@@ -343,7 +379,7 @@ app.delete("/api/checks/:id", requireSession, async (context) => {
   return context.body(null, 204);
 });
 
-app.post("/api/projects", requireSession, async (context) => {
+app.post("/api/projects", requireAdmin, async (context) => {
   const body = z
     .object({
       name: z.string().trim().min(1).max(100),
@@ -368,7 +404,7 @@ app.post("/api/projects", requireSession, async (context) => {
   return context.json({ id }, 201);
 });
 
-app.patch("/api/projects/:id", requireSession, async (context) => {
+app.patch("/api/projects/:id", requireAdmin, async (context) => {
   const project = await ownedProject(context);
   if (!project) return context.json({ code: "NOT_FOUND" }, 404);
   const body = z
@@ -407,7 +443,7 @@ app.patch("/api/projects/:id", requireSession, async (context) => {
   return context.json({ ok: true });
 });
 
-app.delete("/api/projects/:id", requireSession, async (context) => {
+app.delete("/api/projects/:id", requireAdmin, async (context) => {
   const project = await ownedProject(context);
   if (!project) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM projects WHERE id = ?")
@@ -416,7 +452,7 @@ app.delete("/api/projects/:id", requireSession, async (context) => {
   return context.body(null, 204);
 });
 
-app.post("/api/notes", requireSession, async (context) => {
+app.post("/api/notes", requireAdmin, async (context) => {
   const body = z
     .object({
       projectId: z.string().uuid().nullable().optional(),
@@ -451,7 +487,7 @@ app.post("/api/notes", requireSession, async (context) => {
   return context.json({ id }, 201);
 });
 
-app.patch("/api/notes/:id", requireSession, async (context) => {
+app.patch("/api/notes/:id", requireAdmin, async (context) => {
   const note = await ownedNote(context);
   if (!note) return context.json({ code: "NOT_FOUND" }, 404);
   const body = z
@@ -498,7 +534,7 @@ app.patch("/api/notes/:id", requireSession, async (context) => {
   return context.json({ ok: true });
 });
 
-app.delete("/api/notes/:id", requireSession, async (context) => {
+app.delete("/api/notes/:id", requireAdmin, async (context) => {
   const note = await ownedNote(context);
   if (!note) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM notes WHERE id = ?")
