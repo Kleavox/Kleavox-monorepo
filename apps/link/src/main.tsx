@@ -675,8 +675,38 @@ function GuestFooter() {
   );
 }
 
+const PUBLIC_LINK_DRAFT_KEY = "link:draft:public";
+const REPORT_DRAFT_KEY = "link:draft:report";
+
+function readDraft<T>(key: string): T | undefined {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveDraft(key: string, value: unknown): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage unavailable; the redirect still works, only the draft is lost.
+  }
+}
+
+function clearDraft(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // Ignore.
+  }
+}
+
 function PublicLinkForm() {
-  const [targetUrl, setTargetUrl] = useState("");
+  const [targetUrl, setTargetUrl] = useState(
+    () => readDraft<{ targetUrl?: string }>(PUBLIC_LINK_DRAFT_KEY)?.targetUrl ?? "",
+  );
   const [created, setCreated] = useState<string>();
   const [state, setState] = useState<FormState>({ status: "idle" });
 
@@ -688,10 +718,12 @@ function PublicLinkForm() {
         method: "POST",
         body: JSON.stringify({ targetUrl }),
       });
+      clearDraft(PUBLIC_LINK_DRAFT_KEY);
       setCreated(result.shortUrl);
       setState({ status: "success", message: "Link ready." });
     } catch (error) {
       if (error instanceof ApiError && error.code === "CHALLENGE_FAILED") {
+        saveDraft(PUBLIC_LINK_DRAFT_KEY, { targetUrl });
         window.location.assign(challengeUrl("basic"));
         return;
       }
@@ -848,9 +880,12 @@ function EditPanel({
 }
 
 function ReportApp() {
-  const [slug, setSlug] = useState("");
-  const [reason, setReason] = useState("PHISHING");
-  const [details, setDetails] = useState("");
+  const draft = readDraft<{ slug?: string; reason?: string; details?: string }>(
+    REPORT_DRAFT_KEY,
+  );
+  const [slug, setSlug] = useState(draft?.slug ?? "");
+  const [reason, setReason] = useState(draft?.reason ?? "PHISHING");
+  const [details, setDetails] = useState(draft?.details ?? "");
   const [state, setState] = useState<FormState>({ status: "idle" });
 
   const submit = async (event: FormEvent) => {
@@ -861,11 +896,13 @@ function ReportApp() {
         method: "POST",
         body: JSON.stringify({ slug, reason, details: details || undefined }),
       });
+      clearDraft(REPORT_DRAFT_KEY);
       setSlug("");
       setDetails("");
       setState({ status: "success", message: "Report received." });
     } catch (error) {
       if (error instanceof ApiError && error.code === "CHALLENGE_FAILED") {
+        saveDraft(REPORT_DRAFT_KEY, { slug, reason, details });
         window.location.assign(challengeUrl("basic"));
         return;
       }

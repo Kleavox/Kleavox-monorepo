@@ -12,6 +12,9 @@ export const INTERNAL_URLS = {
   SESSION_VERIFY: `http://${INTERNAL_HOSTS.PASS}/internal/session`,
   SESSION_LOGOUT: `http://${INTERNAL_HOSTS.PASS}/internal/logout`,
   VERIFICATION_CHECK: `http://${INTERNAL_HOSTS.PASS}/internal/challenge`,
+  IDENTITY_LOOKUP: `http://${INTERNAL_HOSTS.PASS}/internal/identity`,
+  LINK_PURGE: `http://${INTERNAL_HOSTS.LINK}/internal/purge-user`,
+  DROP_PURGE: `http://${INTERNAL_HOSTS.DROP}/internal/purge-user`,
 } as const;
 
 export function getPublicOrigin(rootOrigin: string, subdomain?: string): string {

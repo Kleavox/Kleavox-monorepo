@@ -1,4 +1,4 @@
-import { INTERNAL_HOSTS } from "@kleavox/config";
+import { INTERNAL_HOSTS, INTERNAL_URLS } from "@kleavox/config";
 import { verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
@@ -15,6 +15,7 @@ import {
   type CheckStatus,
 } from "./lib/checks";
 import { randomToken, readBearerToken, sha256 } from "./lib/crypto";
+import { sendIncidentEmail } from "./lib/mail";
 import { heartbeatSchema, hostSchema, resultSchema } from "./schemas";
 
 interface Variables {
@@ -71,7 +72,7 @@ app.get("/health", (context) =>
   context.json({ service: "pulse", status: "ok" }),
 );
 
-const requireSession: MiddlewareHandler<{
+const requireAdmin: MiddlewareHandler<{
   Bindings: Env;
   Variables: Variables;
 }> = async (context, next) => {
@@ -80,6 +81,12 @@ const requireSession: MiddlewareHandler<{
     return context.json(
       { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
       401,
+    );
+  }
+  if (session.identity.role !== "ADMIN") {
+    return context.json(
+      { code: "FORBIDDEN", message: "Pulse is restricted to the operator." },
+      403,
     );
   }
   context.set("session", session);
@@ -93,7 +100,37 @@ app.get("/api/session", async (context) => {
     : context.json({ authenticated: false });
 });
 
-app.get("/api/overview", requireSession, async (context) => {
+app.all("/api/admin/link/*", requireAdmin, (context) =>
+  proxyAdmin(
+    context,
+    context.env.LINK,
+    INTERNAL_HOSTS.LINK,
+    context.req.path.replace(/^\/api\/admin\/link/u, "/api"),
+  ),
+);
+
+app.all("/api/admin/drop/*", requireAdmin, (context) =>
+  proxyAdmin(
+    context,
+    context.env.DROP,
+    INTERNAL_HOSTS.DROP,
+    context.req.path.replace(/^\/api\/admin\/drop/u, "/api"),
+  ),
+);
+
+function proxyAdmin(
+  context: PulseContext,
+  binding: Fetcher,
+  hostname: string,
+  pathname: string,
+) {
+  const destination = new URL(context.req.url);
+  destination.hostname = hostname;
+  destination.pathname = pathname;
+  return binding.fetch(new Request(destination, context.req.raw));
+}
+
+app.get("/api/overview", requireAdmin, async (context) => {
   const ownerId = context.get("session").identity.id;
   const [nodes, checks, incidents, projects, notes] = await Promise.all([
     context.env.DB.prepare(
@@ -153,7 +190,7 @@ app.get("/api/overview", requireSession, async (context) => {
   });
 });
 
-app.post("/api/nodes", requireSession, async (context) => {
+app.post("/api/nodes", requireAdmin, async (context) => {
   const body = z
     .object({
       name: z.string().trim().min(1).max(100),
@@ -195,7 +232,7 @@ app.post("/api/nodes", requireSession, async (context) => {
   );
 });
 
-app.post("/api/nodes/:id/enrollment", requireSession, async (context) => {
+app.post("/api/nodes/:id/enrollment", requireAdmin, async (context) => {
   const node = await ownedNode(context);
   if (!node) return context.json({ code: "NOT_FOUND" }, 404);
 
@@ -220,7 +257,7 @@ app.post("/api/nodes/:id/enrollment", requireSession, async (context) => {
   });
 });
 
-app.delete("/api/nodes/:id", requireSession, async (context) => {
+app.delete("/api/nodes/:id", requireAdmin, async (context) => {
   const node = await ownedNode(context);
   if (!node) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM nodes WHERE id = ?")
@@ -229,7 +266,7 @@ app.delete("/api/nodes/:id", requireSession, async (context) => {
   return context.body(null, 204);
 });
 
-app.get("/api/nodes/:id/metrics", requireSession, async (context) => {
+app.get("/api/nodes/:id/metrics", requireAdmin, async (context) => {
   const node = await ownedNode(context);
   if (!node) return context.json({ code: "NOT_FOUND" }, 404);
   const hours = Math.min(
@@ -250,7 +287,7 @@ app.get("/api/nodes/:id/metrics", requireSession, async (context) => {
   return context.json({ data: metrics.results });
 });
 
-app.post("/api/checks", requireSession, async (context) => {
+app.post("/api/checks", requireAdmin, async (context) => {
   const body = z
     .object({
       nodeId: z.string().uuid(),
@@ -295,7 +332,7 @@ app.post("/api/checks", requireSession, async (context) => {
   return context.json({ id }, 201);
 });
 
-app.patch("/api/checks/:id", requireSession, async (context) => {
+app.patch("/api/checks/:id", requireAdmin, async (context) => {
   const check = await ownedCheck(context);
   if (!check) return context.json({ code: "NOT_FOUND" }, 404);
   const body = z
@@ -333,7 +370,7 @@ app.patch("/api/checks/:id", requireSession, async (context) => {
   return context.json({ ok: true });
 });
 
-app.delete("/api/checks/:id", requireSession, async (context) => {
+app.delete("/api/checks/:id", requireAdmin, async (context) => {
   const check = await ownedCheck(context);
   if (!check) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM checks WHERE id = ?")
@@ -342,7 +379,7 @@ app.delete("/api/checks/:id", requireSession, async (context) => {
   return context.body(null, 204);
 });
 
-app.post("/api/projects", requireSession, async (context) => {
+app.post("/api/projects", requireAdmin, async (context) => {
   const body = z
     .object({
       name: z.string().trim().min(1).max(100),
@@ -367,7 +404,7 @@ app.post("/api/projects", requireSession, async (context) => {
   return context.json({ id }, 201);
 });
 
-app.patch("/api/projects/:id", requireSession, async (context) => {
+app.patch("/api/projects/:id", requireAdmin, async (context) => {
   const project = await ownedProject(context);
   if (!project) return context.json({ code: "NOT_FOUND" }, 404);
   const body = z
@@ -406,7 +443,7 @@ app.patch("/api/projects/:id", requireSession, async (context) => {
   return context.json({ ok: true });
 });
 
-app.delete("/api/projects/:id", requireSession, async (context) => {
+app.delete("/api/projects/:id", requireAdmin, async (context) => {
   const project = await ownedProject(context);
   if (!project) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM projects WHERE id = ?")
@@ -415,7 +452,7 @@ app.delete("/api/projects/:id", requireSession, async (context) => {
   return context.body(null, 204);
 });
 
-app.post("/api/notes", requireSession, async (context) => {
+app.post("/api/notes", requireAdmin, async (context) => {
   const body = z
     .object({
       projectId: z.string().uuid().nullable().optional(),
@@ -450,7 +487,7 @@ app.post("/api/notes", requireSession, async (context) => {
   return context.json({ id }, 201);
 });
 
-app.patch("/api/notes/:id", requireSession, async (context) => {
+app.patch("/api/notes/:id", requireAdmin, async (context) => {
   const note = await ownedNote(context);
   if (!note) return context.json({ code: "NOT_FOUND" }, 404);
   const body = z
@@ -497,7 +534,7 @@ app.patch("/api/notes/:id", requireSession, async (context) => {
   return context.json({ ok: true });
 });
 
-app.delete("/api/notes/:id", requireSession, async (context) => {
+app.delete("/api/notes/:id", requireAdmin, async (context) => {
   const note = await ownedNote(context);
   if (!note) return context.json({ code: "NOT_FOUND" }, 404);
   await context.env.DB.prepare("DELETE FROM notes WHERE id = ?")
@@ -635,7 +672,7 @@ app.post("/api/agent/results", async (context) => {
   }
 
   for (const result of payload.data.results) {
-    await applyCheckResult(context.env.DB, node.id, result);
+    await applyCheckResult(context.env, node.id, result);
   }
   return context.json({ ok: true });
 });
@@ -657,7 +694,7 @@ async function authenticateAgent(
 }
 
 async function applyCheckResult(
-  db: D1Database,
+  env: Env,
   nodeId: string,
   result: {
     checkId: string;
@@ -667,6 +704,7 @@ async function applyCheckResult(
     checkedAt?: string;
   },
 ): Promise<void> {
+  const db = env.DB;
   const check = await db
     .prepare(
       `SELECT id, node_id, name, kind, target, enabled, status,
@@ -716,19 +754,16 @@ async function applyCheckResult(
   ]);
 
   if (shouldOpenIncident(result.status, failureCount)) {
+    const summary = `${check.name} is down${result.message ? `: ${result.message}` : ""}`;
     await db
       .prepare(
         `INSERT INTO incidents
          (id, check_id, status, started_at, summary)
          VALUES (?, ?, 'OPEN', ?, ?)`,
       )
-      .bind(
-        crypto.randomUUID(),
-        check.id,
-        checkedAt,
-        `${check.name} is down${result.message ? `: ${result.message}` : ""}`,
-      )
+      .bind(crypto.randomUUID(), check.id, checkedAt, summary)
       .run();
+    await notifyIncident(env, nodeId, check.name, "opened", summary, checkedAt);
   } else if (shouldResolveIncident(check.status, result.status)) {
     await db
       .prepare(
@@ -737,6 +772,50 @@ async function applyCheckResult(
       )
       .bind(checkedAt, check.id)
       .run();
+    await notifyIncident(
+      env,
+      nodeId,
+      check.name,
+      "resolved",
+      `${check.name} is responding again.`,
+      checkedAt,
+    );
+  }
+}
+
+async function notifyIncident(
+  env: Env,
+  nodeId: string,
+  checkName: string,
+  kind: "opened" | "resolved",
+  summary: string,
+  occurredAt: string,
+): Promise<void> {
+  try {
+    const node = await env.DB.prepare(
+      `SELECT name, owner_user_id FROM nodes WHERE id = ?`,
+    )
+      .bind(nodeId)
+      .first<{ name: string; owner_user_id: string }>();
+    if (!node) return;
+
+    const lookup = new URL(INTERNAL_URLS.IDENTITY_LOOKUP);
+    lookup.searchParams.set("id", node.owner_user_id);
+    const response = await env.PASS.fetch(lookup);
+    if (!response.ok) return;
+    const owner = await response.json<{ email: string; name: string | null }>();
+
+    await sendIncidentEmail(env, {
+      to: owner.email,
+      recipientName: owner.name,
+      kind,
+      checkName,
+      nodeName: node.name,
+      summary,
+      occurredAt,
+    });
+  } catch (error) {
+    console.error("[pulse notify]", error);
   }
 }
 

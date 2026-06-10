@@ -111,7 +111,13 @@ const [link, pass, pulse, port] = products;
             </div>
             <span class="mc-tag">Port /</span>
           </a>
-          <a class="mc mc4" href={pulse.href} aria-label="Open Kleavox Pulse">
+          <a
+            class="mc mc4"
+            href={pulse.href}
+            aria-label="Open Kleavox Pulse"
+            data-pulse-only
+            hidden
+          >
             <div class="mc-in">
               <span class="mc-label">KLEAVOX / PULSE</span>
               <strong>Watch every host.</strong>
@@ -134,7 +140,7 @@ const [link, pass, pulse, port] = products;
         <div class="ftr-links">
           <a href={link.href}>Link</a>
           <a href={pass.href}>Pass</a>
-          <a href={pulse.href}>Pulse</a>
+          <a href={pulse.href} data-pulse-only hidden>Pulse</a>
           <a href={port.href}>Port</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
@@ -187,7 +193,7 @@ const [link, pass, pulse, port] = products;
 
       fetch("/api/session", { credentials: "include" })
         .then((response) => (response.ok ? response.json() : { authenticated: false }))
-        .then((data: { authenticated: boolean; identity?: { name?: string; email?: string } }) => {
+        .then((data: { authenticated: boolean; identity?: { name?: string; email?: string; role?: string } }) => {
           if (!data.authenticated || !data.identity) return;
           if (name) {
             name.textContent = firstName(data.identity.name, data.identity.email);
@@ -195,6 +201,11 @@ const [link, pass, pulse, port] = products;
           signIn?.setAttribute("hidden", "");
           menu?.removeAttribute("hidden");
           account?.classList.add("is-authenticated");
+          if (data.identity.role === "ADMIN") {
+            document
+              .querySelectorAll("[data-pulse-only]")
+              .forEach((element) => element.removeAttribute("hidden"));
+          }
         })
         .catch(() => {});
     </script>

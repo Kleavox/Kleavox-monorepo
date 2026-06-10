@@ -477,6 +477,47 @@ const PROVIDER_LABELS: Record<string, string> = {
   github: "GitHub",
 };
 
+function redirectToFreshChallenge() {
+  const url = new URL("/challenge", window.location.origin);
+  url.searchParams.set("scope", "fresh");
+  url.searchParams.set("returnTo", window.location.href);
+  window.location.assign(url);
+}
+
+interface DeviceSession {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  userAgent: string | null;
+  ip: string | null;
+  current: boolean;
+}
+
+function deviceLabel(userAgent: string | null): string {
+  if (!userAgent) return "Unknown device";
+  const browser = userAgent.includes("Edg/")
+    ? "Edge"
+    : userAgent.includes("Firefox/")
+      ? "Firefox"
+      : userAgent.includes("Chrome/")
+        ? "Chrome"
+        : userAgent.includes("Safari/")
+          ? "Safari"
+          : "Browser";
+  const os = userAgent.includes("Windows")
+    ? "Windows"
+    : userAgent.includes("Mac OS")
+      ? "macOS"
+      : userAgent.includes("Android")
+        ? "Android"
+        : userAgent.includes("iPhone") || userAgent.includes("iPad")
+          ? "iOS"
+          : userAgent.includes("Linux")
+            ? "Linux"
+            : "";
+  return os ? `${browser} on ${os}` : browser;
+}
+
 function Account({
   user,
   onSignedOut,
@@ -488,6 +529,12 @@ function Account({
   const [providers, setProviders] = useState<string[]>();
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(user.name ?? "");
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [confirmInput, setConfirmInput] = useState("");
+  const [devices, setDevices] = useState<DeviceSession[]>();
+  const [deleting, setDeleting] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
 
   useEffect(() => {
@@ -498,7 +545,47 @@ function Account({
         setProviders(account.providers);
       })
       .catch(() => {});
+    void api<{ sessions: DeviceSession[] }>("/api/sessions")
+      .then((result) => setDevices(result.sessions))
+      .catch(() => {});
   }, []);
+
+  async function deleteAccount(event: FormEvent) {
+    event.preventDefault();
+    setState({ status: "loading" });
+    try {
+      await apiFetch("/api/account", {
+        method: "DELETE",
+        body: JSON.stringify({ confirmEmail }),
+      });
+      onSignedOut();
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "challenge_failed") {
+        redirectToFreshChallenge();
+        return;
+      }
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
+
+  async function revokeDevice(device: DeviceSession) {
+    setState({ status: "loading" });
+    try {
+      await apiFetch(`/api/sessions/${encodeURIComponent(device.id)}`, {
+        method: "DELETE",
+      });
+      if (device.current) {
+        onSignedOut();
+        return;
+      }
+      setDevices((current) =>
+        current?.filter((entry) => entry.id !== device.id),
+      );
+      setState({ status: "success", message: "Device signed out." });
+    } catch (cause) {
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
 
   async function perform(path: string) {
     setState({ status: "loading" });
@@ -522,6 +609,36 @@ function Account({
       setEditing(false);
       setState({ status: "success", message: "Name updated." });
     } catch (cause) {
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
+
+  async function savePassword(event: FormEvent) {
+    event.preventDefault();
+    if (passwordInput !== confirmInput) {
+      setState({ status: "error", message: "Passwords do not match." });
+      return;
+    }
+    setState({ status: "loading" });
+    try {
+      await api("/api/account/password", { password: passwordInput });
+      setProviders((current) =>
+        current && !current.includes("password")
+          ? [...current, "password"]
+          : current,
+      );
+      setSettingPassword(false);
+      setPasswordInput("");
+      setConfirmInput("");
+      setState({
+        status: "success",
+        message: "Password set. You can now sign in with it.",
+      });
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "challenge_failed") {
+        redirectToFreshChallenge();
+        return;
+      }
       setState({ status: "error", message: errorMessage(cause) });
     }
   }
@@ -600,15 +717,153 @@ function Account({
           </dd>
         </div>
       </dl>
+      {providers && !providers.includes("password") && !settingPassword && (
+        <button
+          className="pass-text-action"
+          type="button"
+          onClick={() => {
+            setState({ status: "idle" });
+            setSettingPassword(true);
+          }}
+        >
+          Set a password for this account
+        </button>
+      )}
+      {settingPassword && (
+        <form className="pass-name-edit" onSubmit={savePassword}>
+          <Field
+            label="New password"
+            hint="Use at least 12 characters."
+            name="new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            value={passwordInput}
+            onChange={setPasswordInput}
+          />
+          <Field
+            label="Confirm password"
+            name="confirm-new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            value={confirmInput}
+            onChange={setConfirmInput}
+          />
+          <div className="pass-name-edit-actions">
+            <button
+              className="pass-primary"
+              type="submit"
+              disabled={state.status === "loading" || !passwordInput}
+            >
+              Set password
+            </button>
+            <button
+              className="pass-text-action"
+              type="button"
+              onClick={() => {
+                setSettingPassword(false);
+                setPasswordInput("");
+                setConfirmInput("");
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+      {devices && devices.length > 0 && (
+        <div className="pass-devices">
+          <p className="pass-section-label">Devices</p>
+          {devices.map((device) => (
+            <div key={device.id} className="pass-device">
+              <div>
+                <strong>
+                  {deviceLabel(device.userAgent)}
+                  {device.current && <i> · this device</i>}
+                </strong>
+                <span>
+                  Signed in {new Date(device.createdAt).toLocaleString()}
+                  {device.ip ? ` · ${device.ip}` : ""}
+                </span>
+              </div>
+              <button
+                className="pass-text-action"
+                type="button"
+                disabled={state.status === "loading"}
+                onClick={() => void revokeDevice(device)}
+              >
+                {device.current ? "Sign out" : "Revoke"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="pass-account-actions">
         <button
           className="pass-primary"
           type="button"
           disabled={state.status === "loading"}
-          onClick={() => void perform("/api/sessions/revoke-all")}
+          onClick={() => void perform("/api/logout")}
         >
           Sign out
         </button>
+        <button
+          className="pass-text-action"
+          type="button"
+          disabled={state.status === "loading"}
+          onClick={() => void perform("/api/sessions/revoke-all")}
+        >
+          Sign out everywhere
+        </button>
+      </div>
+      <div className="pass-danger">
+        {deleting ? (
+          <form className="pass-name-edit" onSubmit={deleteAccount}>
+            <p className="pass-danger-note">
+              This permanently removes your account, links, and files. Type
+              your email to confirm.
+            </p>
+            <Field
+              label="Email"
+              name="confirm-delete-email"
+              type="email"
+              autoComplete="off"
+              value={confirmEmail}
+              onChange={setConfirmEmail}
+            />
+            <div className="pass-name-edit-actions">
+              <button
+                className="pass-danger-action"
+                type="submit"
+                disabled={state.status === "loading" || !confirmEmail}
+              >
+                Delete forever
+              </button>
+              <button
+                className="pass-text-action"
+                type="button"
+                onClick={() => {
+                  setDeleting(false);
+                  setConfirmEmail("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            className="pass-text-action pass-danger-link"
+            type="button"
+            onClick={() => {
+              setState({ status: "idle" });
+              setDeleting(true);
+            }}
+          >
+            Delete this account
+          </button>
+        )}
       </div>
       <Status state={state} />
     </section>

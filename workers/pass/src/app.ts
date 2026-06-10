@@ -1,5 +1,5 @@
 import { readCookie, VERIFICATION_COOKIE, verifyTurnstile } from "@kleavox/auth";
-import { INTERNAL_HOSTS, SESSION_COOKIE } from "@kleavox/config";
+import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
 import type { Identity } from "@kleavox/core";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
@@ -30,8 +30,11 @@ import { rateLimit } from "./lib/rate-limit";
 import {
   createSession,
   deleteSession,
+  deleteSessionById,
   getSession,
   invalidateUserSessions,
+  listSessions,
+  purgeUserSessions,
   putIdentityOverride,
   readSessionToken,
 } from "./lib/session";
@@ -113,6 +116,14 @@ const challengeSchema = z.object({
 
 const accountUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80),
+});
+
+const accountPasswordSchema = z.object({
+  password: passwordSchema,
+});
+
+const accountDeleteSchema = z.object({
+  confirmEmail: emailSchema,
 });
 
 const app = new Hono<AppEnv>();
@@ -234,7 +245,12 @@ app.get("/api/oauth/callback/:provider", async (context) => {
   }
 
   const identity = toIdentity(user);
-  const created = await createSession(context.env, identity, user.auth_version);
+  const created = await createSession(
+    context.env,
+    identity,
+    user.auth_version,
+    sessionClient(context.req.raw),
+  );
   await context.env.DB.prepare(
     `UPDATE users
      SET last_login_at = datetime('now'), updated_at = datetime('now')
@@ -574,7 +590,12 @@ app.post("/api/login", async (context) => {
   }
 
   const identity = toIdentity(user);
-  const created = await createSession(context.env, identity, user.auth_version);
+  const created = await createSession(
+    context.env,
+    identity,
+    user.auth_version,
+    sessionClient(context.req.raw),
+  );
   await context.env.DB.prepare(
     `UPDATE users
      SET last_login_at = datetime('now'), updated_at = datetime('now')
@@ -627,8 +648,7 @@ app.get("/api/session", async (context) => {
 });
 
 app.get("/api/account", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -646,8 +666,7 @@ app.get("/api/account", async (context) => {
 });
 
 app.patch("/api/account", async (context) => {
-  const token = readSessionToken(context.req.raw);
-  const session = token ? await getSession(context.env, token) : null;
+  const session = await currentSession(context);
   if (!session) {
     return apiError(context, 401, "unauthorized", "Sign in first.");
   }
@@ -674,6 +693,142 @@ app.patch("/api/account", async (context) => {
   });
 
   return context.json({ ok: true, user: identity });
+});
+
+app.delete("/api/account", async (context) => {
+  const session = await currentSession(context);
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  if (
+    !(await checkVerification(
+      context.env,
+      readCookie(context.req.raw, VERIFICATION_COOKIE),
+      "fresh",
+    ))
+  ) {
+    return apiError(
+      context,
+      403,
+      "challenge_failed",
+      "Security challenge failed.",
+    );
+  }
+
+  const body = accountDeleteSchema.safeParse(await context.req.json());
+  if (!body.success) {
+    return apiError(context, 400, "invalid_input", firstIssue(body.error));
+  }
+  if (body.data.confirmEmail !== session.identity.email.toLowerCase()) {
+    return apiError(
+      context,
+      400,
+      "confirmation_mismatch",
+      "Type your account email to confirm deletion.",
+    );
+  }
+
+  const userId = session.identity.id;
+  const purges = await Promise.all([
+    context.env.LINK.fetch(`${INTERNAL_URLS.LINK_PURGE}?id=${userId}`, {
+      method: "POST",
+    }),
+    context.env.DROP.fetch(`${INTERNAL_URLS.DROP_PURGE}?id=${userId}`, {
+      method: "POST",
+    }),
+  ]).catch(() => null);
+  if (!purges || purges.some((response) => !response.ok)) {
+    return apiError(
+      context,
+      502,
+      "purge_failed",
+      "Account data could not be removed. Try again in a moment.",
+    );
+  }
+
+  await safeAudit(context.env, {
+    userId,
+    type: "account_deleted",
+    request: context.req.raw,
+  });
+  await context.env.DB.prepare(`DELETE FROM users WHERE id = ?`)
+    .bind(userId)
+    .run();
+  await purgeUserSessions(context.env, userId);
+  await Promise.all([
+    context.env.SESSIONS.delete(`identity:${userId}`),
+    context.env.SESSIONS.delete(`auth-version:${userId}`),
+  ]);
+
+  context.header(
+    "Set-Cookie",
+    clearSessionCookie(context.req.raw, context.env),
+  );
+  return context.json({ ok: true });
+});
+
+app.post("/api/account/password", async (context) => {
+  const session = await currentSession(context);
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  if (
+    !(await checkVerification(
+      context.env,
+      readCookie(context.req.raw, VERIFICATION_COOKIE),
+      "fresh",
+    ))
+  ) {
+    return apiError(
+      context,
+      403,
+      "challenge_failed",
+      "Security challenge failed.",
+    );
+  }
+
+  const body = accountPasswordSchema.safeParse(await context.req.json());
+  if (!body.success) {
+    return apiError(context, 400, "invalid_input", firstIssue(body.error));
+  }
+
+  const existing = await context.env.DB.prepare(
+    `SELECT id FROM identities WHERE user_id = ? AND provider = 'password'`,
+  )
+    .bind(session.identity.id)
+    .first<{ id: string }>();
+  if (existing) {
+    return apiError(
+      context,
+      409,
+      "password_exists",
+      "This account already has a password. Use the reset flow to change it.",
+    );
+  }
+
+  const passwordHash = await hashPassword(body.data.password);
+  await context.env.DB.prepare(
+    `INSERT INTO identities (
+       id, user_id, provider, provider_subject, password_hash
+     ) VALUES (?, ?, 'password', ?, ?)`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      session.identity.id,
+      session.identity.email,
+      passwordHash,
+    )
+    .run();
+
+  await safeAudit(context.env, {
+    userId: session.identity.id,
+    type: "password_set",
+    request: context.req.raw,
+  });
+
+  return context.json({ ok: true });
 });
 
 app.post("/api/password/forgot", async (context) => {
@@ -815,6 +970,58 @@ app.post("/api/password/reset", async (context) => {
   return context.json({ ok: true });
 });
 
+app.get("/api/sessions", async (context) => {
+  const session = await currentSession(context);
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  const devices = await listSessions(context.env, session.identity.id);
+  return context.json({
+    sessions: devices
+      .map((device) => ({
+        id: device.sessionId,
+        createdAt: device.createdAt,
+        expiresAt: device.expiresAt,
+        userAgent: device.userAgent,
+        ip: device.ip,
+        current: device.sessionId === session.sessionId,
+      }))
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+  });
+});
+
+app.delete("/api/sessions/:id", async (context) => {
+  const session = await currentSession(context);
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  const targetId = context.req.param("id");
+  const deleted = await deleteSessionById(
+    context.env,
+    session.identity.id,
+    targetId,
+  );
+  if (!deleted) {
+    return apiError(context, 404, "not_found", "Unknown session.");
+  }
+
+  await safeAudit(context.env, {
+    userId: session.identity.id,
+    type: "session_revoked",
+    request: context.req.raw,
+  });
+
+  if (targetId === session.sessionId) {
+    context.header(
+      "Set-Cookie",
+      clearSessionCookie(context.req.raw, context.env),
+    );
+  }
+  return context.json({ ok: true });
+});
+
 app.post("/api/sessions/revoke-all", async (context) => {
   const rawToken = readSessionToken(context.req.raw);
   const session = rawToken ? await getSession(context.env, rawToken) : null;
@@ -840,6 +1047,7 @@ app.post("/api/sessions/revoke-all", async (context) => {
     session.identity.id,
     row.auth_version,
   );
+  await purgeUserSessions(context.env, session.identity.id);
   context.header(
     "Set-Cookie",
     clearSessionCookie(context.req.raw, context.env),
@@ -956,6 +1164,28 @@ app.get("/api/challenge/status", async (context) => {
   return context.json({ verified });
 });
 
+app.get("/internal/identity", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
+    return context.body(null, 404);
+  }
+
+  const id = context.req.query("id");
+  if (!id) {
+    return context.json({ code: "INVALID_INPUT", message: "Missing id." }, 400);
+  }
+
+  const user = await context.env.DB.prepare(
+    `SELECT email, name FROM users WHERE id = ? AND disabled_at IS NULL`,
+  )
+    .bind(id)
+    .first<{ email: string; name: string | null }>();
+  if (!user) {
+    return context.json({ code: "NOT_FOUND", message: "Unknown user." }, 404);
+  }
+
+  return context.json({ email: user.email, name: user.name });
+});
+
 app.get("/internal/challenge", async (context) => {
   if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
     return context.body(null, 404);
@@ -981,6 +1211,18 @@ function normalizeEmail(value: string): string {
 
 function clientIp(request: Request): string {
   return request.headers.get("cf-connecting-ip") ?? "local";
+}
+
+function sessionClient(request: Request) {
+  return {
+    userAgent: request.headers.get("user-agent"),
+    ip: request.headers.get("cf-connecting-ip"),
+  };
+}
+
+async function currentSession(context: AppContext) {
+  const token = readSessionToken(context.req.raw);
+  return token ? await getSession(context.env, token) : null;
 }
 
 async function checkVerification(
@@ -1138,7 +1380,7 @@ function rateLimitError(context: AppContext, retryAfter: number) {
 
 function apiError(
   context: AppContext,
-  status: 400 | 401 | 403 | 404 | 409 | 415 | 429 | 500 | 503,
+  status: 400 | 401 | 403 | 404 | 409 | 415 | 429 | 500 | 502 | 503,
   code: string,
   message: string,
 ) {

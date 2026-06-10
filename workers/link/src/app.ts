@@ -38,6 +38,10 @@ const createSchema = z.object({
   expiresAt: z.string().optional(),
 });
 
+const reportUpdateSchema = z.object({
+  status: z.enum(["OPEN", "RESOLVED", "REJECTED"]),
+});
+
 const updateSchema = z.object({
   targetUrl: z.string().min(1).max(2048).optional(),
   password: z.string().min(8).max(128).nullable().optional(),
@@ -56,6 +60,16 @@ app.use("*", async (context, next) => {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   );
+  const contentType = context.res.headers.get("content-type") ?? "";
+  if (
+    contentType.includes("text/html") &&
+    !context.res.headers.has("content-security-policy")
+  ) {
+    context.header(
+      "Content-Security-Policy",
+      "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    );
+  }
 });
 
 app.onError((error, context) => {
@@ -119,7 +133,10 @@ app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
 
   if (link.password_hash) {
     if (context.req.method !== "POST") {
-      return context.html(protectedLinkPage(slug));
+      return context.html(protectedLinkPage(slug), 200, {
+        "Content-Security-Policy":
+          "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      });
     }
 
     const body: { password?: string } = await context.req
@@ -144,6 +161,22 @@ app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
   return context.redirect(link.target_url, 302);
 });
 
+app.post("/internal/purge-user", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.LINK) {
+    return context.body(null, 404);
+  }
+
+  const userId = context.req.query("id");
+  if (!userId) {
+    return context.json({ code: "INVALID_INPUT", message: "Missing id." }, 400);
+  }
+
+  await context.env.DB.prepare(`DELETE FROM links WHERE user_id = ?`)
+    .bind(userId)
+    .run();
+  return context.json({ ok: true });
+});
+
 const requireSession: MiddlewareHandler<{
   Bindings: Env;
   Variables: Variables;
@@ -154,6 +187,24 @@ const requireSession: MiddlewareHandler<{
       { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
       401,
     );
+  }
+  context.set("session", session);
+  await next();
+};
+
+const requireAdmin: MiddlewareHandler<{
+  Bindings: Env;
+  Variables: Variables;
+}> = async (context, next) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  if (!session) {
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
+      401,
+    );
+  }
+  if (session.identity.role !== "ADMIN") {
+    return context.json({ code: "FORBIDDEN", message: "Admin only." }, 403);
   }
   context.set("session", session);
   await next();
@@ -481,6 +532,35 @@ app.post("/api/reports", async (context) => {
     )
     .run();
   return context.json({ ok: true }, 202);
+});
+
+app.get("/api/admin/reports", requireAdmin, async (context) => {
+  const reports = await context.env.DB.prepare(
+    `SELECT r.id, r.link_id, r.reason, r.details, r.status, r.created_at,
+            r.resolved_at, l.slug, l.target_url, l.disabled_at
+     FROM reports r
+     LEFT JOIN links l ON l.id = r.link_id
+     ORDER BY CASE r.status WHEN 'OPEN' THEN 0 ELSE 1 END, r.created_at DESC
+     LIMIT 200`,
+  ).all();
+  return context.json({ reports: reports.results });
+});
+
+app.patch("/api/admin/reports/:id", requireAdmin, async (context) => {
+  const body = reportUpdateSchema.safeParse(await readJson(context));
+  if (!body.success) return invalidBody(context);
+  const updated = await context.env.DB.prepare(
+    `UPDATE reports
+     SET status = ?,
+         resolved_at = CASE WHEN ? = 'OPEN' THEN NULL ELSE datetime('now') END
+     WHERE id = ?`,
+  )
+    .bind(body.data.status, body.data.status, context.req.param("id"))
+    .run();
+  if ((updated.meta.changes ?? 0) !== 1) {
+    return context.json({ code: "NOT_FOUND", message: "Unknown report." }, 404);
+  }
+  return context.json({ updated: true });
 });
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));

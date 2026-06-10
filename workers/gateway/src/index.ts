@@ -36,6 +36,10 @@ app.onError((error, context) => {
         "Something went wrong on our side. Give it a moment and try again.",
     }),
     500,
+    {
+      "Content-Security-Policy":
+        "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    },
   );
 });
 

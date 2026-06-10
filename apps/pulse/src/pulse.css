@@ -374,6 +374,70 @@ select:focus-visible {
   font-weight: 800 !important;
 }
 
+.pulse-report-list {
+  display: grid;
+  gap: 14px;
+}
+
+.pulse-report {
+  padding: 14px 0;
+  border-top: 1px solid var(--pulse-line);
+}
+
+.pulse-report header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pulse-report header strong {
+  font-family: var(--kvx-mono);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.pulse-report header span {
+  color: var(--pulse-muted);
+  font-family: var(--kvx-mono);
+  font-size: 0.6rem;
+}
+
+.pulse-report p {
+  margin: 7px 0 0;
+  color: var(--pulse-muted);
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.pulse-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pulse-report-actions button {
+  min-height: 30px;
+  padding: 0 10px;
+  color: var(--pulse-muted);
+  background: transparent;
+  border: 1px solid var(--pulse-line-bright);
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.pulse-report-actions button:hover:not(:disabled) {
+  color: var(--pulse-ink);
+}
+
+.pulse-report-error {
+  margin: 0 0 10px;
+  color: #fb7185;
+  font-size: 0.74rem;
+}
+
 .pulse-dot,
 .pulse-event {
   width: 7px;

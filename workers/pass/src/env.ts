@@ -2,6 +2,8 @@ export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
   SESSIONS: KVNamespace;
+  LINK: Fetcher;
+  DROP: Fetcher;
   ENVIRONMENT: "development" | "preview" | "production";
   PUBLIC_ORIGIN: string;
   ROOT_DOMAIN: string;
