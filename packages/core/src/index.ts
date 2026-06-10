@@ -1,3 +1,6 @@
+export { renderErrorPage, escapeHtml } from "./error-page";
+export type { ErrorPageOptions } from "./error-page";
+
 export const PRODUCT_NAMES = [
   "web",
   "pass",

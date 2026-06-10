@@ -25,7 +25,12 @@ export default {
       return Response.json({ service: "portfolio", status: "ok" });
     }
     if (url.pathname === "/api/contact" && request.method === "POST") {
-      return contact(request, env);
+      try {
+        return await contact(request, env);
+      } catch (error) {
+        console.error("[portfolio]", error);
+        return json({ error: "The message could not be sent." }, 500);
+      }
     }
     return env.ASSETS.fetch(request);
   },

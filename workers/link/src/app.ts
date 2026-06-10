@@ -54,6 +54,26 @@ app.use("*", async (context, next) => {
   context.header("X-Frame-Options", "DENY");
 });
 
+app.onError((error, context) => {
+  console.error("[link]", error);
+  if (context.req.path.startsWith("/api")) {
+    return context.json(
+      {
+        code: "INTERNAL_ERROR",
+        message: "Link could not complete the request.",
+      },
+      500,
+    );
+  }
+  return context.html(
+    linkUnavailablePage(
+      "Something broke",
+      "Something went wrong on our side. Give it a moment and try again.",
+    ),
+    500,
+  );
+});
+
 app.get("/health", (context) =>
   context.json({ service: "link", status: "ok" }),
 );

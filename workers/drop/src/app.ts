@@ -103,6 +103,17 @@ const UNLOCK_COOKIE = "kleavox_drop_grant";
 
 export const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+app.onError((error, context) => {
+  console.error("[drop]", error);
+  return context.json(
+    {
+      code: "INTERNAL_ERROR",
+      message: "Drop could not complete the request.",
+    },
+    500,
+  );
+});
+
 app.use("*", async (context, next) => {
   await next();
   context.header("Referrer-Policy", "no-referrer");

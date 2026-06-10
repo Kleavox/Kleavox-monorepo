@@ -45,6 +45,17 @@ interface CheckRow {
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+app.onError((error, context) => {
+  console.error("[pulse]", error);
+  return context.json(
+    {
+      code: "INTERNAL_ERROR",
+      message: "Pulse could not complete the request.",
+    },
+    500,
+  );
+});
+
 app.use("*", async (context, next) => {
   await next();
   context.header("Referrer-Policy", "same-origin");

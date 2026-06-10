@@ -1,6 +1,6 @@
 import { readCookie, verifySession } from "@kleavox/auth";
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
-import { isFileSlug, isReservedSlug } from "@kleavox/core";
+import { isFileSlug, isReservedSlug, renderErrorPage } from "@kleavox/core";
 import { Hono } from "hono";
 
 import { hostRedirect } from "./hosts";
@@ -16,6 +16,28 @@ export interface Env {
 }
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.onError((error, context) => {
+  console.error("[gateway]", error);
+  if (context.req.path.startsWith("/api")) {
+    return context.json(
+      {
+        code: "INTERNAL_ERROR",
+        message: "Kleavox could not complete the request.",
+      },
+      500,
+    );
+  }
+  return context.html(
+    renderErrorPage({
+      service: "KLEAVOX",
+      title: "Something broke",
+      message:
+        "Something went wrong on our side. Give it a moment and try again.",
+    }),
+    500,
+  );
+});
 
 app.get("/health", (context) =>
   context.json({ service: "gateway", status: "ok" }),
