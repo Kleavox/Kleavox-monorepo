@@ -477,6 +477,40 @@ const PROVIDER_LABELS: Record<string, string> = {
   github: "GitHub",
 };
 
+interface DeviceSession {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  userAgent: string | null;
+  ip: string | null;
+  current: boolean;
+}
+
+function deviceLabel(userAgent: string | null): string {
+  if (!userAgent) return "Unknown device";
+  const browser = userAgent.includes("Edg/")
+    ? "Edge"
+    : userAgent.includes("Firefox/")
+      ? "Firefox"
+      : userAgent.includes("Chrome/")
+        ? "Chrome"
+        : userAgent.includes("Safari/")
+          ? "Safari"
+          : "Browser";
+  const os = userAgent.includes("Windows")
+    ? "Windows"
+    : userAgent.includes("Mac OS")
+      ? "macOS"
+      : userAgent.includes("Android")
+        ? "Android"
+        : userAgent.includes("iPhone") || userAgent.includes("iPad")
+          ? "iOS"
+          : userAgent.includes("Linux")
+            ? "Linux"
+            : "";
+  return os ? `${browser} on ${os}` : browser;
+}
+
 function Account({
   user,
   onSignedOut,
@@ -491,6 +525,9 @@ function Account({
   const [settingPassword, setSettingPassword] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [confirmInput, setConfirmInput] = useState("");
+  const [devices, setDevices] = useState<DeviceSession[]>();
+  const [deleting, setDeleting] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
 
   useEffect(() => {
@@ -501,7 +538,50 @@ function Account({
         setProviders(account.providers);
       })
       .catch(() => {});
+    void api<{ sessions: DeviceSession[] }>("/api/sessions")
+      .then((result) => setDevices(result.sessions))
+      .catch(() => {});
   }, []);
+
+  async function deleteAccount(event: FormEvent) {
+    event.preventDefault();
+    setState({ status: "loading" });
+    try {
+      await apiFetch("/api/account", {
+        method: "DELETE",
+        body: JSON.stringify({ confirmEmail }),
+      });
+      onSignedOut();
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "challenge_failed") {
+        const url = new URL("/challenge", window.location.origin);
+        url.searchParams.set("scope", "fresh");
+        url.searchParams.set("returnTo", window.location.href);
+        window.location.assign(url);
+        return;
+      }
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
+
+  async function revokeDevice(device: DeviceSession) {
+    setState({ status: "loading" });
+    try {
+      await apiFetch(`/api/sessions/${encodeURIComponent(device.id)}`, {
+        method: "DELETE",
+      });
+      if (device.current) {
+        onSignedOut();
+        return;
+      }
+      setDevices((current) =>
+        current?.filter((entry) => entry.id !== device.id),
+      );
+      setState({ status: "success", message: "Device signed out." });
+    } catch (cause) {
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
 
   async function perform(path: string) {
     setState({ status: "loading" });
@@ -691,6 +771,33 @@ function Account({
           </div>
         </form>
       )}
+      {devices && devices.length > 0 && (
+        <div className="pass-devices">
+          <p className="pass-section-label">Devices</p>
+          {devices.map((device) => (
+            <div key={device.id} className="pass-device">
+              <div>
+                <strong>
+                  {deviceLabel(device.userAgent)}
+                  {device.current && <i> · this device</i>}
+                </strong>
+                <span>
+                  Signed in {new Date(device.createdAt).toLocaleString()}
+                  {device.ip ? ` · ${device.ip}` : ""}
+                </span>
+              </div>
+              <button
+                className="pass-text-action"
+                type="button"
+                disabled={state.status === "loading"}
+                onClick={() => void revokeDevice(device)}
+              >
+                {device.current ? "Sign out" : "Revoke"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="pass-account-actions">
         <button
           className="pass-primary"
@@ -708,6 +815,54 @@ function Account({
         >
           Sign out everywhere
         </button>
+      </div>
+      <div className="pass-danger">
+        {deleting ? (
+          <form className="pass-name-edit" onSubmit={deleteAccount}>
+            <p className="pass-danger-note">
+              This permanently removes your account, links, and files. Type
+              your email to confirm.
+            </p>
+            <Field
+              label="Email"
+              name="confirm-delete-email"
+              type="email"
+              autoComplete="off"
+              value={confirmEmail}
+              onChange={setConfirmEmail}
+            />
+            <div className="pass-name-edit-actions">
+              <button
+                className="pass-danger-action"
+                type="submit"
+                disabled={state.status === "loading" || !confirmEmail}
+              >
+                Delete forever
+              </button>
+              <button
+                className="pass-text-action"
+                type="button"
+                onClick={() => {
+                  setDeleting(false);
+                  setConfirmEmail("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            className="pass-text-action pass-danger-link"
+            type="button"
+            onClick={() => {
+              setState({ status: "idle" });
+              setDeleting(true);
+            }}
+          >
+            Delete this account
+          </button>
+        )}
       </div>
       <Status state={state} />
     </section>

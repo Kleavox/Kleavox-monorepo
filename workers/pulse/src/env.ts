@@ -5,4 +5,6 @@ export interface Env {
   ENVIRONMENT: "development" | "preview" | "production";
   PUBLIC_ORIGIN: string;
   AGENT_DOWNLOAD_BASE: string;
+  FROM_EMAIL: string;
+  RESEND_API_KEY?: string;
 }

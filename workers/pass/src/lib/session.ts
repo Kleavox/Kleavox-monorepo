@@ -11,6 +11,17 @@ interface StoredSession {
   expiresAt: string;
 }
 
+export interface SessionClient {
+  userAgent: string | null;
+  ip: string | null;
+}
+
+export interface SessionDevice extends SessionClient {
+  sessionId: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export interface CreatedSession {
   token: string;
   session: SessionIdentity;
@@ -20,6 +31,7 @@ export async function createSession(
   env: Env,
   identity: Identity,
   authVersion: number,
+  client?: SessionClient,
 ): Promise<CreatedSession> {
   const token = randomToken();
   const sessionId = await hashToken(token);
@@ -38,6 +50,15 @@ export async function createSession(
     env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(stored), {
       expirationTtl: SESSION_TTL_SECONDS,
     }),
+    env.SESSIONS.put(`usersession:${identity.id}:${sessionId}`, "1", {
+      expirationTtl: SESSION_TTL_SECONDS,
+      metadata: {
+        createdAt,
+        expiresAt,
+        userAgent: client?.userAgent ?? null,
+        ip: client?.ip ?? null,
+      },
+    }),
     env.SESSIONS.put(`auth-version:${identity.id}`, authVersion.toString()),
   ]);
 
@@ -45,6 +66,51 @@ export async function createSession(
     token,
     session: { identity, sessionId, expiresAt },
   };
+}
+
+export async function listSessions(
+  env: Env,
+  userId: string,
+): Promise<SessionDevice[]> {
+  const prefix = `usersession:${userId}:`;
+  const listing = await env.SESSIONS.list<Omit<SessionDevice, "sessionId">>({
+    prefix,
+  });
+  return listing.keys.map((key) => ({
+    sessionId: key.name.slice(prefix.length),
+    createdAt: key.metadata?.createdAt ?? "",
+    expiresAt: key.metadata?.expiresAt ?? "",
+    userAgent: key.metadata?.userAgent ?? null,
+    ip: key.metadata?.ip ?? null,
+  }));
+}
+
+export async function deleteSessionById(
+  env: Env,
+  userId: string,
+  sessionId: string,
+): Promise<boolean> {
+  const metaKey = `usersession:${userId}:${sessionId}`;
+  if ((await env.SESSIONS.get(metaKey)) === null) return false;
+
+  await Promise.all([
+    env.SESSIONS.delete(`session:${sessionId}`),
+    env.SESSIONS.delete(metaKey),
+  ]);
+  return true;
+}
+
+export async function purgeUserSessions(
+  env: Env,
+  userId: string,
+): Promise<void> {
+  const sessions = await listSessions(env, userId);
+  await Promise.all(
+    sessions.flatMap((device) => [
+      env.SESSIONS.delete(`session:${device.sessionId}`),
+      env.SESSIONS.delete(`usersession:${userId}:${device.sessionId}`),
+    ]),
+  );
 }
 
 export async function getSession(
@@ -91,7 +157,17 @@ export async function putIdentityOverride(
 }
 
 export async function deleteSession(env: Env, token: string): Promise<void> {
-  await env.SESSIONS.delete(`session:${await hashToken(token)}`);
+  const sessionId = await hashToken(token);
+  const stored = await env.SESSIONS.get<StoredSession>(
+    `session:${sessionId}`,
+    "json",
+  );
+  await Promise.all([
+    env.SESSIONS.delete(`session:${sessionId}`),
+    stored
+      ? env.SESSIONS.delete(`usersession:${stored.identity.id}:${sessionId}`)
+      : Promise.resolve(),
+  ]);
 }
 
 export async function invalidateUserSessions(

@@ -22,7 +22,7 @@ export async function rateLimit(
   if (current >= limit) return { allowed: false, retryAfter };
 
   await env.SESSIONS.put(key, String(current + 1), {
-    expirationTtl: retryAfter + 5,
+    expirationTtl: Math.max(60, retryAfter + 5),
   });
   return { allowed: true, retryAfter };
 }

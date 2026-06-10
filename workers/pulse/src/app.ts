@@ -1,4 +1,4 @@
-import { INTERNAL_HOSTS } from "@kleavox/config";
+import { INTERNAL_HOSTS, INTERNAL_URLS } from "@kleavox/config";
 import { verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
@@ -15,6 +15,7 @@ import {
   type CheckStatus,
 } from "./lib/checks";
 import { randomToken, readBearerToken, sha256 } from "./lib/crypto";
+import { sendIncidentEmail } from "./lib/mail";
 import { heartbeatSchema, hostSchema, resultSchema } from "./schemas";
 
 interface Variables {
@@ -635,7 +636,7 @@ app.post("/api/agent/results", async (context) => {
   }
 
   for (const result of payload.data.results) {
-    await applyCheckResult(context.env.DB, node.id, result);
+    await applyCheckResult(context.env, node.id, result);
   }
   return context.json({ ok: true });
 });
@@ -657,7 +658,7 @@ async function authenticateAgent(
 }
 
 async function applyCheckResult(
-  db: D1Database,
+  env: Env,
   nodeId: string,
   result: {
     checkId: string;
@@ -667,6 +668,7 @@ async function applyCheckResult(
     checkedAt?: string;
   },
 ): Promise<void> {
+  const db = env.DB;
   const check = await db
     .prepare(
       `SELECT id, node_id, name, kind, target, enabled, status,
@@ -716,19 +718,16 @@ async function applyCheckResult(
   ]);
 
   if (shouldOpenIncident(result.status, failureCount)) {
+    const summary = `${check.name} is down${result.message ? `: ${result.message}` : ""}`;
     await db
       .prepare(
         `INSERT INTO incidents
          (id, check_id, status, started_at, summary)
          VALUES (?, ?, 'OPEN', ?, ?)`,
       )
-      .bind(
-        crypto.randomUUID(),
-        check.id,
-        checkedAt,
-        `${check.name} is down${result.message ? `: ${result.message}` : ""}`,
-      )
+      .bind(crypto.randomUUID(), check.id, checkedAt, summary)
       .run();
+    await notifyIncident(env, nodeId, check.name, "opened", summary, checkedAt);
   } else if (shouldResolveIncident(check.status, result.status)) {
     await db
       .prepare(
@@ -737,6 +736,50 @@ async function applyCheckResult(
       )
       .bind(checkedAt, check.id)
       .run();
+    await notifyIncident(
+      env,
+      nodeId,
+      check.name,
+      "resolved",
+      `${check.name} is responding again.`,
+      checkedAt,
+    );
+  }
+}
+
+async function notifyIncident(
+  env: Env,
+  nodeId: string,
+  checkName: string,
+  kind: "opened" | "resolved",
+  summary: string,
+  occurredAt: string,
+): Promise<void> {
+  try {
+    const node = await env.DB.prepare(
+      `SELECT name, owner_user_id FROM nodes WHERE id = ?`,
+    )
+      .bind(nodeId)
+      .first<{ name: string; owner_user_id: string }>();
+    if (!node) return;
+
+    const lookup = new URL(INTERNAL_URLS.IDENTITY_LOOKUP);
+    lookup.searchParams.set("id", node.owner_user_id);
+    const response = await env.PASS.fetch(lookup);
+    if (!response.ok) return;
+    const owner = await response.json<{ email: string; name: string | null }>();
+
+    await sendIncidentEmail(env, {
+      to: owner.email,
+      recipientName: owner.name,
+      kind,
+      checkName,
+      nodeName: node.name,
+      summary,
+      occurredAt,
+    });
+  } catch (error) {
+    console.error("[pulse notify]", error);
   }
 }
 

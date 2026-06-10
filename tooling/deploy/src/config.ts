@@ -76,6 +76,10 @@ export function productionConfigs(
           migrations_dir: "../../workers/pass/migrations",
         },
       ],
+      services: [
+        { binding: "LINK", service: names.link },
+        { binding: "DROP", service: names.drop },
+      ],
       ...(canonical ? { routes: routes(host("pass")) } : {}),
     },
     link: {
@@ -124,6 +128,7 @@ export function productionConfigs(
         ENVIRONMENT: "production",
         PUBLIC_ORIGIN: `https://${host("pulse")}`,
         AGENT_DOWNLOAD_BASE: env.AGENT_DOWNLOAD_BASE,
+        FROM_EMAIL: env.AUTH_FROM_EMAIL,
       },
       d1_databases: [
         {
@@ -229,6 +234,7 @@ export function productionSecrets(env: NodeJS.ProcessEnv) {
       "DOWNLOAD_SIGNING_SECRET",
       "PASSWORD_HASH_SECRET",
     ]),
+    pulse: selectSecrets(env, ["RESEND_API_KEY"]),
     portfolio: selectSecrets(env, ["RESEND_API_KEY", "TURNSTILE_SECRET_KEY"]),
   };
 }

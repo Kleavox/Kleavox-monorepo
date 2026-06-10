@@ -129,6 +129,65 @@ app.get("/health", (context) =>
   context.json({ service: "drop", status: "ok" }),
 );
 
+app.post("/internal/purge-user", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.DROP) {
+    return context.body(null, 404);
+  }
+
+  const userId = context.req.query("id");
+  if (!userId) {
+    return context.json({ code: "INVALID_INPUT", message: "Missing id." }, 400);
+  }
+
+  for (let round = 0; round < 20; round += 1) {
+    const uploads = await context.env.DB.prepare(
+      `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
+              public_token, public_token_hash, object_key, r2_upload_id,
+              original_name, content_type, size_bytes, source_size_bytes,
+              storage_encoding, part_size_bytes, part_count, password_hash,
+              max_downloads, expires_at, upload_expires_at, status, created_at
+       FROM upload_sessions
+       WHERE owner_user_id = ? AND status IN ('OPENING', 'OPEN', 'COMPLETING')
+       LIMIT 50`,
+    )
+      .bind(userId)
+      .all<UploadRow>();
+    if (uploads.results.length === 0) break;
+    for (const upload of uploads.results) {
+      await abortUpload(context.env, upload);
+    }
+  }
+
+  for (let round = 0; round < 20; round += 1) {
+    const drops = await context.env.DB.prepare(
+      `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
+              public_token, public_token_hash, object_key, original_name,
+              content_type, size_bytes, password_hash, max_downloads,
+              download_count, expires_at, status, created_at, completed_at
+       FROM drops
+       WHERE owner_user_id = ? AND status IN ('ACTIVE', 'EXHAUSTED', 'DELETING')
+       LIMIT 50`,
+    )
+      .bind(userId)
+      .all<DropRow>();
+    if (drops.results.length === 0) break;
+    for (const drop of drops.results) {
+      await deleteDrop(context.env, drop, "account_deleted");
+    }
+  }
+
+  await context.env.DB.batch([
+    context.env.DB.prepare(
+      `DELETE FROM upload_sessions WHERE owner_user_id = ?`,
+    ).bind(userId),
+    context.env.DB.prepare(`DELETE FROM drops WHERE owner_user_id = ?`).bind(
+      userId,
+    ),
+  ]);
+
+  return context.json({ ok: true });
+});
+
 app.get("/api/limits", (context) =>
   context.json({
     guest: publicPolicy(GUEST_POLICY),

@@ -56,6 +56,16 @@ app.use("*", async (context, next) => {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   );
+  const contentType = context.res.headers.get("content-type") ?? "";
+  if (
+    contentType.includes("text/html") &&
+    !context.res.headers.has("content-security-policy")
+  ) {
+    context.header(
+      "Content-Security-Policy",
+      "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    );
+  }
 });
 
 app.onError((error, context) => {
@@ -119,7 +129,10 @@ app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
 
   if (link.password_hash) {
     if (context.req.method !== "POST") {
-      return context.html(protectedLinkPage(slug));
+      return context.html(protectedLinkPage(slug), 200, {
+        "Content-Security-Policy":
+          "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      });
     }
 
     const body: { password?: string } = await context.req
@@ -142,6 +155,22 @@ app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
     context.executionCtx.waitUntil(recordClick(context, link.id));
   }
   return context.redirect(link.target_url, 302);
+});
+
+app.post("/internal/purge-user", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.LINK) {
+    return context.body(null, 404);
+  }
+
+  const userId = context.req.query("id");
+  if (!userId) {
+    return context.json({ code: "INVALID_INPUT", message: "Missing id." }, 400);
+  }
+
+  await context.env.DB.prepare(`DELETE FROM links WHERE user_id = ?`)
+    .bind(userId)
+    .run();
+  return context.json({ ok: true });
 });
 
 const requireSession: MiddlewareHandler<{

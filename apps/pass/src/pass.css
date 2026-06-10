@@ -386,6 +386,70 @@ button {
   text-transform: uppercase;
 }
 
+.pass-danger {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pass-line);
+}
+
+.pass-danger-link,
+.pass-danger-action {
+  color: #fb7185;
+}
+
+.pass-danger-note {
+  margin: 0;
+  color: var(--pass-muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.pass-danger-action {
+  min-height: 42px;
+  padding: 0 1.4rem;
+  border: 1px solid #fb7185;
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pass-danger-action:disabled {
+  opacity: 0.5;
+}
+
+.pass-devices {
+  margin-top: 0.6rem;
+}
+
+.pass-device {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--pass-line);
+}
+
+.pass-device strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.pass-device strong i {
+  color: var(--pass-accent);
+  font-size: 0.7rem;
+  font-style: normal;
+}
+
+.pass-device span {
+  display: block;
+  margin-top: 3px;
+  color: var(--pass-quiet);
+  font-family: var(--kvx-mono);
+  font-size: 0.64rem;
+  overflow-wrap: anywhere;
+}
+
 .pass-account dl {
   margin: 1rem 0;
 }

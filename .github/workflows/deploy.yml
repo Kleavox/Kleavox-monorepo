@@ -122,7 +122,7 @@ jobs:
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/portfolio.json --secrets-file .wrangler/deploy/portfolio.secrets.json
 
       - name: Deploy Pulse
-        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pulse.json
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pulse.json --secrets-file .wrangler/deploy/pulse.secrets.json
 
       - name: Deploy Gateway
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/gateway.json

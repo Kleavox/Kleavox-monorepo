@@ -9,6 +9,7 @@
     "ENVIRONMENT": "development",
     "PUBLIC_ORIGIN": "http://127.0.0.1:8790",
     "AGENT_DOWNLOAD_BASE": "https://github.com/example/project/releases/latest/download",
+    "FROM_EMAIL": "Pulse <no-reply@example.test>",
   },
   "assets": {
     "directory": "../../apps/pulse/dist",
