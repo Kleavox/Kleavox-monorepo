@@ -62,9 +62,10 @@ export async function getSession(
     return null;
   }
 
-  const currentVersion = await env.SESSIONS.get(
-    `auth-version:${stored.identity.id}`,
-  );
+  const [currentVersion, override] = await Promise.all([
+    env.SESSIONS.get(`auth-version:${stored.identity.id}`),
+    env.SESSIONS.get<Identity>(`identity:${stored.identity.id}`, "json"),
+  ]);
   if (
     currentVersion !== null &&
     Number(currentVersion) !== stored.authVersion
@@ -74,30 +75,18 @@ export async function getSession(
   }
 
   return {
-    identity: stored.identity,
+    identity: override ?? stored.identity,
     sessionId,
     expiresAt: stored.expiresAt,
   };
 }
 
-export async function updateSessionIdentity(
+export async function putIdentityOverride(
   env: Env,
-  token: string,
   identity: Identity,
 ): Promise<void> {
-  const sessionId = await hashToken(token);
-  const stored = await env.SESSIONS.get<StoredSession>(
-    `session:${sessionId}`,
-    "json",
-  );
-  if (!stored || Date.parse(stored.expiresAt) <= Date.now()) return;
-
-  stored.identity = identity;
-  const remainingSeconds = Math.floor(
-    (Date.parse(stored.expiresAt) - Date.now()) / 1000,
-  );
-  await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(stored), {
-    expirationTtl: Math.max(60, remainingSeconds),
+  await env.SESSIONS.put(`identity:${identity.id}`, JSON.stringify(identity), {
+    expirationTtl: SESSION_TTL_SECONDS,
   });
 }
 

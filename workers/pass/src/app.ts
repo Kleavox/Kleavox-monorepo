@@ -32,8 +32,8 @@ import {
   deleteSession,
   getSession,
   invalidateUserSessions,
+  putIdentityOverride,
   readSessionToken,
-  updateSessionIdentity,
 } from "./lib/session";
 
 type AppEnv = { Bindings: Env };
@@ -666,7 +666,7 @@ app.patch("/api/account", async (context) => {
     .run();
 
   const identity = { ...session.identity, name: body.data.name };
-  await updateSessionIdentity(context.env, token!, identity);
+  await putIdentityOverride(context.env, identity);
   await safeAudit(context.env, {
     userId: identity.id,
     type: "name_updated",

@@ -6,6 +6,7 @@ import {
   deleteSession,
   getSession,
   invalidateUserSessions,
+  putIdentityOverride,
 } from "./session";
 
 class MemoryKv {
@@ -64,5 +65,31 @@ describe("sessions", () => {
 
     await deleteSession(env, created.token);
     await expect(getSession(env, created.token)).resolves.toBeNull();
+  });
+
+  it("propagates identity changes to every existing session", async () => {
+    const kv = new MemoryKv();
+    const env = { SESSIONS: kv as unknown as KVNamespace } as Env;
+    const deviceA = await createSession(env, identity, 1);
+    const deviceB = await createSession(env, identity, 1);
+
+    await putIdentityOverride(env, { ...identity, name: "Renamed Person" });
+
+    await expect(getSession(env, deviceA.token)).resolves.toMatchObject({
+      identity: { name: "Renamed Person" },
+    });
+    await expect(getSession(env, deviceB.token)).resolves.toMatchObject({
+      identity: { name: "Renamed Person" },
+    });
+  });
+
+  it("keeps the stored identity when no override exists", async () => {
+    const kv = new MemoryKv();
+    const env = { SESSIONS: kv as unknown as KVNamespace } as Env;
+    const created = await createSession(env, identity, 1);
+
+    await expect(getSession(env, created.token)).resolves.toMatchObject({
+      identity: { name: "Person" },
+    });
   });
 });
