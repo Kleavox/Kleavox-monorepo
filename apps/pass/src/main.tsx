@@ -1,5 +1,6 @@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { createRoot } from "react-dom/client";
+import { ApiError, apiFetch } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 import {
   type FormEvent,
@@ -23,13 +24,6 @@ interface SessionResponse {
   expiresAt?: string;
 }
 
-interface ApiFailure {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-}
-
 interface FormState {
   status: "idle" | "loading" | "error" | "success";
   message?: string;
@@ -42,7 +36,6 @@ interface OAuthProviders {
 
 const turnstileSiteKey =
   (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ||
-  // Cloudflare's public always-pass test key, dev builds only.
   (import.meta.env.DEV ? "1x00000000000000000000AA" : undefined);
 const returnTo = new URLSearchParams(window.location.search).get("returnTo");
 
@@ -677,7 +670,6 @@ function SecurityGate({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
 
   if (status === "verified") return <>{children}</>;
@@ -788,30 +780,14 @@ function LoadingState() {
   );
 }
 
-class ApiError extends Error {
-  code?: string;
-
-  constructor(message: string, code?: string) {
-    super(message);
-    this.code = code;
-  }
-}
-
 async function api<T = { ok: boolean }>(
   path: string,
   body?: Record<string, unknown>,
 ): Promise<T> {
-  const response = await fetch(path, {
+  return apiFetch<T>(path, {
     method: body ? "POST" : "GET",
-    credentials: "include",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data = (await response.json()) as T & ApiFailure;
-  if (!response.ok) {
-    throw new ApiError(data.error?.message || "Request failed.", data.error?.code);
-  }
-  return data;
 }
 
 function errorMessage(cause: unknown): string {

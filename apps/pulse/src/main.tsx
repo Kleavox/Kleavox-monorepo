@@ -1,5 +1,6 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { apiFetch as api } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
@@ -805,39 +806,6 @@ function Loading() {
       <div />
     </main>
   );
-}
-
-class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-  }
-}
-
-async function api<T = unknown>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      ...(init.body ? { "content-type": "application/json" } : {}),
-      ...init.headers,
-    },
-  });
-  if (response.status === 204) return undefined as T;
-  const data = (await response.json().catch(() => ({}))) as {
-    message?: string;
-  };
-  if (!response.ok) {
-    throw new ApiError(
-      data.message || "The request could not be completed.",
-      response.status,
-    );
-  }
-  return data as T;
 }
 
 function nodeState(node: NodeRecord): "pending" | "online" | "offline" {

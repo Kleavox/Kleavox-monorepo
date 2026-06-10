@@ -21,14 +21,6 @@ function decodeBase64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-/**
- * Initialise the WASM crypto module.
- *
- * Cloudflare Workers forbid compiling WASM from bytes at runtime, so worker
- * entry points must pass a precompiled module (import "@kleavox/crypto/wasm"
- * with a CompiledWasm wrangler rule). Browsers and Node fall back to the
- * inlined base64 bytes when no module is provided.
- */
 export async function initCrypto(
   wasm?: WebAssembly.Module | BufferSource,
 ): Promise<void> {

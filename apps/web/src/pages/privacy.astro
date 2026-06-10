@@ -3,8 +3,6 @@ import "../styles/global.css";
 import "../styles/legal.css";
 
 const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
-const rootHost = new URL(rootOrigin).host;
-const portfolioOrigin = `https://port.${rootHost}`;
 ---
 
 <!doctype html>
@@ -20,12 +18,11 @@ const portfolioOrigin = `https://port.${rootHost}`;
     <title>Privacy Policy | Kleavox</title>
   </head>
   <body>
-    <header class="legal-header">
-      <a class="wordmark" href="/">Kleavox</a>
-      <nav aria-label="Policy navigation">
-        <a href="/terms">Terms</a>
-        <a href={portfolioOrigin}>Contact</a>
-      </nav>
+    <header class="hdr">
+      <div class="shell hdr-inner">
+        <a class="wm" href="/" aria-label="Kleavox home">Kleav<b>ox</b></a>
+        <a class="btn-nav" href="/">Home</a>
+      </div>
     </header>
 
     <main class="legal-main">
@@ -129,7 +126,7 @@ const portfolioOrigin = `https://port.${rootHost}`;
 
     <footer class="legal-footer">
       <span>(c) {new Date().getFullYear()} Kleavox</span>
-      <a href="/">Return home</a>
+      <a href="/terms">Terms of Service</a>
     </footer>
   </body>
 </html>

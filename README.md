@@ -17,13 +17,40 @@ File links use `https://<root-domain>/f_<token>`. Short-link slugs cannot use th
 reserved `f_` prefix, so both products share the root namespace without
 collisions. Drop is an internal Worker and has no public subdomain.
 
+## Repository layout
+
+| Path                | Contents                                                                     |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `apps/link`         | React workspace for short links and file drops (includes the receive page)  |
+| `apps/pass`         | React auth app: sign in, register, account, security challenge              |
+| `apps/pulse`        | React monitoring dashboard                                                   |
+| `apps/web`          | Astro marketing site served by the gateway                                  |
+| `apps/portfolio`    | Astro portfolio site with contact form                                      |
+| `workers/gateway`   | Root-domain router: short links, file links, subdomain proxying             |
+| `workers/link`      | Short-link API, link resolution pages, drop proxy                           |
+| `workers/pass`      | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification   |
+| `workers/drop`      | File storage API: R2 multipart uploads, quotas, scheduled cleanup cron      |
+| `workers/pulse`     | Monitoring API: nodes, checks, incidents, agent enrollment                  |
+| `workers/portfolio` | Portfolio assets + contact endpoint (Resend + Turnstile)                    |
+| `packages/auth`     | Shared session/challenge/Turnstile verification helpers                     |
+| `packages/core`     | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`    |
+| `packages/config`   | Shared origins, hosts, and cookie names                                     |
+| `packages/crypto`   | Rust/WASM wrapper: Argon2 password hashing, AES-256-GCM encryption          |
+| `packages/compression` | Rust/WASM wrapper: browser-side gzip before upload                       |
+| `packages/ui`       | Shared stylesheet: `--kvx-*` design tokens and base utilities              |
+| `packages/testing`  | Test factories and mocks                                                     |
+| `crates/crypto`     | Rust source for the crypto WASM module                                      |
+| `crates/compression`| Rust source for the compression WASM module                                 |
+| `services/agent`    | Go monitoring daemon installed on nodes (systemd, hardened)                 |
+| `tooling/`          | Deploy renderer and health-check scripts used by CI                         |
+
 ## Stack
 
 - TypeScript, React, Astro, Hono, and Cloudflare Workers
 - D1 for relational state, KV for sessions, and R2 for temporary objects
-- Rust compiled to WebAssembly for adaptive browser-side file compression
+- Rust compiled to WebAssembly for browser-side compression and password hashing
 - Go for the lightweight Pulse agent
-- pnpm workspaces and Turborepo
+- pnpm workspaces (with catalog version pinning) and Turborepo
 
 ## Requirements
 
@@ -41,20 +68,73 @@ pnpm install
 pnpm check
 ```
 
-Copy each app's `.env.example` to `.env.local` when running locally. Worker
-secrets belong in ignored `.dev.vars` files and must never be committed.
+## Local development
 
-## File Compression
+No environment variables or production credentials are needed for local work:
 
-Link attempts Rust/WASM gzip compression in the browser before upload. It only
-stores the compressed body when the result is at least 10% smaller. Images,
-audio, video, PDF files, archives, files below 1 KiB, and files above 32 MiB
-skip compression. Larger files still upload normally.
+- Wrangler configs in source control use local placeholder IDs for D1/KV/R2;
+  `wrangler dev` provisions local emulations automatically.
+- Dev builds of Pass and Portfolio fall back to Cloudflare's public always-pass
+  Turnstile test key, and the workers skip Turnstile verification outside
+  production, so signup, login, and the contact form work out of the box.
+- Dev email delivery is logged to the worker console instead of being sent.
 
-The original size remains the policy limit and download metadata. R2 stores the
-smaller body with `Content-Encoding: gzip`, allowing the browser to restore the
-original file during download without spending Cloudflare Worker CPU on
-compression.
+Run a worker locally (each serves its app's built assets):
+
+```bash
+pnpm --filter @kleavox/pass-app build
+cd workers/pass && pnpm exec wrangler dev --port 8787
+```
+
+Workers that call each other (gateway → link → pass/drop) connect through the
+Wrangler dev registry when run in separate terminals.
+
+Root scripts (Turbo orchestrates per-workspace tasks):
+
+| Script            | Action                                                    |
+| ----------------- | --------------------------------------------------------- |
+| `pnpm dev`        | Run dev tasks across workspaces                           |
+| `pnpm build`      | Build every app, worker, and package                      |
+| `pnpm test`       | Run all test suites                                       |
+| `pnpm typecheck`  | Typecheck all workspaces                                  |
+| `pnpm lint`       | Lint all workspaces                                       |
+| `pnpm check`      | lint + typecheck + test + build + Go agent tests          |
+| `pnpm agent:test` | Go agent tests only                                       |
+
+Copy each app's `.env.example` to `.env.local` only when overriding defaults.
+Worker secrets belong in ignored `.dev.vars` files and must never be committed.
+
+## Architecture notes
+
+**Auth and the security gate.** Pass guards account creation and password
+resets behind a verification challenge: the frontend shows a full-page security
+gate (invisible Turnstile) before the auth forms, then `POST /api/challenge`
+sets a short-lived verification cookie (`fresh` 30 min, `basic` 24 h, scoped to
+the root domain). Guest actions across the suite — creating public short links,
+uploading files, and filing reports — require a `basic` verification, enforced
+server-side via the Pass service binding. Sessions are KV-backed with hashed
+tokens; passwords use Argon2 from the Rust crypto crate.
+
+**WASM in Workers.** The Workers runtime forbids compiling WASM from bytes at
+runtime. Workers import the module as precompiled WASM — an import specifier
+ending in `.wasm` plus the `CompiledWasm` rule in `wrangler.jsonc` — and pass
+it to `initCrypto()`. Browsers and Node use the inlined base64 fallback.
+
+**Error convention.** All APIs return errors as flat `{ code, message }` JSON.
+Frontends consume them through the shared `apiFetch`/`ApiError` client in
+`@kleavox/core`. User-facing worker HTML errors (expired links, gateway 500s)
+render through `renderErrorPage` from the same package.
+
+**File compression.** Link attempts Rust/WASM gzip compression in the browser
+before upload and only stores the compressed body when it is at least 10%
+smaller. Images, audio, video, PDF files, archives, files below 1 KiB, and
+files above 32 MiB skip compression. R2 stores the smaller body with
+`Content-Encoding: gzip`, so the browser restores the original during download
+without spending Worker CPU.
+
+**Drop lifecycle.** A 15-minute cron in the drop worker aborts stale upload
+sessions, finalizes stuck completions, deletes expired or exhausted drops, and
+garbage-collects old rows.
 
 ## Cloudflare Resources
 
@@ -211,9 +291,13 @@ pass.<root-domain>
 port.<root-domain>
 ```
 
-Store the site key and secret in the GitHub `production` environment. Remove
-previous hostnames only after the new domain has passed signup, login, upload,
-and contact-form checks.
+Store the site key and secret in the GitHub `production` environment. The site
+key is injected at build time (`VITE_TURNSTILE_SITE_KEY` for Pass,
+`PUBLIC_TURNSTILE_SITE_KEY` for Portfolio); the secret is a Worker secret
+(`TURNSTILE_SECRET_KEY`) on the pass and portfolio workers. Dev builds fall
+back to Cloudflare's public test key automatically. Remove previous hostnames
+only after the new domain has passed signup, login, upload, and contact-form
+checks.
 
 ## Deploy
 

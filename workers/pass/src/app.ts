@@ -117,20 +117,16 @@ app.onError((cause, context) => {
   if (/no such table/i.test(String(cause))) {
     return context.json(
       {
-        error: {
-          code: "service_not_ready",
-          message: "Pass database migrations have not been applied.",
-        },
+        code: "service_not_ready",
+        message: "Pass database migrations have not been applied.",
       },
       503,
     );
   }
   return context.json(
     {
-      error: {
-        code: "internal_error",
-        message: "Pass could not complete the request.",
-      },
+      code: "internal_error",
+      message: "Pass could not complete the request.",
     },
     500,
   );
@@ -141,6 +137,10 @@ app.use("*", async (context, next) => {
   context.header("Referrer-Policy", "same-origin");
   context.header("X-Content-Type-Options", "nosniff");
   context.header("X-Frame-Options", "DENY");
+  context.header(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
 });
 
 app.use("/api/*", async (context, next) => {
@@ -803,10 +803,10 @@ app.get("/internal/session", async (context) => {
   }
 
   const token = context.req.header("x-kleavox-session");
-  if (!token) return context.json({ error: "unauthorized" }, 401);
+  if (!token) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
 
   const session = await getSession(context.env, token);
-  if (!session) return context.json({ error: "unauthorized" }, 401);
+  if (!session) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
   return context.json(session);
 });
 
@@ -816,10 +816,10 @@ app.post("/internal/logout", async (context) => {
   }
 
   const token = context.req.header("x-kleavox-session");
-  if (!token) return context.json({ error: "unauthorized" }, 401);
+  if (!token) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
 
   const session = await getSession(context.env, token);
-  if (!session) return context.json({ error: "unauthorized" }, 401);
+  if (!session) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
 
   const row = await context.env.DB.prepare(
     `UPDATE users
@@ -913,7 +913,7 @@ app.get("/internal/challenge", async (context) => {
 
   const token = context.req.header("x-kleavox-verification") ?? null;
   const verified = await checkVerification(context.env, token, scope);
-  if (!verified) return context.json({ error: "unauthorized" }, 401);
+  if (!verified) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
 
   return context.json({ ok: true });
 });
@@ -1087,7 +1087,7 @@ function apiError(
   code: string,
   message: string,
 ) {
-  return context.json({ error: { code, message } }, status);
+  return context.json({ code, message }, status);
 }
 
 async function safeAudit(

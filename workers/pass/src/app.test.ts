@@ -35,7 +35,7 @@ describe("Pass HTTP boundary", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "invalid_origin" },
+      code: "invalid_origin",
     });
   });
 
