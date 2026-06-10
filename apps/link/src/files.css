@@ -130,7 +130,7 @@ a {
 .drop-kicker {
   margin: 0 0 22px;
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -255,7 +255,7 @@ a {
 .drop-file-meta {
   margin: 14px 0 0;
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.76rem;
 }
 
@@ -297,7 +297,7 @@ a {
 .drop-options label > span,
 .drop-unlock > span {
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.69rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -354,7 +354,7 @@ a {
 .drop-progress p {
   margin: 9px 0 0;
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.7rem;
 }
 
@@ -395,7 +395,7 @@ a {
   padding: 14px 22px;
   border-top: 1px solid var(--ink);
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.62rem;
   text-transform: uppercase;
 }
@@ -447,7 +447,7 @@ a {
 
 .drop-result .drop-compression {
   color: var(--accent);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.72rem;
   text-transform: uppercase;
 }
@@ -475,7 +475,7 @@ a {
   padding: 18px;
   border: 0;
   background: transparent;
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.78rem;
 }
 
@@ -524,7 +524,7 @@ a {
   display: block;
   margin-top: 6px;
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.7rem;
 }
 
@@ -533,7 +533,7 @@ a {
 }
 
 .drop-status {
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.66rem;
   font-weight: 700;
 }
@@ -665,7 +665,7 @@ a {
 
 .drop-receipt dt {
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -674,6 +674,7 @@ a {
 
 .drop-receipt dd {
   margin: 9px 0 0;
+  overflow-wrap: anywhere;
   font-size: 0.92rem;
   font-weight: 750;
 }
@@ -687,7 +688,7 @@ a {
   padding: 12px 20px;
   border-top: 1px solid var(--ink);
   color: var(--muted);
-  font-family: "Courier New", monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.64rem;
   text-align: center;
 }
@@ -958,6 +959,35 @@ a {
 
   .drop-receipt dl div:nth-child(odd) {
     border-right: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .drop-options {
+    grid-template-columns: 1fr;
+  }
+
+  .drop-options label {
+    border-right: 0;
+  }
+
+  .drop-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .drop-row-state {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .drop-zone-action,
+  .drop-file {
+    padding: 22px 16px;
+  }
+
+  .drop-receipt dl div {
+    padding: 16px;
   }
 }
 

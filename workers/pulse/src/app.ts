@@ -45,11 +45,26 @@ interface CheckRow {
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+app.onError((error, context) => {
+  console.error("[pulse]", error);
+  return context.json(
+    {
+      code: "INTERNAL_ERROR",
+      message: "Pulse could not complete the request.",
+    },
+    500,
+  );
+});
+
 app.use("*", async (context, next) => {
   await next();
   context.header("Referrer-Policy", "same-origin");
   context.header("X-Content-Type-Options", "nosniff");
   context.header("X-Frame-Options", "DENY");
+  context.header(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
 });
 
 app.get("/health", (context) =>

@@ -1,5 +1,5 @@
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
-import { readCookie, verifySession } from "@kleavox/auth";
+import { readCookie, verifyChallenge, verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -52,6 +52,30 @@ app.use("*", async (context, next) => {
   context.header("Referrer-Policy", "strict-origin-when-cross-origin");
   context.header("X-Content-Type-Options", "nosniff");
   context.header("X-Frame-Options", "DENY");
+  context.header(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+});
+
+app.onError((error, context) => {
+  console.error("[link]", error);
+  if (context.req.path.startsWith("/api")) {
+    return context.json(
+      {
+        code: "INTERNAL_ERROR",
+        message: "Link could not complete the request.",
+      },
+      500,
+    );
+  }
+  return context.html(
+    linkUnavailablePage(
+      "Something broke",
+      "Something went wrong on our side. Give it a moment and try again.",
+    ),
+    500,
+  );
 });
 
 app.get("/health", (context) =>
@@ -169,6 +193,16 @@ app.post("/api/public-links", async (context) => {
     return context.json(
       { code: "RATE_LIMITED", message: "Try again in a minute." },
       429,
+    );
+  }
+
+  if (
+    !(await verifySession(context.req.raw, context.env.PASS)) &&
+    !(await verifyChallenge(context.req.raw, context.env.PASS, "basic"))
+  ) {
+    return context.json(
+      { code: "CHALLENGE_FAILED", message: "Security challenge failed." },
+      403,
     );
   }
 
@@ -415,6 +449,16 @@ app.get("/api/links/:slug/stats", requireSession, async (context) => {
 });
 
 app.post("/api/reports", async (context) => {
+  if (
+    !(await verifySession(context.req.raw, context.env.PASS)) &&
+    !(await verifyChallenge(context.req.raw, context.env.PASS, "basic"))
+  ) {
+    return context.json(
+      { code: "CHALLENGE_FAILED", message: "Security challenge failed." },
+      403,
+    );
+  }
+
   const body = z
     .object({
       slug: z.string().min(2).max(50),

@@ -60,7 +60,7 @@ select:focus-visible {
 .pulse-kicker {
   margin: 0 0 14px;
   color: #3ddbe0;
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.67rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -178,7 +178,7 @@ select:focus-visible {
 }
 
 .pulse-strip span {
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.66rem;
   letter-spacing: 0.04em;
 }
@@ -259,7 +259,7 @@ select:focus-visible {
 
 .pulse-state {
   color: var(--pulse-muted);
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -365,7 +365,7 @@ select:focus-visible {
 
 .pulse-check > span {
   color: var(--pulse-muted);
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.67rem;
 }
 
@@ -461,7 +461,7 @@ select:focus-visible {
   width: 84px;
   padding: 0 5px;
   color: #3ddbe0;
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.58rem;
   text-transform: uppercase;
   border: 1px solid rgb(61 219 224 / 30%);
@@ -603,7 +603,7 @@ select:focus-visible {
   padding: 0 14px;
   color: var(--pulse-muted);
   border-bottom: 1px solid var(--pulse-line);
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.65rem;
 }
 
@@ -636,7 +636,7 @@ select:focus-visible {
 
 .pulse-guest-metrics i {
   color: var(--pulse-muted);
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--kvx-mono);
   font-size: 0.62rem;
   font-style: normal;
 }
@@ -1140,6 +1140,36 @@ body {
 
   .pulse-grid {
     margin-top: 34px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pulse-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pulse-strip > div {
+    border-bottom: 1px solid var(--pulse-line-bright);
+  }
+
+  .pulse-strip > div:nth-child(even) {
+    border-right: 0;
+  }
+
+  .pulse-check-form {
+    grid-template-columns: 1fr;
+  }
+
+  .pulse-check-form input:nth-of-type(2) {
+    grid-column: auto;
+  }
+
+  .pulse-check p {
+    overflow-wrap: anywhere;
+  }
+
+  .pulse-resources {
+    grid-template-columns: 1fr;
   }
 }
 

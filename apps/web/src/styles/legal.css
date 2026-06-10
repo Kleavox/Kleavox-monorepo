@@ -1,24 +1,7 @@
-.legal-header {
-  width: var(--shell);
-  min-height: 74px;
-  margin-inline: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-}
-
-.legal-header nav {
-  display: flex;
-  gap: 1.5rem;
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
 .legal-main {
   width: min(860px, calc(100vw - 48px));
   margin-inline: auto;
-  padding: clamp(5rem, 10vw, 9rem) 0;
+  padding: clamp(4rem, 8vw, 7rem) 0;
 }
 
 .legal-main h1 {
@@ -66,17 +49,9 @@
 }
 
 @media (max-width: 640px) {
-  .legal-header,
   .legal-footer {
     align-items: flex-start;
     gap: 1rem;
-  }
-
-  .legal-header {
-    padding-block: 1.25rem;
-  }
-
-  .legal-footer {
     flex-direction: column;
   }
 }

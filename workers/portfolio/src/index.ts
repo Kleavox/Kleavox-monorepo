@@ -25,7 +25,15 @@ export default {
       return Response.json({ service: "portfolio", status: "ok" });
     }
     if (url.pathname === "/api/contact" && request.method === "POST") {
-      return contact(request, env);
+      try {
+        return await contact(request, env);
+      } catch (error) {
+        console.error("[portfolio]", error);
+        return json(
+          { code: "INTERNAL_ERROR", message: "The message could not be sent." },
+          500,
+        );
+      }
     }
     return env.ASSETS.fetch(request);
   },
@@ -34,13 +42,21 @@ export default {
 async function contact(request: Request, env: Env): Promise<Response> {
   const ip = request.headers.get("cf-connecting-ip") ?? "anonymous";
   if (!(await env.CONTACT_RATE_LIMIT.limit({ key: ip })).success) {
-    return json({ error: "Please wait before sending another message." }, 429);
+    return json(
+      {
+        code: "RATE_LIMITED",
+        message: "Please wait before sending another message.",
+      },
+      429,
+    );
   }
 
   const body = await request
     .json<ContactBody>()
     .catch(() => null as ContactBody | null);
-  if (!body) return json({ error: "Invalid request." }, 400);
+  if (!body) {
+    return json({ code: "INVALID_REQUEST", message: "Invalid request." }, 400);
+  }
 
   const name = text(body.name);
   const email = text(body.email).toLowerCase();
@@ -54,7 +70,10 @@ async function contact(request: Request, env: Env): Promise<Response> {
     message.length > 2000 ||
     !token
   ) {
-    return json({ error: "Check the form fields." }, 422);
+    return json(
+      { code: "INVALID_FIELDS", message: "Check the form fields." },
+      422,
+    );
   }
 
   const form = new FormData();
@@ -69,7 +88,10 @@ async function contact(request: Request, env: Env): Promise<Response> {
     .json<TurnstileResult>()
     .catch(() => ({ success: false }));
   if (!verification.ok || !result.success) {
-    return json({ error: "Verification failed. Try again." }, 400);
+    return json(
+      { code: "CHALLENGE_FAILED", message: "Verification failed. Try again." },
+      400,
+    );
   }
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -88,7 +110,10 @@ async function contact(request: Request, env: Env): Promise<Response> {
     }),
   });
   if (!response.ok) {
-    return json({ error: "Message delivery failed." }, 502);
+    return json(
+      { code: "DELIVERY_FAILED", message: "Message delivery failed." },
+      502,
+    );
   }
   return json({ ok: true }, 200);
 }

@@ -8,7 +8,8 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./wasm": "./pkg/kleavox_crypto_bg.wasm"
+    "./wasm": "./pkg/kleavox_crypto_bg.wasm",
+    "./pkg/*": "./pkg/*"
   },
   "files": [
     "dist",

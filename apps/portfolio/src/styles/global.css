@@ -10,6 +10,7 @@
   --quiet: #4e6575;
   --indigo: #8b8ef8;
   --lime: #c5f243;
+  --mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
   --shell: min(1440px, calc(100vw - 48px));
   background: var(--base);
   color: var(--ink);
@@ -108,7 +109,7 @@ a:focus-visible {
 
 .port-mark strong,
 .mono-label {
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--mono);
   font-size: 0.7rem;
   letter-spacing: 0.1em;
 }
@@ -269,7 +270,7 @@ p {
   justify-content: space-between;
   padding: 0 14px;
   color: var(--quiet);
-  font-family: "Cascadia Code", monospace;
+  font-family: var(--mono);
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -653,7 +654,7 @@ p {
 
 .contact-form label span {
   color: var(--quiet);
-  font-family: "Cascadia Code", monospace;
+  font-family: var(--mono);
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -683,7 +684,7 @@ p {
   min-height: 1.4em;
   margin: 0;
   color: var(--muted);
-  font-family: "Cascadia Code", monospace;
+  font-family: var(--mono);
   font-size: 0.68rem;
 }
 
@@ -1030,7 +1031,7 @@ body {
   display: block;
   margin-top: 14px;
   color: var(--quiet);
-  font-family: "Cascadia Code", monospace;
+  font-family: var(--mono);
   font-size: 0.63rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;

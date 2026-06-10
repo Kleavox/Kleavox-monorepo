@@ -332,6 +332,8 @@ button {
 }
 
 .pass-turnstile {
+  display: flex;
+  justify-content: center;
   min-height: 65px;
 }
 
@@ -427,6 +429,11 @@ button {
   .pass-field span {
     display: grid;
     gap: 0.2rem;
+  }
+
+  .pass-account dl > div {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
   }
 }
 
@@ -771,6 +778,21 @@ body {
   .pass-panel-inner {
     min-height: auto;
     padding: 28px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pass-orbit {
+    display: none;
+  }
+
+  .pass-intro {
+    min-height: auto;
+  }
+
+  .pass-panel-head,
+  .pass-panel-foot {
+    padding: 0 12px;
   }
 }
 

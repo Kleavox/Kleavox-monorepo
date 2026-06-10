@@ -36,7 +36,7 @@
   },
   "rules": [
     {
-      "type": "Data",
+      "type": "CompiledWasm",
       "globs": ["**/*.wasm"],
       "fallthrough": true
     }

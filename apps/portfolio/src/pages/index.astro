@@ -71,7 +71,9 @@ const timeline = [
   ["ONGOING", "Embedded research", "Sensors, controllers, and edge workloads"],
 ];
 
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
+const turnstileSiteKey =
+  import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ||
+  (import.meta.env.DEV ? "1x00000000000000000000AA" : "");
 ---
 
 <!doctype html>
@@ -333,8 +335,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
               turnstileToken,
             }),
           });
-          const result = await response.json() as { error?: string };
-          if (!response.ok) throw new Error(result.error || "Message failed.");
+          const result = await response.json() as { message?: string };
+          if (!response.ok) throw new Error(result.message || "Message failed.");
           contactForm.reset();
           if (contactStatus) contactStatus.textContent = "Message sent.";
         } catch (error) {

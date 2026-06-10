@@ -21,22 +21,28 @@ function decodeBase64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-export async function initCrypto(): Promise<void> {
-  if (modulePromise) return;
+export async function initCrypto(
+  wasm?: WebAssembly.Module | BufferSource,
+): Promise<void> {
+  if (modulePromise) {
+    await modulePromise;
+    return;
+  }
 
   // @ts-ignore
   modulePromise = import("../pkg/kleavox_crypto.js").then(
     async (module) => {
-      try {
-        const wasmBuffer = decodeBase64ToUint8Array(WASM_BASE64);
-        await module.default(wasmBuffer);
-      } catch (error) {
-        console.warn("WASM initialization warning:", error);
-      }
+      const input = wasm ?? decodeBase64ToUint8Array(WASM_BASE64);
+      await module.default({ module_or_path: input });
       return module as unknown as CryptoModule;
     },
   );
-  await modulePromise;
+  try {
+    await modulePromise;
+  } catch (error) {
+    modulePromise = undefined;
+    throw error;
+  }
 }
 
 async function loadCrypto(): Promise<CryptoModule> {

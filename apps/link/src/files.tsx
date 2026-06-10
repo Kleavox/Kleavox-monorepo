@@ -1,4 +1,5 @@
 import { prepareUpload } from "@kleavox/compression";
+import { ApiError, readApiResponse as readApi } from "@kleavox/core";
 import { encrypt, decrypt } from "@kleavox/crypto";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -631,6 +632,10 @@ function ReceiveView({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
+  const [loadFailure, setLoadFailure] = useState<{
+    code?: string;
+    message: string;
+  }>();
   const [unlocking, setUnlocking] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("MALWARE");
@@ -647,11 +652,13 @@ function ReceiveView({ token }: { token: string }) {
       const response = await fetch(`/api/public/${token}`);
       setDrop(await readApi<PublicDrop>(response));
     } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "This transfer is unavailable.",
-      );
+      setLoadFailure({
+        code: reason instanceof ApiError ? reason.code : undefined,
+        message:
+          reason instanceof Error
+            ? reason.message
+            : "This transfer is unavailable.",
+      });
     } finally {
       setLoading(false);
     }
@@ -816,9 +823,12 @@ function ReceiveView({ token }: { token: string }) {
           </>
         ) : (
           <div className="drop-gone">
-            <p className="drop-kicker">Share ended</p>
-            <h1>Nothing remains here.</h1>
-            <p>{error || "The file expired or reached its download limit."}</p>
+            <p className="drop-kicker">{receiveFailureCopy(loadFailure).kicker}</p>
+            <h1>{receiveFailureCopy(loadFailure).title}</h1>
+            <p>
+              {loadFailure?.message ||
+                "The file expired or reached its download limit."}
+            </p>
             <a href={LINK_ORIGIN}>Share another file</a>
           </div>
         )}
@@ -945,27 +955,20 @@ function uploadPart(
   });
 }
 
-class ApiError extends Error {
-  code?: string;
-
-  constructor(message: string, code?: string) {
-    super(message);
-    this.code = code;
+function receiveFailureCopy(failure?: { code?: string }): {
+  kicker: string;
+  title: string;
+} {
+  switch (failure?.code) {
+    case "NOT_FOUND":
+      return { kicker: "Transfer not found", title: "This route leads nowhere." };
+    case "RATE_LIMITED":
+      return { kicker: "Slow down", title: "Too many attempts." };
+    case "DROP_ENDED":
+      return { kicker: "Share ended", title: "Nothing remains here." };
+    default:
+      return { kicker: "Share ended", title: "Nothing remains here." };
   }
-}
-
-async function readApi<T = unknown>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => ({}))) as {
-    message?: string;
-    code?: string;
-  };
-  if (!response.ok) {
-    throw new ApiError(
-      payload.message || "The request could not be completed.",
-      payload.code,
-    );
-  }
-  return payload as T;
 }
 
 function formatBytes(bytes: number): string {

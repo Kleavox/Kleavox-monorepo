@@ -1,8 +1,10 @@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { createRoot } from "react-dom/client";
+import { ApiError, apiFetch } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 import {
   type FormEvent,
+  type ReactNode,
   StrictMode,
   useEffect,
   useMemo,
@@ -22,13 +24,6 @@ interface SessionResponse {
   expiresAt?: string;
 }
 
-interface ApiFailure {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-}
-
 interface FormState {
   status: "idle" | "loading" | "error" | "success";
   message?: string;
@@ -39,14 +34,15 @@ interface OAuthProviders {
   github: boolean;
 }
 
-const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
-  | string
-  | undefined;
+const turnstileSiteKey =
+  (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ||
+  (import.meta.env.DEV ? "1x00000000000000000000AA" : undefined);
 const returnTo = new URLSearchParams(window.location.search).get("returnTo");
 
 function App() {
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [mode, setMode] = useState<Mode>("login");
+  const [gateKey, setGateKey] = useState(0);
   const [providers, setProviders] = useState<OAuthProviders>({
     google: false,
     github: false,
@@ -84,26 +80,36 @@ function App() {
         />
       );
     }
+    const requireChallenge = () => setGateKey((value) => value + 1);
+    let authView: ReactNode;
     if (mode === "register") {
-      return <Register onModeChange={setMode} />;
+      authView = (
+        <Register onModeChange={setMode} onChallengeRequired={requireChallenge} />
+      );
+    } else if (mode === "forgot") {
+      authView = (
+        <ForgotPassword
+          onModeChange={setMode}
+          onChallengeRequired={requireChallenge}
+        />
+      );
+    } else {
+      authView = (
+        <Login
+          providers={providers}
+          onModeChange={setMode}
+          onAuthenticated={(user) => {
+            if (returnTo) {
+              window.location.assign(returnTo);
+              return;
+            }
+            setSession({ authenticated: true, user });
+          }}
+        />
+      );
     }
-    if (mode === "forgot") {
-      return <ForgotPassword onModeChange={setMode} />;
-    }
-    return (
-      <Login
-        providers={providers}
-        onModeChange={setMode}
-        onAuthenticated={(user) => {
-          if (returnTo) {
-            window.location.assign(returnTo);
-            return;
-          }
-          setSession({ authenticated: true, user });
-        }}
-      />
-    );
-  }, [mode, providers, route, session]);
+    return <SecurityGate key={gateKey}>{authView}</SecurityGate>;
+  }, [gateKey, mode, providers, route, session]);
 
   return (
     <main className="kvx-shell-wide pass-layout">
@@ -243,7 +249,13 @@ function Login({
   );
 }
 
-function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
+function Register({
+  onModeChange,
+  onChallengeRequired,
+}: {
+  onModeChange: (mode: Mode) => void;
+  onChallengeRequired: () => void;
+}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -266,7 +278,7 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
       setState({ status: "success", message: response.message });
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "challenge_failed") {
-        redirectToChallenge("fresh");
+        onChallengeRequired();
         return;
       }
       setState({ status: "error", message: errorMessage(cause) });
@@ -327,8 +339,10 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
 
 function ForgotPassword({
   onModeChange,
+  onChallengeRequired,
 }: {
   onModeChange: (mode: Mode) => void;
+  onChallengeRequired: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
@@ -343,7 +357,7 @@ function ForgotPassword({
       setState({ status: "success", message: response.message });
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "challenge_failed") {
-        redirectToChallenge("fresh");
+        onChallengeRequired();
         return;
       }
       setState({ status: "error", message: errorMessage(cause) });
@@ -577,43 +591,116 @@ function Field({
   );
 }
 
-function ChallengePage() {
-  const params = new URLSearchParams(window.location.search);
-  const scope: "basic" | "fresh" = params.get("scope") === "fresh" ? "fresh" : "basic";
-  const returnToParam = params.get("returnTo");
-  const [state, setState] = useState<FormState>({ status: "loading" });
+function SecurityGate({
+  scope = "fresh",
+  returnTo = null,
+  skipStatusCheck = false,
+  onComplete,
+  children = null,
+}: {
+  scope?: "basic" | "fresh";
+  returnTo?: string | null;
+  skipStatusCheck?: boolean;
+  onComplete?: (target: string) => void;
+  children?: ReactNode;
+}) {
+  const [status, setStatus] = useState<
+    "checking" | "challenge" | "verified" | "error"
+  >("checking");
+  const [message, setMessage] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const submitted = useRef(false);
+
+  async function submitToken(token: string) {
+    const response = await api<{ ok: true; returnTo: string }>(
+      "/api/challenge",
+      { token, scope, returnTo: returnTo ?? undefined },
+    );
+    if (onComplete) {
+      onComplete(response.returnTo);
+      return;
+    }
+    setStatus("verified");
+  }
 
   async function onToken(token?: string) {
     if (!token || submitted.current) return;
     submitted.current = true;
     try {
-      const response = await api<{ ok: true; returnTo: string }>(
-        "/api/challenge",
-        { token, scope, returnTo: returnToParam ?? undefined },
-      );
-      window.location.assign(response.returnTo);
+      await submitToken(token);
     } catch (cause) {
       submitted.current = false;
-      setState({ status: "error", message: errorMessage(cause) });
+      setMessage(errorMessage(cause));
+      setStatus("error");
     }
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatus("checking");
+    setMessage(null);
+    submitted.current = false;
+    void (async () => {
+      try {
+        if (!skipStatusCheck) {
+          const current = await api<{ verified: boolean }>(
+            `/api/challenge/status?scope=${scope}`,
+          );
+          if (cancelled) return;
+          if (current.verified) {
+            setStatus("verified");
+            return;
+          }
+        }
+        if (turnstileSiteKey) {
+          if (!cancelled) setStatus("challenge");
+          return;
+        }
+        await submitToken("dev-fallback");
+      } catch {
+        if (cancelled) return;
+        setMessage(
+          turnstileSiteKey
+            ? "Security check could not start. Try again."
+            : "Security verification is unavailable in this environment.",
+        );
+        setStatus("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  if (status === "verified") return <>{children}</>;
 
   return (
     <section className="pass-result" aria-label="Security check">
       <p className="pass-section-label">Kleavox Pass</p>
       <h2>Just a moment</h2>
-      {state.status === "error" ? (
-        <Status state={state} />
+      {status === "error" ? (
+        <>
+          <p className="pass-status pass-status-error" role="alert">
+            {message}
+          </p>
+          <button
+            className="pass-text-action"
+            type="button"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            Try again
+          </button>
+        </>
       ) : (
         <div className="pass-loading-lines" aria-label="Verifying">
           <span />
           <span />
         </div>
       )}
-      {turnstileSiteKey ? (
+      {status === "challenge" && turnstileSiteKey && (
         <div className="pass-turnstile pass-turnstile-invisible">
           <Turnstile
+            key={attempt}
             siteKey={turnstileSiteKey}
             onSuccess={onToken}
             onExpire={() => {
@@ -622,21 +709,24 @@ function ChallengePage() {
             options={{ size: "invisible", appearance: "interaction-only" }}
           />
         </div>
-      ) : (
-        <p className="pass-dev-note">
-          <span aria-hidden="true">🔒</span> Security verification unavailable in
-          this environment.
-        </p>
       )}
     </section>
   );
 }
 
-function redirectToChallenge(scope: "basic" | "fresh") {
-  const url = new URL("/challenge", window.location.origin);
-  url.searchParams.set("scope", scope);
-  url.searchParams.set("returnTo", window.location.href);
-  window.location.assign(url);
+function ChallengePage() {
+  const params = new URLSearchParams(window.location.search);
+  const scope: "basic" | "fresh" =
+    params.get("scope") === "fresh" ? "fresh" : "basic";
+
+  return (
+    <SecurityGate
+      scope={scope}
+      returnTo={params.get("returnTo")}
+      skipStatusCheck
+      onComplete={(target) => window.location.assign(target)}
+    />
+  );
 }
 
 function Status({ state }: { state: FormState }) {
@@ -690,30 +780,14 @@ function LoadingState() {
   );
 }
 
-class ApiError extends Error {
-  code?: string;
-
-  constructor(message: string, code?: string) {
-    super(message);
-    this.code = code;
-  }
-}
-
 async function api<T = { ok: boolean }>(
   path: string,
   body?: Record<string, unknown>,
 ): Promise<T> {
-  const response = await fetch(path, {
+  return apiFetch<T>(path, {
     method: body ? "POST" : "GET",
-    credentials: "include",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data = (await response.json()) as T & ApiFailure;
-  if (!response.ok) {
-    throw new ApiError(data.error?.message || "Request failed.", data.error?.code);
-  }
-  return data;
 }
 
 function errorMessage(cause: unknown): string {
