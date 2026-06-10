@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
+import { ApiError, apiFetch as request } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
@@ -1048,48 +1049,6 @@ function Loading() {
       <div className="link-loading link-loading-short" />
     </section>
   );
-}
-
-class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code?: string,
-  ) {
-    super(message);
-  }
-}
-
-async function request<T = unknown>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    credentials: "include",
-    headers: {
-      ...(init.body ? { "content-type": "application/json" } : {}),
-      ...init.headers,
-    },
-  });
-  if (response.status === 204) return undefined as T;
-  let data: { message?: string; code?: string };
-  try {
-    data = (await response.json()) as { message?: string; code?: string };
-  } catch {
-    throw new ApiError(
-      "Link received an invalid response from its API.",
-      response.status,
-    );
-  }
-  if (!response.ok) {
-    throw new ApiError(
-      data.message ?? "The request could not be completed.",
-      response.status,
-      data.code,
-    );
-  }
-  return data as T;
 }
 
 function messageFrom(error: unknown): string {

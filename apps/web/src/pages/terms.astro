@@ -18,12 +18,11 @@ const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
     <title>Terms of Service | Kleavox</title>
   </head>
   <body>
-    <header class="legal-header">
-      <a class="wordmark" href="/">Kleavox</a>
-      <nav aria-label="Policy navigation">
-        <a href="/privacy">Privacy</a>
-        <a href="/">Home</a>
-      </nav>
+    <header class="hdr">
+      <div class="shell hdr-inner">
+        <a class="wm" href="/" aria-label="Kleavox home">Kleav<b>ox</b></a>
+        <a class="btn-nav" href="/">Home</a>
+      </div>
     </header>
 
     <main class="legal-main">
@@ -93,7 +92,7 @@ const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
 
     <footer class="legal-footer">
       <span>(c) {new Date().getFullYear()} Kleavox</span>
-      <a href="/">Return home</a>
+      <a href="/privacy">Privacy Policy</a>
     </footer>
   </body>
 </html>

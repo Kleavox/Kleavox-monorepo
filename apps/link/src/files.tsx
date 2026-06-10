@@ -1,4 +1,5 @@
 import { prepareUpload } from "@kleavox/compression";
+import { ApiError, readApiResponse as readApi } from "@kleavox/core";
 import { encrypt, decrypt } from "@kleavox/crypto";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -954,15 +955,6 @@ function uploadPart(
   });
 }
 
-class ApiError extends Error {
-  code?: string;
-
-  constructor(message: string, code?: string) {
-    super(message);
-    this.code = code;
-  }
-}
-
 function receiveFailureCopy(failure?: { code?: string }): {
   kicker: string;
   title: string;
@@ -977,20 +969,6 @@ function receiveFailureCopy(failure?: { code?: string }): {
     default:
       return { kicker: "Share ended", title: "Nothing remains here." };
   }
-}
-
-async function readApi<T = unknown>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => ({}))) as {
-    message?: string;
-    code?: string;
-  };
-  if (!response.ok) {
-    throw new ApiError(
-      payload.message || "The request could not be completed.",
-      payload.code,
-    );
-  }
-  return payload as T;
 }
 
 function formatBytes(bytes: number): string {

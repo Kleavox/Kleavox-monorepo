@@ -73,7 +73,6 @@ const timeline = [
 
 const turnstileSiteKey =
   import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ||
-  // Cloudflare's public always-pass test key, dev builds only.
   (import.meta.env.DEV ? "1x00000000000000000000AA" : "");
 ---
 
@@ -336,8 +335,8 @@ const turnstileSiteKey =
               turnstileToken,
             }),
           });
-          const result = await response.json() as { error?: string };
-          if (!response.ok) throw new Error(result.error || "Message failed.");
+          const result = await response.json() as { message?: string };
+          if (!response.ok) throw new Error(result.message || "Message failed.");
           contactForm.reset();
           if (contactStatus) contactStatus.textContent = "Message sent.";
         } catch (error) {

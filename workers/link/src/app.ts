@@ -52,6 +52,10 @@ app.use("*", async (context, next) => {
   context.header("Referrer-Policy", "strict-origin-when-cross-origin");
   context.header("X-Content-Type-Options", "nosniff");
   context.header("X-Frame-Options", "DENY");
+  context.header(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
 });
 
 app.onError((error, context) => {

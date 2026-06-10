@@ -1,3 +1,4 @@
+export { ApiError, apiFetch, readApiResponse } from "./api";
 export { renderErrorPage, escapeHtml } from "./error-page";
 export type { ErrorPageOptions } from "./error-page";
 
@@ -62,8 +63,3 @@ export interface SessionIdentity {
   expiresAt: string;
 }
 
-export interface ApiError {
-  code: string;
-  message: string;
-  requestId?: string;
-}
