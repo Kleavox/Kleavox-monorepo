@@ -138,7 +138,11 @@ export function productionConfigs(
           migrations_dir: "../../workers/pulse/migrations",
         },
       ],
-      services: [{ binding: "PASS", service: names.pass }],
+      services: [
+        { binding: "PASS", service: names.pass },
+        { binding: "LINK", service: names.link },
+        { binding: "DROP", service: names.drop },
+      ],
       triggers: { crons: ["17 3 * * *"] },
       ...(canonical ? { routes: routes(host("pulse")) } : {}),
     },

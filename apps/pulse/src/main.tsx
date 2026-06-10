@@ -81,6 +81,7 @@ interface Overview {
 type AppState =
   | { status: "loading" }
   | { status: "guest" }
+  | { status: "restricted" }
   | { status: "error"; message: string }
   | { status: "ready"; identity: Identity; overview: Overview };
 
@@ -102,6 +103,10 @@ function App() {
         setState({ status: "guest" });
         return;
       }
+      if (session.identity.role !== "ADMIN") {
+        setState({ status: "restricted" });
+        return;
+      }
       const overview = await api<Overview>("/api/overview");
       setState({ status: "ready", identity: session.identity, overview });
     } catch (error) {
@@ -119,6 +124,12 @@ function App() {
       <main className="kvx-main">
         {state.status === "loading" && <Loading />}
         {state.status === "guest" && <Guest />}
+        {state.status === "restricted" && (
+          <Empty
+            title="Operator only"
+            message="Pulse is the operator console for Kleavox infrastructure. This account does not have access."
+          />
+        )}
         {state.status === "error" && (
           <Empty title="Pulse is unavailable" message={state.message} />
         )}
@@ -247,6 +258,7 @@ function Dashboard({
 
         <aside className="pulse-side">
           <IncidentList incidents={overview.incidents} />
+          <AbuseReports />
           <ProjectNotes
             projects={overview.projects}
             notes={overview.notes}
@@ -255,6 +267,206 @@ function Dashboard({
         </aside>
       </div>
     </main>
+  );
+}
+
+interface LinkReport {
+  id: string;
+  reason: string;
+  details: string | null;
+  status: string;
+  created_at: string;
+  slug: string | null;
+  target_url: string | null;
+  disabled_at: string | null;
+}
+
+interface DropReport {
+  id: string;
+  reason: string;
+  details: string | null;
+  status: string;
+  created_at: string;
+  original_name: string | null;
+  public_token: string | null;
+  drop_status: string | null;
+}
+
+function AbuseReports() {
+  const [linkReports, setLinkReports] = useState<LinkReport[]>();
+  const [dropReports, setDropReports] = useState<DropReport[]>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const load = async () => {
+    try {
+      const [links, drops] = await Promise.all([
+        api<{ reports: LinkReport[] }>("/api/admin/link/admin/reports"),
+        api<{ reports: DropReport[] }>("/api/admin/drop/admin/reports"),
+      ]);
+      setLinkReports(links.reports);
+      setDropReports(drops.reports);
+      setError(undefined);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const act = async (run: () => Promise<unknown>) => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await run();
+      await load();
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setLinkStatus = (id: string, status: string) =>
+    act(() =>
+      api(`/api/admin/link/admin/reports/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    );
+
+  const setDropStatus = (id: string, status: string) =>
+    act(() =>
+      api(`/api/admin/drop/admin/reports/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    );
+
+  const disableLink = (slug: string) =>
+    act(() =>
+      api(`/api/admin/link/links/${encodeURIComponent(slug)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ disabled: true }),
+      }),
+    );
+
+  const deleteFile = (token: string) => {
+    if (!window.confirm("Delete this file permanently?")) return;
+    void act(() =>
+      api(`/api/admin/drop/public/${encodeURIComponent(token)}`, {
+        method: "DELETE",
+      }),
+    );
+  };
+
+  const open = (status: string) => status === "OPEN";
+
+  return (
+    <section aria-label="Abuse reports">
+      <SectionTitle eyebrow="Moderation" title="Abuse reports" />
+      {error && <p className="pulse-report-error">{error}</p>}
+      {!linkReports || !dropReports ? (
+        <InlineEmpty message="Loading reports..." />
+      ) : linkReports.length === 0 && dropReports.length === 0 ? (
+        <InlineEmpty message="No reports submitted." />
+      ) : (
+        <div className="pulse-report-list">
+          {linkReports.map((report) => (
+            <article key={report.id} className="pulse-report">
+              <header>
+                <strong>
+                  LINK / {report.reason}
+                  {open(report.status) ? "" : ` / ${report.status}`}
+                </strong>
+                <span>{report.created_at}</span>
+              </header>
+              <p>
+                {report.slug ? `/${report.slug} → ${report.target_url}` : "Link removed"}
+                {report.disabled_at ? " (disabled)" : ""}
+              </p>
+              {report.details && <p>{report.details}</p>}
+              <div className="pulse-report-actions">
+                {open(report.status) && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void setLinkStatus(report.id, "RESOLVED")}
+                    >
+                      Resolve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void setLinkStatus(report.id, "REJECTED")}
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                {report.slug && !report.disabled_at && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void disableLink(report.slug!)}
+                  >
+                    Disable link
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+          {dropReports.map((report) => (
+            <article key={report.id} className="pulse-report">
+              <header>
+                <strong>
+                  FILE / {report.reason}
+                  {open(report.status) ? "" : ` / ${report.status}`}
+                </strong>
+                <span>{report.created_at}</span>
+              </header>
+              <p>
+                {report.original_name ?? "File removed"}
+                {report.drop_status ? ` (${report.drop_status})` : ""}
+              </p>
+              {report.details && <p>{report.details}</p>}
+              <div className="pulse-report-actions">
+                {open(report.status) && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void setDropStatus(report.id, "RESOLVED")}
+                    >
+                      Resolve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void setDropStatus(report.id, "REJECTED")}
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                {report.public_token && report.drop_status === "ACTIVE" && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => deleteFile(report.public_token!)}
+                  >
+                    Delete file
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

@@ -30,6 +30,14 @@
       "binding": "PASS",
       "service": "local-pass",
     },
+    {
+      "binding": "LINK",
+      "service": "local-link",
+    },
+    {
+      "binding": "DROP",
+      "service": "local-drop",
+    },
   ],
   "triggers": {
     "crons": ["17 3 * * *"],
