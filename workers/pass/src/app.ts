@@ -115,6 +115,10 @@ const accountUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80),
 });
 
+const accountPasswordSchema = z.object({
+  password: passwordSchema,
+});
+
 const app = new Hono<AppEnv>();
 
 app.onError((cause, context) => {
@@ -674,6 +678,70 @@ app.patch("/api/account", async (context) => {
   });
 
   return context.json({ ok: true, user: identity });
+});
+
+app.post("/api/account/password", async (context) => {
+  const token = readSessionToken(context.req.raw);
+  const session = token ? await getSession(context.env, token) : null;
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  if (
+    !(await checkVerification(
+      context.env,
+      readCookie(context.req.raw, VERIFICATION_COOKIE),
+      "fresh",
+    ))
+  ) {
+    return apiError(
+      context,
+      403,
+      "challenge_failed",
+      "Security challenge failed.",
+    );
+  }
+
+  const body = accountPasswordSchema.safeParse(await context.req.json());
+  if (!body.success) {
+    return apiError(context, 400, "invalid_input", firstIssue(body.error));
+  }
+
+  const existing = await context.env.DB.prepare(
+    `SELECT id FROM identities WHERE user_id = ? AND provider = 'password'`,
+  )
+    .bind(session.identity.id)
+    .first<{ id: string }>();
+  if (existing) {
+    return apiError(
+      context,
+      409,
+      "password_exists",
+      "This account already has a password. Use the reset flow to change it.",
+    );
+  }
+
+  const passwordHash = await hashPassword(body.data.password);
+  await context.env.DB.prepare(
+    `INSERT INTO identities (
+       id, user_id, provider, provider_subject, password_hash
+     ) VALUES (?, ?, 'password', ?, ?)`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      session.identity.id,
+      session.identity.email,
+      passwordHash,
+    )
+    .run();
+
+  await safeAudit(context.env, {
+    userId: session.identity.id,
+    type: "password_set",
+    request: context.req.raw,
+  });
+
+  return context.json({ ok: true });
 });
 
 app.post("/api/password/forgot", async (context) => {

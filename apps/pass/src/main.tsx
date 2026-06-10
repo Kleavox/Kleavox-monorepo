@@ -488,6 +488,9 @@ function Account({
   const [providers, setProviders] = useState<string[]>();
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(user.name ?? "");
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [confirmInput, setConfirmInput] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
 
   useEffect(() => {
@@ -522,6 +525,39 @@ function Account({
       setEditing(false);
       setState({ status: "success", message: "Name updated." });
     } catch (cause) {
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
+
+  async function savePassword(event: FormEvent) {
+    event.preventDefault();
+    if (passwordInput !== confirmInput) {
+      setState({ status: "error", message: "Passwords do not match." });
+      return;
+    }
+    setState({ status: "loading" });
+    try {
+      await api("/api/account/password", { password: passwordInput });
+      setProviders((current) =>
+        current && !current.includes("password")
+          ? [...current, "password"]
+          : current,
+      );
+      setSettingPassword(false);
+      setPasswordInput("");
+      setConfirmInput("");
+      setState({
+        status: "success",
+        message: "Password set. You can now sign in with it.",
+      });
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "challenge_failed") {
+        const url = new URL("/challenge", window.location.origin);
+        url.searchParams.set("scope", "fresh");
+        url.searchParams.set("returnTo", window.location.href);
+        window.location.assign(url);
+        return;
+      }
       setState({ status: "error", message: errorMessage(cause) });
     }
   }
@@ -600,14 +636,77 @@ function Account({
           </dd>
         </div>
       </dl>
+      {providers && !providers.includes("password") && !settingPassword && (
+        <button
+          className="pass-text-action"
+          type="button"
+          onClick={() => {
+            setState({ status: "idle" });
+            setSettingPassword(true);
+          }}
+        >
+          Set a password for this account
+        </button>
+      )}
+      {settingPassword && (
+        <form className="pass-name-edit" onSubmit={savePassword}>
+          <Field
+            label="New password"
+            hint="Use at least 12 characters."
+            name="new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            value={passwordInput}
+            onChange={setPasswordInput}
+          />
+          <Field
+            label="Confirm password"
+            name="confirm-new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            value={confirmInput}
+            onChange={setConfirmInput}
+          />
+          <div className="pass-name-edit-actions">
+            <button
+              className="pass-primary"
+              type="submit"
+              disabled={state.status === "loading" || !passwordInput}
+            >
+              Set password
+            </button>
+            <button
+              className="pass-text-action"
+              type="button"
+              onClick={() => {
+                setSettingPassword(false);
+                setPasswordInput("");
+                setConfirmInput("");
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
       <div className="pass-account-actions">
         <button
           className="pass-primary"
           type="button"
           disabled={state.status === "loading"}
-          onClick={() => void perform("/api/sessions/revoke-all")}
+          onClick={() => void perform("/api/logout")}
         >
           Sign out
+        </button>
+        <button
+          className="pass-text-action"
+          type="button"
+          disabled={state.status === "loading"}
+          onClick={() => void perform("/api/sessions/revoke-all")}
+        >
+          Sign out everywhere
         </button>
       </div>
       <Status state={state} />

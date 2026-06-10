@@ -17,6 +17,7 @@
     "agent:test": "go -C services/agent test ./...",
     "agent:build": "go -C services/agent build ./cmd/agent",
     "deploy:render": "node tooling/deploy/dist/cli.js render",
+    "e2e": "pnpm --filter @kleavox/e2e e2e",
     "health:check": "node tooling/health/check.mjs",
     "check": "turbo run lint typecheck test build && pnpm agent:test",
     "format": "prettier --write .",

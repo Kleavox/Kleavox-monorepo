@@ -3,6 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["VITE_*", "PUBLIC_*"],
       "outputs": ["dist/**", ".astro/**", "pkg/**"]
     },
     "@kleavox/crypto#build": {
