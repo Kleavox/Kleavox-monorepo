@@ -471,6 +471,12 @@ function ResetPassword() {
   );
 }
 
+const PROVIDER_LABELS: Record<string, string> = {
+  password: "Password",
+  google: "Google",
+  github: "GitHub",
+};
+
 function Account({
   user,
   onSignedOut,
@@ -478,7 +484,21 @@ function Account({
   user: Identity;
   onSignedOut: () => void;
 }) {
+  const [identity, setIdentity] = useState(user);
+  const [providers, setProviders] = useState<string[]>();
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(user.name ?? "");
   const [state, setState] = useState<FormState>({ status: "idle" });
+
+  useEffect(() => {
+    void api<{ user: Identity; providers: string[] }>("/api/account")
+      .then((account) => {
+        setIdentity(account.user);
+        setNameInput(account.user.name ?? "");
+        setProviders(account.providers);
+      })
+      .catch(() => {});
+  }, []);
 
   async function perform(path: string) {
     setState({ status: "loading" });
@@ -490,18 +510,94 @@ function Account({
     }
   }
 
+  async function saveName(event: FormEvent) {
+    event.preventDefault();
+    setState({ status: "loading" });
+    try {
+      const result = await apiFetch<{ ok: true; user: Identity }>(
+        "/api/account",
+        { method: "PATCH", body: JSON.stringify({ name: nameInput }) },
+      );
+      setIdentity(result.user);
+      setEditing(false);
+      setState({ status: "success", message: "Name updated." });
+    } catch (cause) {
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
+
   return (
     <section className="pass-account">
       <p className="pass-section-label">Signed in</p>
-      <h2>{user.name || user.email}</h2>
+      {editing ? (
+        <form className="pass-name-edit" onSubmit={saveName}>
+          <Field
+            label="Name"
+            name="name"
+            autoComplete="name"
+            maxLength={80}
+            value={nameInput}
+            onChange={setNameInput}
+          />
+          <div className="pass-name-edit-actions">
+            <button
+              className="pass-primary"
+              type="submit"
+              disabled={state.status === "loading" || !nameInput.trim()}
+            >
+              Save
+            </button>
+            <button
+              className="pass-text-action"
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setNameInput(identity.name ?? "");
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="pass-name-row">
+          <h2>{identity.name || identity.email}</h2>
+          <button
+            className="pass-text-action"
+            type="button"
+            onClick={() => {
+              setState({ status: "idle" });
+              setEditing(true);
+            }}
+          >
+            Edit name
+          </button>
+        </div>
+      )}
       <dl>
         <div>
           <dt>Email</dt>
-          <dd>{user.email}</dd>
+          <dd>{identity.email}</dd>
         </div>
         <div>
           <dt>Role</dt>
-          <dd>{user.role.toLowerCase()}</dd>
+          <dd>{identity.role.toLowerCase()}</dd>
+        </div>
+        <div>
+          <dt>Sign-in methods</dt>
+          <dd>
+            {providers ? (
+              <span className="pass-providers">
+                {providers.map((provider) => (
+                  <span key={provider}>
+                    {PROVIDER_LABELS[provider] ?? provider}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              "..."
+            )}
+          </dd>
         </div>
       </dl>
       <div className="pass-account-actions">

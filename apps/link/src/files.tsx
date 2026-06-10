@@ -1,5 +1,5 @@
 import { prepareUpload } from "@kleavox/compression";
-import { ApiError, readApiResponse as readApi } from "@kleavox/core";
+import { ApiError, firstName, readApiResponse as readApi } from "@kleavox/core";
 import { encrypt, decrypt } from "@kleavox/crypto";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -330,7 +330,7 @@ function SendView({
         <Header
           accountLabel={
             session?.authenticated
-              ? session.user?.name || session.user?.email
+              ? firstName(session.user?.name, session.user?.email)
               : undefined
           }
         />

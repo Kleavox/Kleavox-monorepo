@@ -144,6 +144,8 @@ const [link, pass, pulse, port] = products;
     </footer>
 
     <script>
+      import { firstName } from "@kleavox/core";
+
       const account = document.querySelector<HTMLElement>("[data-account]");
       const signIn = document.querySelector<HTMLElement>("[data-signin]");
       const menu = document.querySelector<HTMLElement>("[data-account-menu]");
@@ -187,7 +189,9 @@ const [link, pass, pulse, port] = products;
         .then((response) => (response.ok ? response.json() : { authenticated: false }))
         .then((data: { authenticated: boolean; identity?: { name?: string; email?: string } }) => {
           if (!data.authenticated || !data.identity) return;
-          if (name) name.textContent = data.identity.name || data.identity.email || "Account";
+          if (name) {
+            name.textContent = firstName(data.identity.name, data.identity.email);
+          }
           signIn?.setAttribute("hidden", "");
           menu?.removeAttribute("hidden");
           account?.classList.add("is-authenticated");

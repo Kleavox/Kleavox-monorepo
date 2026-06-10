@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { ApiError, apiFetch as request } from "@kleavox/core";
+import { ApiError, apiFetch as request, firstName } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
@@ -175,7 +175,7 @@ function Header({
                 setMenuOpen((open) => !open);
               }}
             >
-              {state.identity.name || state.identity.email}
+              {firstName(state.identity.name, state.identity.email)}
             </button>
             {menuOpen && (
               <div

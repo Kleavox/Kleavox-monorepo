@@ -62,9 +62,10 @@ export async function getSession(
     return null;
   }
 
-  const currentVersion = await env.SESSIONS.get(
-    `auth-version:${stored.identity.id}`,
-  );
+  const [currentVersion, override] = await Promise.all([
+    env.SESSIONS.get(`auth-version:${stored.identity.id}`),
+    env.SESSIONS.get<Identity>(`identity:${stored.identity.id}`, "json"),
+  ]);
   if (
     currentVersion !== null &&
     Number(currentVersion) !== stored.authVersion
@@ -74,10 +75,19 @@ export async function getSession(
   }
 
   return {
-    identity: stored.identity,
+    identity: override ?? stored.identity,
     sessionId,
     expiresAt: stored.expiresAt,
   };
+}
+
+export async function putIdentityOverride(
+  env: Env,
+  identity: Identity,
+): Promise<void> {
+  await env.SESSIONS.put(`identity:${identity.id}`, JSON.stringify(identity), {
+    expirationTtl: SESSION_TTL_SECONDS,
+  });
 }
 
 export async function deleteSession(env: Env, token: string): Promise<void> {

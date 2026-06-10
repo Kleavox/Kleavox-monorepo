@@ -32,6 +32,7 @@ import {
   deleteSession,
   getSession,
   invalidateUserSessions,
+  putIdentityOverride,
   readSessionToken,
 } from "./lib/session";
 
@@ -108,6 +109,10 @@ const challengeSchema = z.object({
   token: z.string().min(1).max(4096),
   scope: z.enum(["basic", "fresh"]),
   returnTo: z.string().max(2048).optional(),
+});
+
+const accountUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(80),
 });
 
 const app = new Hono<AppEnv>();
@@ -619,6 +624,56 @@ app.get("/api/session", async (context) => {
     user: session.identity,
     expiresAt: session.expiresAt,
   });
+});
+
+app.get("/api/account", async (context) => {
+  const token = readSessionToken(context.req.raw);
+  const session = token ? await getSession(context.env, token) : null;
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  const identities = await context.env.DB.prepare(
+    `SELECT provider FROM identities WHERE user_id = ? ORDER BY created_at`,
+  )
+    .bind(session.identity.id)
+    .all<{ provider: string }>();
+
+  return context.json({
+    user: session.identity,
+    providers: identities.results.map((row) => row.provider),
+  });
+});
+
+app.patch("/api/account", async (context) => {
+  const token = readSessionToken(context.req.raw);
+  const session = token ? await getSession(context.env, token) : null;
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  const body = accountUpdateSchema.safeParse(await context.req.json());
+  if (!body.success) {
+    return apiError(context, 400, "invalid_input", firstIssue(body.error));
+  }
+
+  await context.env.DB.prepare(
+    `UPDATE users
+     SET name = ?, updated_at = datetime('now')
+     WHERE id = ?`,
+  )
+    .bind(body.data.name, session.identity.id)
+    .run();
+
+  const identity = { ...session.identity, name: body.data.name };
+  await putIdentityOverride(context.env, identity);
+  await safeAudit(context.env, {
+    userId: identity.id,
+    type: "name_updated",
+    request: context.req.raw,
+  });
+
+  return context.json({ ok: true, user: identity });
 });
 
 app.post("/api/password/forgot", async (context) => {

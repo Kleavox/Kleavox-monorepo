@@ -341,6 +341,51 @@ button {
   min-height: 0;
 }
 
+.pass-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pass-name-row h2 {
+  overflow-wrap: anywhere;
+}
+
+.pass-name-edit {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.pass-name-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pass-name-edit-actions .pass-primary {
+  width: auto;
+  min-height: 42px;
+  padding: 0 1.4rem;
+}
+
+.pass-providers {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pass-providers span {
+  border: 1px solid var(--pass-line-bright);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-family: var(--kvx-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .pass-account dl {
   margin: 1rem 0;
 }

@@ -38,6 +38,16 @@ export const RESERVED_SLUGS = [
 
 const reservedSlugSet = new Set<string>(RESERVED_SLUGS);
 
+export function firstName(
+  name?: string | null,
+  email?: string | null,
+): string {
+  const first = name?.trim().split(/\s+/u)[0];
+  if (first) return first;
+  const local = email?.split("@")[0];
+  return local || "Account";
+}
+
 export function isReservedSlug(value: string): boolean {
   return reservedSlugSet.has(value.trim().toLowerCase());
 }

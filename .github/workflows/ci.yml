@@ -64,15 +64,34 @@ jobs:
             turbo-${{ github.job }}-
 
       - run: rustup target add wasm32-unknown-unknown
+
+      - name: Cache wasm-pack binary
+        id: cache-wasm-pack
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-pack
+          key: wasm-pack-0.15.0-${{ runner.os }}
+
       - run: cargo install wasm-pack --locked --version 0.15.0
+        if: steps.cache-wasm-pack.outputs.cache-hit != 'true'
+
+      - name: Cache Rust build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cache/.wasm-pack
+            crates/crypto/target
+            crates/compression/target
+          key: rust-${{ runner.os }}-${{ hashFiles('crates/**/Cargo.lock', 'crates/**/Cargo.toml') }}
+          restore-keys: |
+            rust-${{ runner.os }}-
 
       - name: Warm wasm-bindgen-cli cache
         run: wasm-pack build --target web --out-dir /tmp/wasm-pack-warmup --release crates/compression --locked
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
+      - run: pnpm exec turbo run typecheck test build
 
   agent:
     needs: changes

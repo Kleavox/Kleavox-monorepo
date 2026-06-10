@@ -18,7 +18,7 @@
     "agent:build": "go -C services/agent build ./cmd/agent",
     "deploy:render": "node tooling/deploy/dist/cli.js render",
     "health:check": "node tooling/health/check.mjs",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm agent:test",
+    "check": "turbo run lint typecheck test build && pnpm agent:test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
