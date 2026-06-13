@@ -160,7 +160,7 @@ select:focus-visible {
 
 .pulse-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--pulse-panel-soft);
   border-bottom: 1px solid var(--pulse-line-bright);
 }
@@ -1161,12 +1161,38 @@ body {
 }
 
 @media (max-width: 980px) {
+  .pulse-command {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    min-height: 0;
+    padding-bottom: 60px;
+  }
+
   .pulse-command-actions {
     align-items: flex-start;
   }
 
   .pulse-command-readout {
     display: none;
+  }
+
+  .pulse-strip > div {
+    min-height: 96px;
+    border-bottom: 1px solid var(--pulse-line);
+  }
+
+  .pulse-strip > div:nth-child(odd) {
+    border-right: 1px solid var(--pulse-line);
+  }
+
+  .pulse-strip > div:nth-child(even) {
+    border-right: 0;
+  }
+
+  .pulse-strip > div:last-child {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 0;
   }
 
   .pulse-grid {
@@ -1208,18 +1234,6 @@ body {
 }
 
 @media (max-width: 480px) {
-  .pulse-strip {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .pulse-strip > div {
-    border-bottom: 1px solid var(--pulse-line-bright);
-  }
-
-  .pulse-strip > div:nth-child(even) {
-    border-right: 0;
-  }
-
   .pulse-check-form {
     grid-template-columns: 1fr;
   }

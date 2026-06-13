@@ -24,28 +24,28 @@ stay in sync between the two repos.
 
 ## Repository layout
 
-| Path                | Contents                                                                     |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `apps/link`         | React workspace for short links and file drops (includes the receive page)  |
-| `apps/pass`         | React auth app: sign in, register, account, security challenge              |
-| `apps/pulse`        | React monitoring dashboard                                                   |
-| `apps/web`          | Astro marketing site served by the gateway                                  |
-| `workers/gateway`   | Root-domain router: short links, file links, subdomain proxying             |
-| `workers/link`      | Short-link API, link resolution pages, drop proxy                           |
-| `workers/pass`      | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification   |
-| `workers/drop`      | File storage API: R2 multipart uploads, quotas, scheduled cleanup cron      |
-| `workers/pulse`     | Monitoring API: nodes, checks, incidents, agent enrollment                  |
-| `packages/auth`     | Shared session/challenge/Turnstile verification helpers                     |
-| `packages/core`     | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`    |
-| `packages/config`   | Shared origins, hosts, and cookie names                                     |
-| `packages/crypto`   | Rust/WASM wrapper: Argon2 password hashing, AES-256-GCM encryption          |
-| `packages/compression` | Rust/WASM wrapper: browser-side gzip before upload                       |
-| `packages/ui`       | Shared stylesheet: `--kvx-*` design tokens and base utilities              |
-| `packages/testing`  | Test factories and mocks                                                     |
-| `crates/crypto`     | Rust source for the crypto WASM module                                      |
-| `crates/compression`| Rust source for the compression WASM module                                 |
-| `services/agent`    | Go monitoring daemon installed on nodes (systemd, hardened)                 |
-| `tooling/`          | Deploy renderer and health-check scripts used by CI                         |
+| Path                   | Contents                                                                   |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `apps/link`            | React workspace for short links and file drops (includes the receive page) |
+| `apps/pass`            | React auth app: sign in, register, account, security challenge             |
+| `apps/pulse`           | React monitoring dashboard                                                 |
+| `apps/web`             | Astro marketing site served by the gateway                                 |
+| `workers/gateway`      | Root-domain router: short links, file links, subdomain proxying            |
+| `workers/link`         | Short-link API, link resolution pages, drop proxy                          |
+| `workers/pass`         | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification  |
+| `workers/drop`         | File storage API: R2 multipart uploads, quotas, scheduled cleanup cron     |
+| `workers/pulse`        | Monitoring API: nodes, checks, incidents, agent enrollment                 |
+| `packages/auth`        | Shared session/challenge/Turnstile verification helpers                    |
+| `packages/core`        | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`   |
+| `packages/config`      | Shared origins, hosts, and cookie names                                    |
+| `packages/crypto`      | Rust/WASM wrapper: Argon2 password hashing, AES-256-GCM encryption         |
+| `packages/compression` | Rust/WASM wrapper: browser-side gzip before upload                         |
+| `packages/ui`          | Shared stylesheet: `--kvx-*` design tokens and base utilities              |
+| `packages/testing`     | Test factories and mocks                                                   |
+| `crates/crypto`        | Rust source for the crypto WASM module                                     |
+| `crates/compression`   | Rust source for the compression WASM module                                |
+| `services/agent`       | Go monitoring daemon installed on nodes (systemd, hardened)                |
+| `tooling/`             | Deploy renderer and health-check scripts used by CI                        |
 
 ## Stack
 
@@ -94,15 +94,15 @@ Wrangler dev registry when run in separate terminals.
 
 Root scripts (Turbo orchestrates per-workspace tasks):
 
-| Script            | Action                                                    |
-| ----------------- | --------------------------------------------------------- |
-| `pnpm dev`        | Run dev tasks across workspaces                           |
-| `pnpm build`      | Build every app, worker, and package                      |
-| `pnpm test`       | Run all test suites                                       |
-| `pnpm typecheck`  | Typecheck all workspaces                                  |
-| `pnpm lint`       | Lint all workspaces                                       |
-| `pnpm check`      | lint + typecheck + test + build + Go agent tests          |
-| `pnpm agent:test` | Go agent tests only                                       |
+| Script            | Action                                           |
+| ----------------- | ------------------------------------------------ |
+| `pnpm dev`        | Run dev tasks across workspaces                  |
+| `pnpm build`      | Build every app, worker, and package             |
+| `pnpm test`       | Run all test suites                              |
+| `pnpm typecheck`  | Typecheck all workspaces                         |
+| `pnpm lint`       | Lint all workspaces                              |
+| `pnpm check`      | lint + typecheck + test + build + Go agent tests |
+| `pnpm agent:test` | Go agent tests only                              |
 
 Copy each app's `.env.example` to `.env.local` only when overriding defaults.
 Worker secrets belong in ignored `.dev.vars` files and must never be committed.
@@ -154,15 +154,26 @@ reports, and supports resolve/reject, disabling a reported link, and deleting
 a reported file. Pulse proxies these actions to the link and drop workers via
 service bindings; the target workers re-check the `ADMIN` role themselves.
 
-Promotion to admin is deliberate and manual — there is no endpoint for it:
+**First-admin bootstrap.** A fresh deploy has no admin — every account starts
+as `USER`, and there is deliberately no promotion endpoint (Pass is the public
+identity provider, so auto-promoting "the first user" would be a race). After
+the first deploy, register and verify your own account in Pass, then promote it
+once:
 
 ```bash
-pnpm exec wrangler d1 execute DB --local --config workers/pass/wrangler.jsonc \
-  --command "UPDATE users SET role = 'ADMIN' WHERE email = '<your-email>'"
+# Local:
+pnpm admin:promote -- --email you@example.com --local
+
+# Production (resolves the deployed database from these values):
+WORKER_PREFIX=<prefix> PASS_D1_ID=<pass-d1-id> pnpm admin:promote -- --email you@example.com
+
+# List current admins:
+pnpm admin:promote -- --list [--local]
 ```
 
-For production, run the same statement with `--remote` against the rendered
-deploy config.
+The helper validates the email, refuses to promote a non-existent account, and
+warns if the address is unverified (only verified admins receive Pulse report
+emails).
 
 Two hard rules: admins cannot delete user accounts (no such endpoint exists —
 account deletion is strictly self-service, and works for OAuth-only accounts

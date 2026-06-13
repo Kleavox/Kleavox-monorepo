@@ -1,5 +1,10 @@
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
-import { readCookie, verifyChallenge, verifySession } from "@kleavox/auth";
+import {
+  notifyReport,
+  readCookie,
+  verifyChallenge,
+  verifySession,
+} from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -500,6 +505,20 @@ app.get("/api/links/:slug/stats", requireSession, async (context) => {
 });
 
 app.post("/api/reports", async (context) => {
+  const rateKey =
+    context.req.header("cf-connecting-ip") ??
+    context.req.header("user-agent") ??
+    "anonymous";
+  if (
+    !(await context.env.REPORT_RATE_LIMIT.limit({ key: `report:${rateKey}` }))
+      .success
+  ) {
+    return context.json(
+      { code: "RATE_LIMITED", message: "Try again in a minute." },
+      429,
+    );
+  }
+
   if (
     !(await verifySession(context.req.raw, context.env.PASS)) &&
     !(await verifyChallenge(context.req.raw, context.env.PASS, "basic"))
@@ -531,6 +550,13 @@ app.post("/api/reports", async (context) => {
       body.data.details ?? null,
     )
     .run();
+  context.executionCtx.waitUntil(
+    notifyReport(context.env.PULSE, {
+      kind: "link",
+      reason: body.data.reason,
+      target: link ? `/${link.slug}` : body.data.slug,
+    }),
+  );
   return context.json({ ok: true }, 202);
 });
 

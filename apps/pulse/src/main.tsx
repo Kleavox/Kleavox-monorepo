@@ -179,6 +179,7 @@ function Dashboard({
   onRefresh: () => Promise<void>;
   onEnrollment: (value: Enrollment) => void;
 }) {
+  const [openReports, setOpenReports] = useState<number>();
   const nodeStates = useMemo(
     () => overview.nodes.map((node) => ({ node, state: nodeState(node) })),
     [overview.nodes],
@@ -225,6 +226,11 @@ function Dashboard({
           danger={openIncidents > 0}
         />
         <Metric
+          label="Open reports"
+          value={openReports === undefined ? "—" : String(openReports)}
+          danger={(openReports ?? 0) > 0}
+        />
+        <Metric
           label="Active projects"
           value={String(
             overview.projects.filter((project) => project.status === "ACTIVE")
@@ -258,7 +264,7 @@ function Dashboard({
 
         <aside className="pulse-side">
           <IncidentList incidents={overview.incidents} />
-          <AbuseReports />
+          <AbuseReports onCountChange={setOpenReports} />
           <ProjectNotes
             projects={overview.projects}
             notes={overview.notes}
@@ -292,7 +298,11 @@ interface DropReport {
   drop_status: string | null;
 }
 
-function AbuseReports() {
+function AbuseReports({
+  onCountChange,
+}: {
+  onCountChange?: (open: number) => void;
+}) {
   const [linkReports, setLinkReports] = useState<LinkReport[]>();
   const [dropReports, setDropReports] = useState<DropReport[]>();
   const [busy, setBusy] = useState(false);
@@ -307,6 +317,10 @@ function AbuseReports() {
       setLinkReports(links.reports);
       setDropReports(drops.reports);
       setError(undefined);
+      const open =
+        links.reports.filter((report) => report.status === "OPEN").length +
+        drops.reports.filter((report) => report.status === "OPEN").length;
+      onCountChange?.(open);
     } catch (cause) {
       setError(errorMessage(cause));
     }

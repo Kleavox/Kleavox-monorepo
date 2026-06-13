@@ -2,6 +2,7 @@ export interface Env {
   DB: D1Database;
   FILES: R2Bucket;
   PASS: Fetcher;
+  PULSE: Fetcher;
   CREATE_RATE_LIMIT: RateLimit;
   DOWNLOAD_RATE_LIMIT: RateLimit;
   REPORT_RATE_LIMIT: RateLimit;

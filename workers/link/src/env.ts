@@ -3,7 +3,9 @@ export interface Env {
   DB: D1Database;
   PASS: Fetcher;
   DROP: Fetcher;
+  PULSE: Fetcher;
   PUBLIC_CREATE_RATE_LIMIT: RateLimit;
+  REPORT_RATE_LIMIT: RateLimit;
   ENVIRONMENT: "development" | "preview" | "production";
   PUBLIC_SHORT_ORIGIN: string;
 }

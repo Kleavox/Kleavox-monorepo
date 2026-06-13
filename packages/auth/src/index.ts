@@ -14,6 +14,21 @@ export interface PassBinding {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
 
+export async function notifyReport(
+  pulse: { fetch: PassBinding["fetch"] },
+  payload: { kind: "link" | "file"; reason: string; target: string },
+): Promise<void> {
+  try {
+    await pulse.fetch(INTERNAL_URLS.PULSE_REPORT_NOTIFY, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // Best-effort: a notification failure must never block filing the report.
+  }
+}
+
 export function readCookie(request: Request, name: string): string | null {
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) return null;

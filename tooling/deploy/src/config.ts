@@ -108,8 +108,12 @@ export function productionConfigs(
       services: [
         { binding: "PASS", service: names.pass },
         { binding: "DROP", service: names.drop },
+        { binding: "PULSE", service: names.pulse },
       ],
-      ratelimits: [rateLimit("PUBLIC_CREATE_RATE_LIMIT", "3201", 10)],
+      ratelimits: [
+        rateLimit("PUBLIC_CREATE_RATE_LIMIT", "3201", 10),
+        rateLimit("REPORT_RATE_LIMIT", "3202", 5),
+      ],
       ...(canonical ? { routes: routes(host("link")) } : {}),
     },
     pulse: {
@@ -168,7 +172,10 @@ export function productionConfigs(
           bucket_name: env.DROP_BUCKET_NAME,
         },
       ],
-      services: [{ binding: "PASS", service: names.pass }],
+      services: [
+        { binding: "PASS", service: names.pass },
+        { binding: "PULSE", service: names.pulse },
+      ],
       ratelimits: [
         rateLimit("CREATE_RATE_LIMIT", "3101", 12),
         rateLimit("DOWNLOAD_RATE_LIMIT", "3102", 120),

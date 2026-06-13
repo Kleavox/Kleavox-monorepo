@@ -15,7 +15,7 @@ import {
   type CheckStatus,
 } from "./lib/checks";
 import { randomToken, readBearerToken, sha256 } from "./lib/crypto";
-import { sendIncidentEmail } from "./lib/mail";
+import { sendIncidentEmail, sendReportEmail } from "./lib/mail";
 import { heartbeatSchema, hostSchema, resultSchema } from "./schemas";
 
 interface Variables {
@@ -98,6 +98,37 @@ app.get("/api/session", async (context) => {
   return session
     ? context.json({ authenticated: true, identity: session.identity })
     : context.json({ authenticated: false });
+});
+
+app.post("/internal/report-notify", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PULSE) {
+    return context.body(null, 404);
+  }
+
+  const body = z
+    .object({
+      kind: z.enum(["link", "file"]),
+      reason: z.string().max(100),
+      target: z.string().max(2048),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  try {
+    const response = await context.env.PASS.fetch(INTERNAL_URLS.ADMINS_LOOKUP);
+    if (response.ok) {
+      const { emails } = await response.json<{ emails: string[] }>();
+      await sendReportEmail(context.env, {
+        to: emails,
+        kind: body.data.kind,
+        reason: body.data.reason,
+        target: body.data.target,
+      });
+    }
+  } catch (error) {
+    console.error("[pulse report-notify]", error);
+  }
+  return context.json({ ok: true });
 });
 
 app.all("/api/admin/link/*", requireAdmin, (context) =>
