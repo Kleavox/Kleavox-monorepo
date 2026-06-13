@@ -91,6 +91,7 @@ app.onError((error, context) => {
   }
   return context.html(
     linkUnavailablePage(
+      "500",
       "Something broke",
       "Something went wrong on our side. Give it a moment and try again.",
     ),
@@ -124,6 +125,7 @@ app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
   if (link.expires_at && Date.parse(link.expires_at) <= Date.now()) {
     return context.html(
       linkUnavailablePage(
+        "410",
         "Link expired",
         "This destination is no longer available.",
       ),

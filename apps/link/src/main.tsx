@@ -8,10 +8,16 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { ApiError, apiFetch as request, displayHandle } from "@kleavox/core";
+import {
+  ApiError,
+  apiFetch as request,
+  displayHandle,
+  errorMessage,
+} from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
+import { AppFooter, AppHeader, ErrorScreen } from "@kleavox/ui";
 import { ROOT_HOST, ROOT_ORIGIN, challengeUrl, signInUrl } from "./config";
 import { FilesApp } from "./files";
 import type { AccountDrop } from "./files";
@@ -99,7 +105,7 @@ function WorkspaceApp() {
         files: files.drops,
       });
     } catch (error) {
-      setState({ status: "error", message: messageFrom(error) });
+      setState({ status: "error", message: errorMessage(error) });
     }
   };
 
@@ -115,15 +121,16 @@ function WorkspaceApp() {
     }
   };
 
+  if (state.status === "error") {
+    return <ErrorScreen code="503" />;
+  }
+
   return (
     <div className="link-app">
       <Header state={state} onLogout={handleLogout} />
       <main className="kvx-main">
         {state.status === "loading" && <Loading />}
         {state.status === "guest" && <Guest />}
-        {state.status === "error" && (
-          <Notice title="Link is unavailable" message={state.message} />
-        )}
         {state.status === "ready" && (
           <Dashboard
             identity={state.identity}
@@ -154,10 +161,7 @@ function Header({
   }, [menuOpen]);
 
   return (
-    <header className="kvx-header">
-      <a className="kvx-brand" href={ROOT_ORIGIN}>
-        KLEAV<span>OX</span> <span>/ LINK</span>
-      </a>
+    <AppHeader product="LINK" rootOrigin={ROOT_ORIGIN}>
       <nav className="kvx-nav" aria-label="Product navigation">
         <a className="is-active" href="/">
           Create
@@ -192,7 +196,7 @@ function Header({
           <a href={signInUrl()}>Account</a>
         )}
       </nav>
-    </header>
+    </AppHeader>
   );
 }
 
@@ -291,7 +295,7 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
       setStatus({ type: "success", message: `${created.shortUrl} is live.` });
       await onCreated();
     } catch (error) {
-      setStatus({ type: "error", message: messageFrom(error) });
+      setStatus({ type: "error", message: errorMessage(error) });
     }
   };
 
@@ -657,22 +661,7 @@ function Guest() {
 }
 
 function GuestFooter() {
-  return (
-    <footer className="link-guest-footer">
-      <div className="link-guest-footer-inner">
-        <span className="link-guest-footer-wm">
-          KLEAV<span>OX</span> <span>/ LINK</span>
-        </span>
-        <div className="link-guest-footer-links">
-          <a href={`${ROOT_ORIGIN}/privacy`}>Privacy</a>
-          <a href={`${ROOT_ORIGIN}/terms`}>Terms</a>
-        </div>
-        <span className="link-guest-footer-copy">
-          &copy; {new Date().getFullYear()} Kleavox
-        </span>
-      </div>
-    </footer>
-  );
+  return <AppFooter product="LINK" rootOrigin={ROOT_ORIGIN} />;
 }
 
 const PUBLIC_LINK_DRAFT_KEY = "link:draft:public";
@@ -705,7 +694,8 @@ function clearDraft(key: string): void {
 
 function PublicLinkForm() {
   const [targetUrl, setTargetUrl] = useState(
-    () => readDraft<{ targetUrl?: string }>(PUBLIC_LINK_DRAFT_KEY)?.targetUrl ?? "",
+    () =>
+      readDraft<{ targetUrl?: string }>(PUBLIC_LINK_DRAFT_KEY)?.targetUrl ?? "",
   );
   const [created, setCreated] = useState<string>();
   const [state, setState] = useState<FormState>({ status: "idle" });
@@ -727,7 +717,7 @@ function PublicLinkForm() {
         window.location.assign(challengeUrl("basic"));
         return;
       }
-      setState({ status: "error", message: messageFrom(error) });
+      setState({ status: "error", message: errorMessage(error) });
     }
   }
 
@@ -812,7 +802,7 @@ function EditPanel({
       await onSaved();
       onClose();
     } catch (error) {
-      setState({ status: "error", message: messageFrom(error) });
+      setState({ status: "error", message: errorMessage(error) });
     }
   };
 
@@ -906,7 +896,7 @@ function ReportApp() {
         window.location.assign(challengeUrl("basic"));
         return;
       }
-      setState({ status: "error", message: messageFrom(error) });
+      setState({ status: "error", message: errorMessage(error) });
     }
   };
 
@@ -985,7 +975,7 @@ function StatsPanel({
   useEffect(() => {
     void request<LinkStats>(`/api/links/${encodeURIComponent(link.slug)}/stats`)
       .then(setStats)
-      .catch((cause) => setError(messageFrom(cause)));
+      .catch((cause) => setError(errorMessage(cause)));
   }, [link.slug]);
 
   const maxDaily = Math.max(
@@ -1059,25 +1049,6 @@ function Dimension({
   );
 }
 
-function Notice({
-  title,
-  message,
-  children,
-}: {
-  title: string;
-  message: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <section className="link-notice">
-      <p className="link-kicker">Kleavox Link</p>
-      <h1>{title}</h1>
-      <p>{message}</p>
-      {children}
-    </section>
-  );
-}
-
 function Loading() {
   return (
     <section className="link-notice" aria-label="Loading Link">
@@ -1086,10 +1057,6 @@ function Loading() {
       <div className="link-loading link-loading-short" />
     </section>
   );
-}
-
-function messageFrom(error: unknown): string {
-  return error instanceof Error ? error.message : "The request failed.";
 }
 
 function isIdentity(value: unknown): value is Identity {

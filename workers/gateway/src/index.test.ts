@@ -83,4 +83,21 @@ describe("Gateway public namespace", () => {
       path: "/link-assets/index.js",
     });
   });
+
+  it("renders the unified error page for an unknown HTML route", async () => {
+    const response = await app.request(
+      "https://product.test/no/such/path",
+      { headers: { accept: "text/html" } },
+      {
+        LINK: { fetch: vi.fn() },
+        ASSETS: {
+          fetch: vi.fn(async () => new Response("nope", { status: 404 })),
+        },
+        PUBLIC_ORIGIN: "https://product.test",
+      } as unknown as Env,
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toContain("Page not found");
+  });
 });

@@ -7,7 +7,8 @@
 
 body {
   min-width: 320px;
-  background: radial-gradient(circle, #192330 0.75px, transparent 0.75px), #070a0d;
+  background:
+    radial-gradient(circle, #192330 0.75px, transparent 0.75px), #070a0d;
   background-size: 22px 22px;
 }
 
@@ -444,56 +445,6 @@ button {
   border-top: 1px solid var(--link-line);
 }
 
-.link-guest-footer {
-  padding: 2rem 0;
-  border-top: 1px solid var(--link-line);
-  background: var(--link-panel);
-}
-
-.link-guest-footer-inner {
-  width: min(1480px, calc(100vw - 40px));
-  margin-inline: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.link-guest-footer-wm {
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: -0.02em;
-}
-
-.link-guest-footer-wm span {
-  color: var(--link-accent);
-}
-
-.link-guest-footer-links {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.link-guest-footer-links a {
-  color: var(--link-muted);
-  font-family: var(--kvx-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.04em;
-  transition: color 150ms ease;
-}
-
-.link-guest-footer-links a:hover {
-  color: var(--link-accent);
-}
-
-.link-guest-footer-copy {
-  color: var(--link-quiet);
-  font-family: var(--kvx-mono);
-  font-size: 0.62rem;
-}
-
 .link-public-form {
   display: grid;
   gap: 1rem;
@@ -828,7 +779,10 @@ body {
 }
 
 .link-app .kvx-header {
-  padding-inline: max(20px, calc((100vw - min(1480px, calc(100vw - 40px))) / 2));
+  padding-inline: max(
+    20px,
+    calc((100vw - min(1480px, calc(100vw - 40px))) / 2)
+  );
 }
 
 .link-account {
@@ -879,7 +833,9 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-align: left;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .link-account-menu button:hover {
@@ -1354,7 +1310,6 @@ body {
   .link-hero,
   .link-guest-hero,
   .link-guest-files,
-  .link-guest-footer-inner,
   .link-compose,
   .link-list {
     width: calc(100vw - 24px);

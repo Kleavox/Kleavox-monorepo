@@ -1,6 +1,6 @@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { createRoot } from "react-dom/client";
-import { ApiError, apiFetch } from "@kleavox/core";
+import { ApiError, apiFetch, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 import {
   type FormEvent,
@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import "@kleavox/ui/styles.css";
+import { ErrorScreen } from "@kleavox/ui";
 import { ROOT_ORIGIN } from "./config";
 import "./pass.css";
 
@@ -56,7 +57,11 @@ function App() {
       api<OAuthProviders>("/api/oauth/providers"),
     ])
       .then(([nextSession, nextProviders]) => {
-        if (nextSession.authenticated && returnTo && nextSession.user?.username) {
+        if (
+          nextSession.authenticated &&
+          returnTo &&
+          nextSession.user?.username
+        ) {
           window.location.assign(returnTo);
           return;
         }
@@ -347,7 +352,11 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
   );
 }
 
-function ForgotPassword({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
+function ForgotPassword({
+  onModeChange,
+}: {
+  onModeChange: (mode: Mode) => void;
+}) {
   const challenge = useChallenge();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
@@ -422,6 +431,17 @@ function VerifyEmail() {
         setState({ status: "error", message: errorMessage(cause) }),
       );
   }, [token]);
+
+  if (state.status === "error") {
+    return (
+      <ErrorScreen
+        title="Verification failed"
+        message={
+          state.message ?? "This verification link is invalid or has expired."
+        }
+      />
+    );
+  }
 
   return (
     <ResultState title="Verify email" state={state}>
@@ -833,8 +853,8 @@ function Account({
         {deleting ? (
           <form className="pass-name-edit" onSubmit={deleteAccount}>
             <p className="pass-danger-note">
-              This permanently removes your account, links, and files. Type
-              your email to confirm.
+              This permanently removes your account, links, and files. Type your
+              email to confirm.
             </p>
             <Field
               label="Email"
@@ -1063,7 +1083,9 @@ function useChallenge(
         const index = waiters.current.indexOf(waiter);
         if (index >= 0) {
           waiters.current.splice(index, 1);
-          reject(new Error("The security check is taking too long. Try again."));
+          reject(
+            new Error("The security check is taking too long. Try again."),
+          );
         }
       }, 20_000);
     });
@@ -1240,6 +1262,15 @@ function LinkOAuth() {
       );
   }, []);
 
+  if (state.status === "error") {
+    return (
+      <ErrorScreen
+        title="Linking failed"
+        message={state.message ?? "We couldn't link this sign-in provider."}
+      />
+    );
+  }
+
   return (
     <section className="pass-result" aria-label="Link sign-in provider">
       <p className="pass-section-label">Kleavox Pass</p>
@@ -1250,11 +1281,6 @@ function LinkOAuth() {
           <a className="pass-primary-link" href="/">
             Go to sign in
           </a>
-        </>
-      ) : state.status === "error" ? (
-        <>
-          <h2>Linking failed</h2>
-          <Status state={state} />
         </>
       ) : (
         <>
@@ -1328,10 +1354,6 @@ async function api<T = { ok: boolean }>(
     method: body ? "POST" : "GET",
     body: body ? JSON.stringify(body) : undefined,
   });
-}
-
-function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : "Request failed.";
 }
 
 function startOAuth(provider: "google" | "github") {

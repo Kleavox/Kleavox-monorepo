@@ -158,7 +158,7 @@ export function productionConfigs(
       assets: {
         directory: "../../apps/web/dist",
         binding: "ASSETS",
-        not_found_handling: "404-page",
+        not_found_handling: "none",
         run_worker_first: true,
       },
       services: [

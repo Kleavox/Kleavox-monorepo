@@ -29,7 +29,8 @@ app.onError((error, context) => {
   }
   return context.html(
     renderErrorPage({
-      service: "KLEAVOX",
+      service: "Kleavox",
+      code: "500",
       title: "Something broke",
       message:
         "Something went wrong on our side. Give it a moment and try again.",
@@ -138,7 +139,27 @@ app.all("*", async (context) => {
     }
   }
 
-  return context.env.ASSETS.fetch(context.req.raw);
+  const assetResponse = await context.env.ASSETS.fetch(context.req.raw);
+  if (
+    assetResponse.status === 404 &&
+    (context.req.header("accept") ?? "").includes("text/html")
+  ) {
+    return context.html(
+      renderErrorPage({
+        service: "Kleavox",
+        code: "404",
+        title: "Page not found",
+        message:
+          "This page does not exist, or the short link or file has expired.",
+      }),
+      404,
+      {
+        "Content-Security-Policy":
+          "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      },
+    );
+  }
+  return assetResponse;
 });
 
 function getPublicSlug(pathname: string): string | null {

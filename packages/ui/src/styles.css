@@ -8,13 +8,15 @@
   --kvx-ink: #eff5f0;
   --kvx-muted: #84938a;
   --kvx-quiet: #4d5952;
-  
+
   /* Fallback accent, to be overridden by apps */
   --kvx-accent: #a3e635;
   --kvx-accent-glow: rgb(163 230 53 / 12%);
   --kvx-accent-text: #11190b;
 
-  --kvx-font: "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --kvx-font:
+    "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
   --kvx-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
   --kvx-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --kvx-shell: min(1280px, calc(100vw - 48px));
@@ -33,7 +35,19 @@
   display: none !important;
 }
 
-p, h1, h2, h3, h4, h5, h6, a, span, div, strong, b, i {
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+span,
+div,
+strong,
+b,
+i {
   overflow-wrap: break-word;
 }
 
@@ -46,8 +60,12 @@ body {
   min-width: 320px;
   min-height: 100dvh;
   overflow-wrap: break-word;
-  background: 
-    radial-gradient(circle at 15% 10%, var(--kvx-accent-glow), transparent 30rem),
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      var(--kvx-accent-glow),
+      transparent 30rem
+    ),
     var(--kvx-base);
   color: var(--kvx-ink);
   font-family: var(--kvx-font);
@@ -148,6 +166,56 @@ textarea:focus-visible {
 
 .kvx-main {
   min-height: calc(100dvh - 72px);
+}
+
+.kvx-footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--kvx-line);
+  background: var(--kvx-surface);
+}
+
+.kvx-footer-inner {
+  width: var(--kvx-shell-wide);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.kvx-footer-wm {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
+}
+
+.kvx-footer-wm span {
+  color: var(--kvx-accent);
+}
+
+.kvx-footer-links {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.kvx-footer-links a {
+  color: var(--kvx-muted);
+  font-family: var(--kvx-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  transition: color 150ms ease;
+}
+
+.kvx-footer-links a:hover {
+  color: var(--kvx-accent);
+}
+
+.kvx-footer-copy {
+  color: var(--kvx-quiet);
+  font-family: var(--kvx-mono);
+  font-size: 0.62rem;
 }
 
 /* ==========================================================================
@@ -269,7 +337,9 @@ textarea:focus-visible {
   border: 1px solid var(--kvx-line);
   border-radius: 6px;
   color: var(--kvx-ink);
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .kvx-input:focus,
@@ -292,6 +362,185 @@ textarea:focus-visible {
   height: 1px;
   background: var(--kvx-line);
   margin: 1.5rem 0;
+}
+
+/* ==========================================================================
+   ERROR SCREEN (shared, identical across every service)
+   Uses a fixed accent (not --kvx-accent) so it looks the same in every app.
+   ========================================================================== */
+
+/* The error page stays neutral (gateway lime) even inside apps that override
+   --kvx-accent, by resetting the token locally — so the reused AppHeader /
+   AppFooter wordmark renders lime too. */
+.kvx-error {
+  --kvx-accent: #a3e635;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 16% 12%, rgb(163 230 53 / 7%), transparent 26rem),
+    var(--kvx-base);
+}
+
+.kvx-error-body {
+  flex: 1;
+  width: var(--kvx-shell);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: clamp(2.5rem, 7vw, 5rem);
+}
+
+.kvx-error-kicker {
+  display: block;
+  margin-bottom: 16px;
+  color: var(--kvx-accent);
+  font-family: var(--kvx-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.kvx-error-title {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-transform: uppercase;
+}
+
+.kvx-error-message {
+  max-width: 42rem;
+  margin: 18px 0 0;
+  color: var(--kvx-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.kvx-error-action {
+  align-self: flex-start;
+  margin-top: 28px;
+  padding: 12px 18px;
+  border: 1px solid var(--kvx-line);
+  color: var(--kvx-ink);
+  font-family: var(--kvx-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kvx-error-action:hover {
+  border-color: var(--kvx-accent);
+  color: var(--kvx-accent);
+}
+
+.kvx-error-code {
+  position: relative;
+  display: block;
+  margin: 0 0 8px;
+  font-family: var(--kvx-mono);
+  font-size: clamp(4.5rem, 20vw, 10rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: var(--kvx-ink);
+  text-shadow: 0 0 26px rgb(61 219 224 / 16%);
+  animation: kvx-flicker 6s linear infinite;
+}
+
+.kvx-error-code::before,
+.kvx-error-code::after {
+  content: attr(data-code);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.kvx-error-code::before {
+  color: #ff3b6b;
+  transform: translateX(-2px);
+  animation: kvx-glitch-a 2.4s steps(2, end) infinite alternate-reverse;
+}
+
+.kvx-error-code::after {
+  color: #3ddbe0;
+  transform: translateX(2px);
+  animation: kvx-glitch-b 3.1s steps(2, end) infinite alternate-reverse;
+}
+
+@keyframes kvx-glitch-a {
+  0% {
+    clip-path: inset(8% 0 86% 0);
+  }
+  20% {
+    clip-path: inset(54% 0 30% 0);
+  }
+  40% {
+    clip-path: inset(74% 0 8% 0);
+  }
+  60% {
+    clip-path: inset(28% 0 56% 0);
+  }
+  80% {
+    clip-path: inset(90% 0 2% 0);
+  }
+  100% {
+    clip-path: inset(42% 0 44% 0);
+  }
+}
+
+@keyframes kvx-glitch-b {
+  0% {
+    clip-path: inset(70% 0 12% 0);
+  }
+  20% {
+    clip-path: inset(16% 0 72% 0);
+  }
+  40% {
+    clip-path: inset(40% 0 38% 0);
+  }
+  60% {
+    clip-path: inset(84% 0 4% 0);
+  }
+  80% {
+    clip-path: inset(22% 0 64% 0);
+  }
+  100% {
+    clip-path: inset(58% 0 24% 0);
+  }
+}
+
+@keyframes kvx-flicker {
+  0%,
+  88%,
+  100% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.55;
+  }
+  92% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 0.78;
+  }
+  96% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kvx-error-code::before,
+  .kvx-error-code::after {
+    display: none;
+  }
 }
 
 @keyframes kvx-fade-up {

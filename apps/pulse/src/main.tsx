@@ -1,9 +1,10 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { apiFetch as api, displayHandle } from "@kleavox/core";
+import { apiFetch as api, displayHandle, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
+import { AppFooter, AppHeader, ErrorScreen } from "@kleavox/ui";
 import { PASS_ORIGIN, ROOT_ORIGIN, signInUrl } from "./config";
 import "./pulse.css";
 
@@ -118,21 +119,19 @@ function App() {
     void refresh();
   }, []);
 
+  if (state.status === "restricted") {
+    return <ErrorScreen code="403" />;
+  }
+  if (state.status === "error") {
+    return <ErrorScreen code="503" />;
+  }
+
   return (
     <div className="pulse-app">
       <Header state={state} />
       <main className="kvx-main">
         {state.status === "loading" && <Loading />}
         {state.status === "guest" && <Guest />}
-        {state.status === "restricted" && (
-          <Empty
-            title="Operator only"
-            message="Pulse is the operator console for Kleavox infrastructure. This account does not have access."
-          />
-        )}
-        {state.status === "error" && (
-          <Empty title="Pulse is unavailable" message={state.message} />
-        )}
         {state.status === "ready" && (
           <Dashboard
             identity={state.identity}
@@ -155,16 +154,13 @@ function App() {
 
 function Header({ state }: { state: AppState }) {
   return (
-    <header className="kvx-header">
-      <a href={ROOT_ORIGIN} className="kvx-brand">
-        KLEAV<span>OX</span> <span>/ PULSE</span>
-      </a>
+    <AppHeader product="PULSE" rootOrigin={ROOT_ORIGIN}>
       <a href={PASS_ORIGIN} className="kvx-nav">
         {state.status === "ready"
           ? displayHandle(state.identity.username, state.identity.email)
           : "Account"}
       </a>
-    </header>
+    </AppHeader>
   );
 }
 
@@ -999,41 +995,7 @@ function Guest() {
 }
 
 function GuestFooter() {
-  return (
-    <footer className="pulse-footer">
-      <div className="pulse-footer-inner">
-        <span className="pulse-footer-wm">
-          KLEAV<span>OX</span> <span>/ PULSE</span>
-        </span>
-        <div className="pulse-footer-links">
-          <a href={`${ROOT_ORIGIN}/privacy`}>Privacy</a>
-          <a href={`${ROOT_ORIGIN}/terms`}>Terms</a>
-        </div>
-        <span className="pulse-footer-copy">
-          &copy; {new Date().getFullYear()} Kleavox
-        </span>
-      </div>
-    </footer>
-  );
-}
-
-function Empty({
-  title,
-  message,
-  children,
-}: {
-  title: string;
-  message: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <main className="pulse-empty">
-      <p className="pulse-kicker">Kleavox Pulse</p>
-      <h1>{title}</h1>
-      <p>{message}</p>
-      {children}
-    </main>
-  );
+  return <AppFooter product="PULSE" rootOrigin={ROOT_ORIGIN} />;
 }
 
 function Loading() {
@@ -1069,10 +1031,6 @@ function relativeTime(value: string | null): string {
   if (Math.abs(minutes) < 60) return formatter.format(minutes, "minute");
   const hours = Math.round(minutes / 60);
   return formatter.format(hours, "hour");
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "The request failed.";
 }
 
 function parseTimestamp(value: string): number {

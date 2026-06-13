@@ -1,6 +1,11 @@
 import { prepareUpload } from "@kleavox/compression";
-import { ApiError, displayHandle, readApiResponse as readApi } from "@kleavox/core";
+import {
+  ApiError,
+  displayHandle,
+  readApiResponse as readApi,
+} from "@kleavox/core";
 import { encrypt, decrypt } from "@kleavox/crypto";
+import { ErrorScreen } from "@kleavox/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   challengeUrl,
@@ -191,7 +196,9 @@ function SendView({
         const buffer = new Uint8Array(await file.arrayBuffer());
         const encrypted = await encrypt(buffer, password);
         prepared = {
-          body: new Blob([encrypted as any], { type: "application/octet-stream" }),
+          body: new Blob([encrypted as any], {
+            type: "application/octet-stream",
+          }),
           originalSizeBytes: file.size,
           storedSizeBytes: encrypted.byteLength,
           storageEncoding: "aes-256-gcm",
@@ -692,7 +699,9 @@ function ReceiveView({ token }: { token: string }) {
         const encryptedBuffer = new Uint8Array(await response.arrayBuffer());
         const decryptedBuffer = await decrypt(encryptedBuffer, password);
 
-        const blob = new Blob([decryptedBuffer as any], { type: drop.contentType });
+        const blob = new Blob([decryptedBuffer as any], {
+          type: drop.contentType,
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -732,6 +741,22 @@ function ReceiveView({ token }: { token: string }) {
         reason instanceof Error ? reason.message : "The report was not sent.",
       );
     }
+  }
+
+  if (!loading && !drop) {
+    const failure = receiveFailureCopy(loadFailure);
+    return (
+      <ErrorScreen
+        code={failure.code}
+        title={failure.kicker}
+        message={
+          loadFailure?.message ||
+          "The file expired or reached its download limit."
+        }
+        homeHref={LINK_ORIGIN}
+        homeLabel="Share another file"
+      />
+    );
   }
 
   return (
@@ -821,17 +846,7 @@ function ReceiveView({ token }: { token: string }) {
               </p>
             </div>
           </>
-        ) : (
-          <div className="drop-gone">
-            <p className="drop-kicker">{receiveFailureCopy(loadFailure).kicker}</p>
-            <h1>{receiveFailureCopy(loadFailure).title}</h1>
-            <p>
-              {loadFailure?.message ||
-                "The file expired or reached its download limit."}
-            </p>
-            <a href={LINK_ORIGIN}>Share another file</a>
-          </div>
-        )}
+        ) : null}
       </section>
 
       {drop && (
@@ -958,16 +973,29 @@ function uploadPart(
 function receiveFailureCopy(failure?: { code?: string }): {
   kicker: string;
   title: string;
+  code: string;
 } {
   switch (failure?.code) {
     case "NOT_FOUND":
-      return { kicker: "Transfer not found", title: "This route leads nowhere." };
+      return {
+        kicker: "Transfer not found",
+        title: "This route leads nowhere.",
+        code: "404",
+      };
     case "RATE_LIMITED":
-      return { kicker: "Slow down", title: "Too many attempts." };
+      return { kicker: "Slow down", title: "Too many attempts.", code: "429" };
     case "DROP_ENDED":
-      return { kicker: "Share ended", title: "Nothing remains here." };
+      return {
+        kicker: "Share ended",
+        title: "Nothing remains here.",
+        code: "410",
+      };
     default:
-      return { kicker: "Share ended", title: "Nothing remains here." };
+      return {
+        kicker: "Share ended",
+        title: "Nothing remains here.",
+        code: "410",
+      };
   }
 }
 

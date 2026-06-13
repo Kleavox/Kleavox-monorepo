@@ -4,9 +4,25 @@
   "private": true,
   "type": "module",
   "exports": {
+    ".": "./src/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "files": [
-    "src/styles.css"
-  ]
+    "src"
+  ],
+  "scripts": {
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@kleavox/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
+  }
 }
