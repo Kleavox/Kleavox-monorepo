@@ -15,6 +15,7 @@ import { linkUnavailablePage, protectedLinkPage } from "./lib/page";
 import { hashLinkPassword, verifyLinkPassword } from "./lib/password";
 import { clientContext, parseExpiration, parseTargetUrl } from "./lib/request";
 import { generateSlug, isValidSlug, normalizeSlug } from "./lib/slug";
+import { app as dropApp, purgeDropUser } from "./drop/app";
 
 interface Variables {
   session: SessionIdentity;
@@ -103,13 +104,7 @@ app.get("/health", (context) =>
 
 app.get("/files", (context) => context.redirect("/", 308));
 
-app.all("/api/drop/*", (context) =>
-  proxyDrop(context, context.req.path.replace(/^\/api\/drop/u, "/api")),
-);
-app.all("/api/uploads", (context) => proxyDrop(context, context.req.path));
-app.all("/api/uploads/*", (context) => proxyDrop(context, context.req.path));
-app.all("/api/drops", (context) => proxyDrop(context, context.req.path));
-app.all("/api/public/*", (context) => proxyDrop(context, context.req.path));
+app.route("/", dropApp);
 
 app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
   const url = new URL(context.req.url);
@@ -179,6 +174,7 @@ app.post("/internal/purge-user", async (context) => {
   await context.env.DB.prepare(`DELETE FROM links WHERE user_id = ?`)
     .bind(userId)
     .run();
+  await purgeDropUser(context.env, userId);
   return context.json({ ok: true });
 });
 
@@ -590,14 +586,6 @@ app.patch("/api/admin/reports/:id", requireAdmin, async (context) => {
 });
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
-
-function proxyDrop(context: AppContext, pathname: string) {
-  const source = new URL(context.req.url);
-  const destination = new URL(source);
-  destination.hostname = INTERNAL_HOSTS.DROP;
-  destination.pathname = pathname;
-  return context.env.DROP.fetch(new Request(destination, context.req.raw));
-}
 
 async function readJson(context: AppContext): Promise<unknown> {
   return context.req.json().catch(() => null);

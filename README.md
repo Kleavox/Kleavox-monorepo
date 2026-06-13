@@ -15,7 +15,9 @@ sharing, infrastructure monitoring, and a portfolio.
 
 File links use `https://<root-domain>/f_<token>`. Short-link slugs cannot use the
 reserved `f_` prefix, so both products share the root namespace without
-collisions. Drop is an internal Worker and has no public subdomain.
+collisions. The Link Worker serves both short links and the file-sharing API
+(R2 uploads, downloads, moderation, and the cleanup cron) — there is no separate
+file Worker.
 
 The portfolio lives in the separate private `Kleavox/portfolio` repository and
 deploys independently; the gateway reaches it through the `PORTFOLIO` service
@@ -31,9 +33,8 @@ stay in sync between the two repos.
 | `apps/pulse`           | React monitoring dashboard                                                 |
 | `apps/web`             | Astro marketing site served by the gateway                                 |
 | `workers/gateway`      | Root-domain router: short links, file links, subdomain proxying            |
-| `workers/link`         | Short-link API, link resolution pages, drop proxy                          |
+| `workers/link`         | Short-link + file API: resolution, R2 multipart uploads, quotas, cleanup cron |
 | `workers/pass`         | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification  |
-| `workers/drop`         | File storage API: R2 multipart uploads, quotas, scheduled cleanup cron     |
 | `workers/pulse`        | Monitoring API: nodes, checks, incidents, agent enrollment                 |
 | `packages/auth`        | Shared session/challenge/Turnstile verification helpers                    |
 | `packages/core`        | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`   |
@@ -89,7 +90,7 @@ pnpm --filter @kleavox/pass-app build
 cd workers/pass && pnpm exec wrangler dev --port 8787
 ```
 
-Workers that call each other (gateway → link → pass/drop) connect through the
+Workers that call each other (gateway → link → pass) connect through the
 Wrangler dev registry when run in separate terminals.
 
 Root scripts (Turbo orchestrates per-workspace tasks):
@@ -139,7 +140,7 @@ files above 32 MiB skip compression. R2 stores the smaller body with
 `Content-Encoding: gzip`, so the browser restores the original during download
 without spending Worker CPU.
 
-**Drop lifecycle.** A 15-minute cron in the drop worker aborts stale upload
+**File lifecycle.** A 15-minute cron in the Link Worker aborts stale upload
 sessions, finalizes stuck completions, deletes expired or exhausted drops, and
 garbage-collects old rows.
 
@@ -151,8 +152,8 @@ Pulse API endpoint rejects non-admin sessions, the dashboard shows a
 home page only appear for an admin session. The abuse-report inbox lives in
 the Pulse dashboard (Moderation section): it lists short-link and file
 reports, and supports resolve/reject, disabling a reported link, and deleting
-a reported file. Pulse proxies these actions to the link and drop workers via
-service bindings; the target workers re-check the `ADMIN` role themselves.
+a reported file. Pulse proxies these actions to the Link Worker via a service
+binding; Link re-checks the `ADMIN` role itself.
 
 **First-admin bootstrap.** A fresh deploy has no admin — every account starts
 as `USER`, and there is deliberately no promotion endpoint (Pass is the public
@@ -196,7 +197,6 @@ Create these resources and keep the returned IDs outside the repository:
 pnpm exec wrangler d1 create kleavox-pass
 pnpm exec wrangler d1 create kleavox-link
 pnpm exec wrangler d1 create kleavox-pulse
-pnpm exec wrangler d1 create kleavox-drop
 pnpm exec wrangler kv namespace create kleavox-pass-sessions
 pnpm exec wrangler r2 bucket create kleavox-files
 ```
@@ -207,7 +207,6 @@ Map the returned values to GitHub environment secrets as follows:
 kleavox-pass -> PASS_D1_ID
 kleavox-link -> LINK_D1_ID
 kleavox-pulse -> PULSE_D1_ID
-kleavox-drop -> DROP_D1_ID
 kleavox-pass-sessions -> PASS_KV_ID
 ```
 
@@ -237,7 +236,6 @@ PASS_D1_ID
 PASS_KV_ID
 LINK_D1_ID
 PULSE_D1_ID
-DROP_D1_ID
 RESEND_API_KEY
 TURNSTILE_SITE_KEY
 TURNSTILE_SECRET_KEY

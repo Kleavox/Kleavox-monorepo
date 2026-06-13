@@ -1,4 +1,8 @@
-import { readCookie, VERIFICATION_COOKIE, verifyTurnstile } from "@kleavox/auth";
+import {
+  readCookie,
+  VERIFICATION_COOKIE,
+  verifyTurnstile,
+} from "@kleavox/auth";
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
 import { isReservedSlug } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
@@ -201,7 +205,7 @@ app.use("/api/*", async (context, next) => {
   const origin = context.req.header("origin");
   const requestOrigin = new URL(context.req.url).origin;
   const trustedOrigins = new Set([context.env.PUBLIC_ORIGIN, requestOrigin]);
-  
+
   if (
     (origin && !trustedOrigins.has(origin)) ||
     (!origin && context.env.ENVIRONMENT === "production")
@@ -216,7 +220,12 @@ app.use("/api/*", async (context, next) => {
     !referer.startsWith(context.env.PUBLIC_ORIGIN) &&
     !referer.startsWith(requestOrigin)
   ) {
-    return apiError(context, 403, "invalid_referer", "Cross-site request blocked.");
+    return apiError(
+      context,
+      403,
+      "invalid_referer",
+      "Cross-site request blocked.",
+    );
   }
 
   return next();
@@ -374,7 +383,12 @@ app.post("/api/oauth/link", async (context) => {
        id, user_id, provider, provider_subject, password_hash
      ) VALUES (?, ?, ?, ?, NULL)`,
   )
-    .bind(crypto.randomUUID(), pending.userId, pending.provider, pending.subject)
+    .bind(
+      crypto.randomUUID(),
+      pending.userId,
+      pending.provider,
+      pending.subject,
+    )
     .run();
   await context.env.SESSIONS.delete(key);
   await safeAudit(context.env, {
@@ -960,9 +974,6 @@ app.delete("/api/account", async (context) => {
     context.env.LINK.fetch(`${INTERNAL_URLS.LINK_PURGE}?id=${userId}`, {
       method: "POST",
     }),
-    context.env.DROP.fetch(`${INTERNAL_URLS.DROP_PURGE}?id=${userId}`, {
-      method: "POST",
-    }),
   ]).catch(() => null);
   if (!purges || purges.some((response) => !response.ok)) {
     return apiError(
@@ -1292,10 +1303,18 @@ app.get("/internal/session", async (context) => {
   }
 
   const token = context.req.header("x-kleavox-session");
-  if (!token) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
+  if (!token)
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Invalid or missing token." },
+      401,
+    );
 
   const session = await getSession(context.env, token);
-  if (!session) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
+  if (!session)
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Invalid or missing token." },
+      401,
+    );
   return context.json(session);
 });
 
@@ -1305,10 +1324,18 @@ app.post("/internal/logout", async (context) => {
   }
 
   const token = context.req.header("x-kleavox-session");
-  if (!token) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
+  if (!token)
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Invalid or missing token." },
+      401,
+    );
 
   const session = await getSession(context.env, token);
-  if (!session) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
+  if (!session)
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Invalid or missing token." },
+      401,
+    );
 
   const row = await context.env.DB.prepare(
     `UPDATE users
@@ -1439,7 +1466,11 @@ app.get("/internal/challenge", async (context) => {
 
   const token = context.req.header("x-kleavox-verification") ?? null;
   const verified = await checkVerification(context.env, token, scope);
-  if (!verified) return context.json({ code: "UNAUTHORIZED", message: "Invalid or missing token." }, 401);
+  if (!verified)
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Invalid or missing token." },
+      401,
+    );
 
   return context.json({ ok: true });
 });

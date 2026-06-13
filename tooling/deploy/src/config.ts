@@ -8,7 +8,6 @@ export interface DeployEnvironment {
   PASS_KV_ID: string;
   LINK_D1_ID: string;
   PULSE_D1_ID: string;
-  DROP_D1_ID: string;
   DROP_BUCKET_NAME: string;
   AUTH_FROM_EMAIL: string;
   AGENT_DOWNLOAD_BASE: string;
@@ -42,7 +41,6 @@ export function productionConfigs(
     pass: `${prefix}-pass`,
     link: `${prefix}-link`,
     pulse: `${prefix}-pulse`,
-    drop: `${prefix}-drop`,
     portfolio: `${prefix}-portfolio`,
     gateway: `${prefix}-gateway`,
   };
@@ -75,10 +73,7 @@ export function productionConfigs(
           migrations_dir: "../../workers/pass/migrations",
         },
       ],
-      services: [
-        { binding: "LINK", service: names.link },
-        { binding: "DROP", service: names.drop },
-      ],
+      services: [{ binding: "LINK", service: names.link }],
       ...(canonical ? { routes: routes(host("pass")) } : {}),
     },
     link: {
@@ -107,13 +102,17 @@ export function productionConfigs(
       ],
       services: [
         { binding: "PASS", service: names.pass },
-        { binding: "DROP", service: names.drop },
         { binding: "PULSE", service: names.pulse },
       ],
+      r2_buckets: [{ binding: "FILES", bucket_name: env.DROP_BUCKET_NAME }],
       ratelimits: [
         rateLimit("PUBLIC_CREATE_RATE_LIMIT", "3201", 10),
         rateLimit("REPORT_RATE_LIMIT", "3202", 5),
+        rateLimit("CREATE_RATE_LIMIT", "3101", 12),
+        rateLimit("DOWNLOAD_RATE_LIMIT", "3102", 120),
+        rateLimit("FILE_REPORT_RATE_LIMIT", "3103", 5),
       ],
+      triggers: { crons: ["*/15 * * * *"] },
       ...(canonical ? { routes: routes(host("link")) } : {}),
     },
     pulse: {
@@ -144,44 +143,9 @@ export function productionConfigs(
       services: [
         { binding: "PASS", service: names.pass },
         { binding: "LINK", service: names.link },
-        { binding: "DROP", service: names.drop },
       ],
       triggers: { crons: ["17 3 * * *"] },
       ...(canonical ? { routes: routes(host("pulse")) } : {}),
-    },
-    drop: {
-      ...base,
-      account_id: env.CLOUDFLARE_ACCOUNT_ID,
-      name: names.drop,
-      main: "../../workers/drop/src/index.ts",
-      vars: {
-        ENVIRONMENT: "production",
-        PUBLIC_ORIGIN: rootOrigin,
-      },
-      d1_databases: [
-        {
-          binding: "DB",
-          database_name: names.drop,
-          database_id: env.DROP_D1_ID,
-          migrations_dir: "../../workers/drop/migrations",
-        },
-      ],
-      r2_buckets: [
-        {
-          binding: "FILES",
-          bucket_name: env.DROP_BUCKET_NAME,
-        },
-      ],
-      services: [
-        { binding: "PASS", service: names.pass },
-        { binding: "PULSE", service: names.pulse },
-      ],
-      ratelimits: [
-        rateLimit("CREATE_RATE_LIMIT", "3101", 12),
-        rateLimit("DOWNLOAD_RATE_LIMIT", "3102", 120),
-        rateLimit("REPORT_RATE_LIMIT", "3103", 5),
-      ],
-      triggers: { crons: ["*/15 * * * *"] },
     },
     gateway: {
       ...base,
@@ -199,7 +163,6 @@ export function productionConfigs(
       },
       services: [
         { binding: "LINK", service: names.link },
-        { binding: "DROP", service: names.drop },
         { binding: "PASS", service: names.pass },
         { binding: "PULSE", service: names.pulse },
         { binding: "PORTFOLIO", service: names.portfolio },
@@ -220,7 +183,7 @@ export function productionSecrets(env: NodeJS.ProcessEnv) {
       "GITHUB_CLIENT_ID",
       "GITHUB_CLIENT_SECRET",
     ]),
-    drop: selectSecrets(env, [
+    link: selectSecrets(env, [
       "TURNSTILE_SECRET_KEY",
       "GUEST_HASH_SECRET",
       "DOWNLOAD_SIGNING_SECRET",
@@ -251,7 +214,6 @@ function validateEnvironment(env: DeployEnvironment) {
     "PASS_KV_ID",
     "LINK_D1_ID",
     "PULSE_D1_ID",
-    "DROP_D1_ID",
     "DROP_BUCKET_NAME",
     "AUTH_FROM_EMAIL",
     "AGENT_DOWNLOAD_BASE",

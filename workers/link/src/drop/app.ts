@@ -1,4 +1,3 @@
-import { INTERNAL_HOSTS } from "@kleavox/config";
 import {
   notifyReport,
   readCookie,
@@ -9,7 +8,7 @@ import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
 
-import type { Env } from "./env";
+import type { Env } from "../env";
 import {
   actorHash,
   createDownloadGrant,
@@ -108,44 +107,9 @@ const UNLOCK_COOKIE = "kleavox_drop_grant";
 
 export const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-app.onError((error, context) => {
-  console.error("[drop]", error);
-  return context.json(
-    {
-      code: "INTERNAL_ERROR",
-      message: "Drop could not complete the request.",
-    },
-    500,
-  );
-});
-
-app.use("*", async (context, next) => {
-  await next();
-  context.header("Referrer-Policy", "no-referrer");
-  context.header("X-Content-Type-Options", "nosniff");
-  context.header("X-Frame-Options", "DENY");
-  context.header(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
-  );
-});
-
-app.get("/health", (context) =>
-  context.json({ service: "drop", status: "ok" }),
-);
-
-app.post("/internal/purge-user", async (context) => {
-  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.DROP) {
-    return context.body(null, 404);
-  }
-
-  const userId = context.req.query("id");
-  if (!userId) {
-    return context.json({ code: "INVALID_INPUT", message: "Missing id." }, 400);
-  }
-
+export async function purgeDropUser(env: Env, userId: string): Promise<void> {
   for (let round = 0; round < 20; round += 1) {
-    const uploads = await context.env.DB.prepare(
+    const uploads = await env.DB.prepare(
       `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
               public_token, public_token_hash, object_key, r2_upload_id,
               original_name, content_type, size_bytes, source_size_bytes,
@@ -159,12 +123,12 @@ app.post("/internal/purge-user", async (context) => {
       .all<UploadRow>();
     if (uploads.results.length === 0) break;
     for (const upload of uploads.results) {
-      await abortUpload(context.env, upload);
+      await abortUpload(env, upload);
     }
   }
 
   for (let round = 0; round < 20; round += 1) {
-    const drops = await context.env.DB.prepare(
+    const drops = await env.DB.prepare(
       `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
               public_token, public_token_hash, object_key, original_name,
               content_type, size_bytes, password_hash, max_downloads,
@@ -177,21 +141,17 @@ app.post("/internal/purge-user", async (context) => {
       .all<DropRow>();
     if (drops.results.length === 0) break;
     for (const drop of drops.results) {
-      await deleteDrop(context.env, drop, "account_deleted");
+      await deleteDrop(env, drop, "account_deleted");
     }
   }
 
-  await context.env.DB.batch([
-    context.env.DB.prepare(
-      `DELETE FROM upload_sessions WHERE owner_user_id = ?`,
-    ).bind(userId),
-    context.env.DB.prepare(`DELETE FROM drops WHERE owner_user_id = ?`).bind(
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM upload_sessions WHERE owner_user_id = ?`).bind(
       userId,
     ),
+    env.DB.prepare(`DELETE FROM drops WHERE owner_user_id = ?`).bind(userId),
   ]);
-
-  return context.json({ ok: true });
-});
+}
 
 app.get("/api/limits", (context) =>
   context.json({
@@ -205,7 +165,7 @@ app.get("/api/limits", (context) =>
   }),
 );
 
-app.get("/api/session", async (context) => {
+app.get("/api/drop/session", async (context) => {
   const session = await verifySession(context.req.raw, context.env.PASS);
   if (!session) {
     return context.json({
@@ -444,7 +404,7 @@ app.post("/api/uploads", async (context) => {
       uploadId,
       manageToken,
       publicToken,
-      shareUrl: `${context.env.PUBLIC_ORIGIN}/${publicToken}`,
+      shareUrl: `${context.env.PUBLIC_SHORT_ORIGIN}/${publicToken}`,
       partSizeBytes: PART_SIZE_BYTES,
       partCount,
       expiresAt,
@@ -620,7 +580,7 @@ app.post("/api/uploads/:id/complete", async (context) => {
   return context.json({
     dropId: upload.id,
     publicToken: upload.public_token,
-    shareUrl: `${context.env.PUBLIC_ORIGIN}/${upload.public_token}`,
+    shareUrl: `${context.env.PUBLIC_SHORT_ORIGIN}/${upload.public_token}`,
     expiresAt: upload.expires_at,
   });
 });
@@ -832,7 +792,10 @@ app.get("/api/public/:token/download", async (context) => {
   if (drop.storage_encoding === "gzip") {
     // Decompress on the edge so browsers don't mishandle attachment encoding
     body = body.pipeThrough(new DecompressionStream("gzip"));
-    headers.set("Content-Length", (drop.source_size_bytes ?? object.size).toString());
+    headers.set(
+      "Content-Length",
+      (drop.source_size_bytes ?? object.size).toString(),
+    );
   } else {
     headers.set("Content-Length", object.size.toString());
   }
@@ -864,7 +827,7 @@ app.post("/api/public/:token/reports", async (context) => {
   const tokenHash = await sha256(context.req.param("token"));
   if (
     !(
-      await context.env.REPORT_RATE_LIMIT.limit({
+      await context.env.FILE_REPORT_RATE_LIMIT.limit({
         key: `report:${tokenHash}`,
       })
     ).success
@@ -901,7 +864,7 @@ app.post("/api/public/:token/reports", async (context) => {
   return context.json({ reported: true }, 201);
 });
 
-app.get("/api/admin/reports", requireSession, async (context) => {
+app.get("/api/admin/file-reports", requireSession, async (context) => {
   if (context.get("session").identity.role !== "ADMIN") {
     return context.body(null, 403);
   }
@@ -916,7 +879,7 @@ app.get("/api/admin/reports", requireSession, async (context) => {
   return context.json({ reports: reports.results });
 });
 
-app.patch("/api/admin/reports/:id", requireSession, async (context) => {
+app.patch("/api/admin/file-reports/:id", requireSession, async (context) => {
   if (context.get("session").identity.role !== "ADMIN") {
     return context.body(null, 403);
   }
@@ -933,10 +896,6 @@ app.patch("/api/admin/reports/:id", requireSession, async (context) => {
   if ((updated.meta.changes ?? 0) !== 1) return context.body(null, 404);
   return context.json({ updated: true });
 });
-
-app.all("*", (context) =>
-  context.json({ message: "Drop service route not found." }, 404),
-);
 
 export async function finalizeUploadRecord(
   env: Env,

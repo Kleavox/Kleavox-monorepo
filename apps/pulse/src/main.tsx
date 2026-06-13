@@ -312,7 +312,7 @@ function AbuseReports({
     try {
       const [links, drops] = await Promise.all([
         api<{ reports: LinkReport[] }>("/api/admin/link/admin/reports"),
-        api<{ reports: DropReport[] }>("/api/admin/drop/admin/reports"),
+        api<{ reports: DropReport[] }>("/api/admin/drop/admin/file-reports"),
       ]);
       setLinkReports(links.reports);
       setDropReports(drops.reports);
@@ -353,7 +353,7 @@ function AbuseReports({
 
   const setDropStatus = (id: string, status: string) =>
     act(() =>
-      api(`/api/admin/drop/admin/reports/${id}`, {
+      api(`/api/admin/drop/admin/file-reports/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),

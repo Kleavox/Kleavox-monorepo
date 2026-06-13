@@ -37,7 +37,6 @@ jobs:
       PASS_KV_ID: ${{ secrets.PASS_KV_ID }}
       LINK_D1_ID: ${{ secrets.LINK_D1_ID }}
       PULSE_D1_ID: ${{ secrets.PULSE_D1_ID }}
-      DROP_D1_ID: ${{ secrets.DROP_D1_ID }}
       DROP_BUCKET_NAME: ${{ vars.DROP_BUCKET_NAME }}
       AUTH_FROM_EMAIL: ${{ vars.AUTH_FROM_EMAIL }}
       AGENT_DOWNLOAD_BASE: https://github.com/${{ github.repository }}/releases/latest/download
@@ -105,16 +104,12 @@ jobs:
           pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/pass.json
           pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/link.json
           pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/pulse.json
-          pnpm exec wrangler d1 migrations apply DB --remote --config .wrangler/deploy/drop.json
 
       - name: Deploy Pass
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pass.json --secrets-file .wrangler/deploy/pass.secrets.json
 
-      - name: Deploy Drop
-        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/drop.json --secrets-file .wrangler/deploy/drop.secrets.json
-
       - name: Deploy Link
-        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/link.json
+        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/link.json --secrets-file .wrangler/deploy/link.secrets.json
 
       - name: Deploy Pulse
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pulse.json --secrets-file .wrangler/deploy/pulse.secrets.json

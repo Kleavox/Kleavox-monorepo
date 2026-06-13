@@ -4,7 +4,6 @@ export const VERIFICATION_COOKIE = "__Secure-kleavox_verified";
 export const INTERNAL_HOSTS = {
   PASS: "pass.internal",
   LINK: "link.internal",
-  DROP: "drop.internal",
   PULSE: "pulse.internal",
 } as const;
 
@@ -15,14 +14,16 @@ export const INTERNAL_URLS = {
   IDENTITY_LOOKUP: `http://${INTERNAL_HOSTS.PASS}/internal/identity`,
   ADMINS_LOOKUP: `http://${INTERNAL_HOSTS.PASS}/internal/admins`,
   LINK_PURGE: `http://${INTERNAL_HOSTS.LINK}/internal/purge-user`,
-  DROP_PURGE: `http://${INTERNAL_HOSTS.DROP}/internal/purge-user`,
   PULSE_REPORT_NOTIFY: `http://${INTERNAL_HOSTS.PULSE}/internal/report-notify`,
 } as const;
 
-export function getPublicOrigin(rootOrigin: string, subdomain?: string): string {
+export function getPublicOrigin(
+  rootOrigin: string,
+  subdomain?: string,
+): string {
   const url = new URL(rootOrigin);
   if (!subdomain) return url.origin;
-  
+
   // If we are on localhost, we might use different ports instead of subdomains
   // But for production, it's always subdomain.domain.tld
   if (url.hostname === "localhost") {

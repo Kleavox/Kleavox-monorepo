@@ -8,7 +8,6 @@ import { hostRedirect } from "./hosts";
 export interface Env {
   ASSETS: Fetcher;
   LINK: Fetcher;
-  DROP: Fetcher;
   PASS: Fetcher;
   PULSE: Fetcher;
   PORTFOLIO: Fetcher;
@@ -71,8 +70,8 @@ app.post("/api/logout", async (context) => {
 
 app.all("/api/public/*", (context) => {
   const url = new URL(context.req.url);
-  url.hostname = INTERNAL_HOSTS.DROP;
-  return context.env.DROP.fetch(new Request(url, context.req.raw));
+  url.hostname = INTERNAL_HOSTS.LINK;
+  return context.env.LINK.fetch(new Request(url, context.req.raw));
 });
 
 app.all("/link-assets/*", (context) => {
@@ -88,7 +87,7 @@ app.all("*", async (context) => {
 
   if (hostname.endsWith(`.${rootOrigin.hostname}`)) {
     const subdomain = hostname.replace(`.${rootOrigin.hostname}`, "");
-    
+
     if (subdomain === "pass") {
       return context.env.PASS.fetch(context.req.raw);
     }

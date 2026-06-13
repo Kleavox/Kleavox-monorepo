@@ -45,23 +45,22 @@ describe("Gateway public namespace", () => {
     expect(linkFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("proxies public file APIs to Drop", async () => {
-    const dropFetch = vi.fn(async (request: Request) =>
+  it("proxies public file APIs to Link", async () => {
+    const linkFetch = vi.fn(async (request: Request) =>
       Response.json({ host: new URL(request.url).hostname }),
     );
     const response = await app.request(
       "https://product.test/api/public/f_JG2nV6-pQ9",
       {},
       {
-        LINK: { fetch: vi.fn() },
-        DROP: { fetch: dropFetch },
+        LINK: { fetch: linkFetch },
         ASSETS: { fetch: vi.fn() },
         PUBLIC_ORIGIN: "https://product.test",
       } as unknown as Env,
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ host: "drop.internal" });
+    await expect(response.json()).resolves.toEqual({ host: "link.internal" });
   });
 
   it("proxies the receiver bundle to Link", async () => {

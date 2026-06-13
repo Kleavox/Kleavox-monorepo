@@ -3,7 +3,11 @@ import { rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
 
 const env = {
   ...process.env,
@@ -19,7 +23,7 @@ execSync(
   { cwd: repoRoot, env, stdio: "inherit" },
 );
 
-for (const worker of ["pass", "link", "drop"]) {
+for (const worker of ["pass", "link"]) {
   rmSync(path.join(repoRoot, "workers", worker, ".wrangler", "state"), {
     recursive: true,
     force: true,

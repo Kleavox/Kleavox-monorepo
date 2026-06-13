@@ -143,8 +143,8 @@ app.all("/api/admin/link/*", requireAdmin, (context) =>
 app.all("/api/admin/drop/*", requireAdmin, (context) =>
   proxyAdmin(
     context,
-    context.env.DROP,
-    INTERNAL_HOSTS.DROP,
+    context.env.LINK,
+    INTERNAL_HOSTS.LINK,
     context.req.path.replace(/^\/api\/admin\/drop/u, "/api"),
   ),
 );
@@ -834,7 +834,10 @@ async function notifyIncident(
     lookup.searchParams.set("id", node.owner_user_id);
     const response = await env.PASS.fetch(lookup);
     if (!response.ok) return;
-    const owner = await response.json<{ email: string; username: string | null }>();
+    const owner = await response.json<{
+      email: string;
+      username: string | null;
+    }>();
 
     await sendIncidentEmail(env, {
       to: owner.email,

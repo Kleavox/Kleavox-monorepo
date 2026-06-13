@@ -20,10 +20,6 @@
       "service": "local-link",
     },
     {
-      "binding": "DROP",
-      "service": "local-drop",
-    },
-    {
       "binding": "PASS",
       "service": "local-pass",
     },
