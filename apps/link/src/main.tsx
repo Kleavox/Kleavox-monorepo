@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { ApiError, apiFetch as request, firstName } from "@kleavox/core";
+import { ApiError, apiFetch as request, displayHandle } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
@@ -175,7 +175,7 @@ function Header({
                 setMenuOpen((open) => !open);
               }}
             >
-              {firstName(state.identity.name, state.identity.email)}
+              {displayHandle(state.identity.username, state.identity.email)}
             </button>
             {menuOpen && (
               <div
@@ -1098,7 +1098,7 @@ function isIdentity(value: unknown): value is Identity {
   return (
     typeof identity.id === "string" &&
     typeof identity.email === "string" &&
-    (typeof identity.name === "string" || identity.name === null) &&
+    (typeof identity.username === "string" || identity.username === null) &&
     (identity.role === "ADMIN" || identity.role === "USER")
   );
 }

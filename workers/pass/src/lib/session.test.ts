@@ -52,7 +52,7 @@ class MemoryKv {
 const identity: Identity = {
   id: "user-1",
   email: "person@example.com",
-  name: "Person",
+  username: "person",
   role: "USER",
 };
 
@@ -92,13 +92,13 @@ describe("sessions", () => {
     const deviceA = await createSession(env, identity, 1);
     const deviceB = await createSession(env, identity, 1);
 
-    await putIdentityOverride(env, { ...identity, name: "Renamed Person" });
+    await putIdentityOverride(env, { ...identity, username: "renamed_person" });
 
     await expect(getSession(env, deviceA.token)).resolves.toMatchObject({
-      identity: { name: "Renamed Person" },
+      identity: { username: "renamed_person" },
     });
     await expect(getSession(env, deviceB.token)).resolves.toMatchObject({
-      identity: { name: "Renamed Person" },
+      identity: { username: "renamed_person" },
     });
   });
 
@@ -108,7 +108,7 @@ describe("sessions", () => {
     const created = await createSession(env, identity, 1);
 
     await expect(getSession(env, created.token)).resolves.toMatchObject({
-      identity: { name: "Person" },
+      identity: { username: "person" },
     });
   });
 

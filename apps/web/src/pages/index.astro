@@ -40,7 +40,13 @@ const [link, pass, pulse, port] = products;
       <div class="shell hdr-inner">
         <a class="wm" href="/" aria-label="Kleavox home">Kleav<b>ox</b></a>
         <div class="account" data-account>
-          <a class="btn-nav" href={pass.href} data-signin>Sign in</a>
+          <a
+          class="btn-nav"
+          href={`${pass.href}/?returnTo=${encodeURIComponent(rootOrigin)}`}
+          data-signin
+        >
+          Sign in
+        </a>
           <div class="account-menu" data-account-menu hidden>
             <button
               type="button"
@@ -150,7 +156,7 @@ const [link, pass, pulse, port] = products;
     </footer>
 
     <script>
-      import { firstName } from "@kleavox/core";
+      import { displayHandle } from "@kleavox/core";
 
       const account = document.querySelector<HTMLElement>("[data-account]");
       const signIn = document.querySelector<HTMLElement>("[data-signin]");
@@ -193,10 +199,10 @@ const [link, pass, pulse, port] = products;
 
       fetch("/api/session", { credentials: "include" })
         .then((response) => (response.ok ? response.json() : { authenticated: false }))
-        .then((data: { authenticated: boolean; identity?: { name?: string; email?: string; role?: string } }) => {
+        .then((data: { authenticated: boolean; identity?: { username?: string; email?: string; role?: string } }) => {
           if (!data.authenticated || !data.identity) return;
           if (name) {
-            name.textContent = firstName(data.identity.name, data.identity.email);
+            name.textContent = displayHandle(data.identity.username, data.identity.email);
           }
           signIn?.setAttribute("hidden", "");
           menu?.removeAttribute("hidden");
