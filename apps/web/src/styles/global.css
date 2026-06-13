@@ -351,13 +351,17 @@ h1 {
 
 /* ── Mosaic ── */
 .mosaic {
-  position: relative;
-  min-height: min(700px, 74vh);
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.7rem, 1.4vw, 1.1rem);
+  align-content: start;
 }
 
 .mc {
-  position: absolute;
+  position: relative;
   z-index: 0;
+  flex: 1 1 calc(50% - 0.55rem);
+  min-height: clamp(180px, 23vw, 240px);
   overflow: hidden;
   border: 1px solid var(--line-bright);
   border-radius: 10px;
@@ -372,45 +376,20 @@ h1 {
 
 .mc:hover {
   z-index: 5;
-  transform: translateY(-14px) rotate(-2deg);
+  transform: translateY(-10px) rotate(-1.5deg);
   box-shadow: 0 44px 90px rgb(0 0 0 / 55%);
 }
 
 .mc2:hover {
-  transform: translateY(-12px) rotate(2deg);
+  transform: translateY(-10px) rotate(1.5deg);
 }
 
 .mc3:hover {
-  transform: translateY(-13px) rotate(-1.8deg);
+  transform: translateY(-10px) rotate(-1.5deg);
 }
 
 .mc4:hover {
-  transform: translateY(-11px) rotate(2deg);
-}
-
-.mc1 {
-  inset: 0 10% 24% 0;
-}
-
-.mc2 {
-  width: 47%;
-  height: 42%;
-  right: 0;
-  top: 9%;
-}
-
-.mc3 {
-  width: 54%;
-  height: 41%;
-  left: 7%;
-  bottom: 0;
-}
-
-.mc4 {
-  width: 39%;
-  height: 36%;
-  right: 3%;
-  bottom: 5%;
+  transform: translateY(-10px) rotate(1.5deg);
 }
 
 .mc1:hover {
@@ -851,9 +830,6 @@ h1 {
     min-height: auto;
   }
 
-  .mosaic {
-    min-height: 520px;
-  }
 }
 
 @media (max-width: 640px) {
@@ -874,30 +850,9 @@ h1 {
     max-width: 29rem;
   }
 
-  .mosaic {
-    min-height: 420px;
-  }
-
-  .mc1 {
-    inset: 0 4% 26% 0;
-  }
-
-  .mc2 {
-    width: 50%;
-    height: 38%;
-  }
-
-  .mc3 {
-    width: 58%;
-    height: 38%;
-    left: 2%;
-  }
-
-  .mc4 {
-    width: 42%;
-    height: 33%;
-    right: 0;
-    bottom: 3%;
+  .mc {
+    flex-basis: 100%;
+    min-height: 150px;
   }
 
   .hero-acts {
@@ -926,10 +881,6 @@ h1 {
 @media (max-width: 480px) {
   .hero h1 {
     font-size: clamp(3.2rem, 16vw, 4.5rem);
-  }
-
-  .mosaic {
-    min-height: 340px;
   }
 
   .route-sample {

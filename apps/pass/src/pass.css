@@ -190,6 +190,7 @@ button {
   letter-spacing: 0.1em;
   text-decoration: none;
   text-transform: uppercase;
+  white-space: nowrap;
   transition:
     transform 150ms ease,
     background 150ms ease,
@@ -271,6 +272,7 @@ button {
   padding: 0;
   font-size: 0.75rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .pass-text-action:hover,
@@ -419,8 +421,10 @@ button {
   min-height: 42px;
   padding: 0 1.4rem;
   border: 1px solid #fb7185;
+  border-radius: 999px;
   background: transparent;
   font-weight: 800;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -441,8 +445,17 @@ button {
   border-bottom: 1px solid var(--pass-line);
 }
 
+.pass-device > div {
+  min-width: 0;
+}
+
+.pass-device > button {
+  flex-shrink: 0;
+}
+
 .pass-device strong {
   display: block;
+  overflow-wrap: anywhere;
   font-size: 0.92rem;
 }
 
@@ -487,9 +500,10 @@ button {
 }
 
 .pass-account-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
 }
 
 .pass-loading-lines {
@@ -541,8 +555,7 @@ button {
 }
 
 @media (max-width: 480px) {
-  .pass-oauth,
-  .pass-account-actions {
+  .pass-oauth {
     grid-template-columns: 1fr;
   }
 
