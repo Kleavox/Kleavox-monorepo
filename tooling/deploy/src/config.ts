@@ -11,7 +11,6 @@ export interface DeployEnvironment {
   DROP_D1_ID: string;
   DROP_BUCKET_NAME: string;
   AUTH_FROM_EMAIL: string;
-  PORTFOLIO_FROM_EMAIL: string;
   AGENT_DOWNLOAD_BASE: string;
 }
 
@@ -177,24 +176,6 @@ export function productionConfigs(
       ],
       triggers: { crons: ["*/15 * * * *"] },
     },
-    portfolio: {
-      ...base,
-      account_id: env.CLOUDFLARE_ACCOUNT_ID,
-      name: names.portfolio,
-      main: "../../workers/portfolio/src/index.ts",
-      vars: {
-        CONTACT_EMAIL: `portfolio@inbound.${rootDomain}`,
-        FROM_EMAIL: env.PORTFOLIO_FROM_EMAIL,
-      },
-      assets: {
-        directory: "../../apps/portfolio/dist",
-        binding: "ASSETS",
-        not_found_handling: "404-page",
-        run_worker_first: ["/health", "/api/contact"],
-      },
-      ratelimits: [rateLimit("CONTACT_RATE_LIMIT", "3301", 3)],
-      ...(canonical ? { routes: routes(host("port")) } : {}),
-    },
     gateway: {
       ...base,
       account_id: env.CLOUDFLARE_ACCOUNT_ID,
@@ -239,7 +220,6 @@ export function productionSecrets(env: NodeJS.ProcessEnv) {
       "PASSWORD_HASH_SECRET",
     ]),
     pulse: selectSecrets(env, ["RESEND_API_KEY"]),
-    portfolio: selectSecrets(env, ["RESEND_API_KEY", "TURNSTILE_SECRET_KEY"]),
   };
 }
 
@@ -267,7 +247,6 @@ function validateEnvironment(env: DeployEnvironment) {
     "DROP_D1_ID",
     "DROP_BUCKET_NAME",
     "AUTH_FROM_EMAIL",
-    "PORTFOLIO_FROM_EMAIL",
     "AGENT_DOWNLOAD_BASE",
   ] as const satisfies readonly (keyof DeployEnvironment)[];
 

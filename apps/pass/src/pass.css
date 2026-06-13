@@ -337,6 +337,17 @@ button {
   min-height: 65px;
 }
 
+.pass-challenge-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--pass-quiet);
+  font-family: var(--kvx-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .pass-turnstile-invisible {
   min-height: 0;
 }

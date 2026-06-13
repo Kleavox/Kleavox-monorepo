@@ -803,11 +803,11 @@ async function notifyIncident(
     lookup.searchParams.set("id", node.owner_user_id);
     const response = await env.PASS.fetch(lookup);
     if (!response.ok) return;
-    const owner = await response.json<{ email: string; name: string | null }>();
+    const owner = await response.json<{ email: string; username: string | null }>();
 
     await sendIncidentEmail(env, {
       to: owner.email,
-      recipientName: owner.name,
+      recipientName: owner.username,
       kind,
       checkName,
       nodeName: node.name,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { firstName, isFileSlug, isReservedSlug } from "./index";
+import { displayHandle, isFileSlug, isReservedSlug } from "./index";
 
 describe("isReservedSlug", () => {
   it("normalizes case and whitespace", () => {
@@ -17,19 +17,18 @@ describe("isReservedSlug", () => {
   });
 });
 
-describe("firstName", () => {
-  it("returns the first word of a full name", () => {
-    expect(firstName("Hafidh Musyafa")).toBe("Hafidh");
-    expect(firstName("  Norm   Test ")).toBe("Norm");
+describe("displayHandle", () => {
+  it("returns the username when present", () => {
+    expect(displayHandle("ada_lovelace")).toBe("ada_lovelace");
   });
 
   it("falls back to the email local part", () => {
-    expect(firstName(null, "norm@example.com")).toBe("norm");
-    expect(firstName("", "norm@example.com")).toBe("norm");
+    expect(displayHandle(null, "norm@example.com")).toBe("norm");
+    expect(displayHandle("", "norm@example.com")).toBe("norm");
   });
 
   it("falls back to a generic label", () => {
-    expect(firstName(null, null)).toBe("Account");
-    expect(firstName(undefined, undefined)).toBe("Account");
+    expect(displayHandle(null, null)).toBe("Account");
+    expect(displayHandle(undefined, undefined)).toBe("Account");
   });
 });

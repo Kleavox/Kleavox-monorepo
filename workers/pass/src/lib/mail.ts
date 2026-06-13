@@ -9,7 +9,7 @@ interface EmailMessage {
 export async function sendVerificationEmail(
   env: Env,
   email: string,
-  name: string,
+  username: string,
   token: string,
 ): Promise<void> {
   const url = new URL("/verify", env.PUBLIC_ORIGIN);
@@ -20,7 +20,7 @@ export async function sendVerificationEmail(
     subject: "Verify your Kleavox account",
     html: accountEmail(
       "Verify your account",
-      `Hi ${escapeHtml(name)}, confirm this email address to activate Kleavox Pass.`,
+      `Hi ${escapeHtml(username)}, confirm this email address to activate Kleavox Pass.`,
       "Verify email",
       url.toString(),
       "This link expires in 30 minutes.",
@@ -31,7 +31,7 @@ export async function sendVerificationEmail(
 export async function sendPasswordResetEmail(
   env: Env,
   email: string,
-  name: string,
+  username: string,
   token: string,
 ): Promise<void> {
   const url = new URL("/reset", env.PUBLIC_ORIGIN);
@@ -42,10 +42,34 @@ export async function sendPasswordResetEmail(
     subject: "Reset your Kleavox password",
     html: accountEmail(
       "Reset your password",
-      `Hi ${escapeHtml(name)}, use this link to choose a new Kleavox Pass password.`,
+      `Hi ${escapeHtml(username)}, use this link to choose a new Kleavox Pass password.`,
       "Reset password",
       url.toString(),
       "This link expires in 15 minutes. Ignore this email if you did not request it.",
+    ),
+  });
+}
+
+export async function sendOAuthLinkEmail(
+  env: Env,
+  email: string,
+  username: string,
+  provider: string,
+  token: string,
+): Promise<void> {
+  const url = new URL("/link-oauth", env.PUBLIC_ORIGIN);
+  url.searchParams.set("token", token);
+  const providerLabel = provider === "google" ? "Google" : "GitHub";
+
+  await sendEmail(env, {
+    to: email,
+    subject: `Confirm linking ${providerLabel} to your Kleavox account`,
+    html: accountEmail(
+      `Link ${providerLabel} sign-in`,
+      `Hi ${escapeHtml(username)}, someone signed in with ${escapeHtml(providerLabel)} using this email address. Confirm below to let that ${escapeHtml(providerLabel)} account sign in to your Kleavox account. If this was not you, ignore this email and nothing will change.`,
+      `Link ${providerLabel}`,
+      url.toString(),
+      "This link expires in 15 minutes.",
     ),
   });
 }

@@ -58,7 +58,7 @@ test("auth journey: register, sign in, account page, link header", async ({
   await page.goto(`${PASS}/`);
   await page.getByRole("button", { name: "Create an account" }).click();
 
-  await page.locator('input[name="name"]').fill("E2E User");
+  await page.locator('input[name="username"]').fill("e2e_user");
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
   await page.locator('input[name="confirm-password"]').fill(password);
@@ -72,14 +72,14 @@ test("auth journey: register, sign in, account page, link header", async ({
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 
-  await expect(page.getByRole("heading", { name: "E2E User" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "e2e_user" })).toBeVisible();
   await expect(page.getByText("Sign-in methods")).toBeVisible();
   await expect(
     page.locator(".pass-providers span", { hasText: "Password" }),
   ).toBeVisible();
 
   await page.goto(`${LINK}/`);
-  await expect(page.locator(".link-account-trigger")).toHaveText("E2E");
+  await expect(page.locator(".link-account-trigger")).toHaveText("e2e_user");
 });
 
 test("guest short-link creation routes through the security challenge", async ({

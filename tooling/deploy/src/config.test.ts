@@ -13,7 +13,6 @@ const env = {
   DROP_D1_ID: "44444444-4444-4444-4444-444444444444",
   DROP_BUCKET_NAME: "product-files",
   AUTH_FROM_EMAIL: "Product <no-reply@product.test>",
-  PORTFOLIO_FROM_EMAIL: "Portfolio <no-reply@product.test>",
   AGENT_DOWNLOAD_BASE:
     "https://github.com/example/project/releases/latest/download",
 };
@@ -35,12 +34,7 @@ describe("production deployment config", () => {
     expect(configs["link"]?.routes).toEqual([
       { pattern: "link.product.test", custom_domain: true },
     ]);
-    expect(configs["portfolio"]?.routes).toEqual([
-      { pattern: "port.product.test", custom_domain: true },
-    ]);
-    expect(configs["portfolio"]?.vars).toMatchObject({
-      CONTACT_EMAIL: "portfolio@inbound.product.test",
-    });
+    expect(configs["portfolio"]).toBeUndefined();
     expect(configs["drop"]?.routes).toBeUndefined();
     expect(configs["drop"]?.vars).toMatchObject({
       PUBLIC_ORIGIN: "https://product.test",
@@ -88,9 +82,6 @@ describe("production secrets", () => {
     });
     expect(result.pass.RESEND_API_KEY).toBe("resend");
     expect(result.drop.PASSWORD_HASH_SECRET).toBe("password");
-    expect(result.portfolio).toEqual({
-      RESEND_API_KEY: "resend",
-      TURNSTILE_SECRET_KEY: "turnstile",
-    });
+    expect(result).not.toHaveProperty("portfolio");
   });
 });

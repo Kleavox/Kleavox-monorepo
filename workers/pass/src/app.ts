@@ -1,5 +1,6 @@
 import { readCookie, VERIFICATION_COOKIE, verifyTurnstile } from "@kleavox/auth";
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
+import { isReservedSlug } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
@@ -17,7 +18,11 @@ import {
   randomToken,
   verifyPassword,
 } from "./lib/crypto";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./lib/mail";
+import {
+  sendOAuthLinkEmail,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "./lib/mail";
 import {
   beginOAuth,
   finishOAuth,
@@ -45,7 +50,7 @@ type AppContext = Context<AppEnv>;
 interface UserRow {
   id: string;
   email: string;
-  name: string | null;
+  username: string | null;
   role: "ADMIN" | "USER";
   email_verified_at: string | null;
   auth_version: number;
@@ -65,7 +70,7 @@ interface TokenRow {
   id: string;
   user_id: string;
   email: string;
-  name: string | null;
+  username: string | null;
   expires_at: string;
   auth_version: number;
 }
@@ -74,6 +79,7 @@ const DUMMY_PASSWORD_HASH =
   "pbkdf2-sha256$600000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 const EMAIL_VERIFICATION_TTL_MS = 30 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
+const OAUTH_LINK_TTL_SECONDS = 15 * 60;
 
 const emailSchema = z
   .string()
@@ -83,10 +89,19 @@ const emailSchema = z
   .transform(normalizeEmail);
 const passwordSchema = z.string().min(12).max(128);
 const tokenSchema = z.string().min(32).max(256);
+const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(
+    /^[a-z0-9_]{3,20}$/u,
+    "Username must be 3-20 lowercase letters, digits, or underscores.",
+  )
+  .refine((value) => !isReservedSlug(value), "This username is reserved.");
 
 const registerSchema = z.object({
   email: emailSchema,
-  name: z.string().trim().min(1).max(80),
+  username: usernameSchema,
   password: passwordSchema,
 });
 
@@ -115,7 +130,16 @@ const challengeSchema = z.object({
 });
 
 const accountUpdateSchema = z.object({
-  name: z.string().trim().min(1).max(80),
+  username: usernameSchema,
+});
+
+const accountSetupSchema = z.object({
+  username: usernameSchema,
+  password: passwordSchema.optional(),
+});
+
+const oauthLinkSchema = z.object({
+  token: tokenSchema,
 });
 
 const accountPasswordSchema = z.object({
@@ -239,7 +263,47 @@ app.get("/api/oauth/callback/:provider", async (context) => {
   const result = await finishOAuth(context.req.raw, context.env, provider);
   if (result instanceof Response) return result;
 
-  const user = await findOrCreateOAuthUser(context.env, result.profile);
+  const resolution = await resolveOAuthUser(context.env, result.profile);
+
+  if (resolution.kind === "link_required") {
+    const existing = resolution.existing;
+    if (existing.disabled_at) {
+      return oauthFailure(context.env, "account_disabled");
+    }
+    const linkToken = randomToken();
+    await context.env.SESSIONS.put(
+      `oauthlink:${await hashToken(linkToken)}`,
+      JSON.stringify({
+        provider: result.profile.provider,
+        subject: result.profile.subject,
+        userId: existing.id,
+      }),
+      { expirationTtl: OAUTH_LINK_TTL_SECONDS },
+    );
+    try {
+      await sendOAuthLinkEmail(
+        context.env,
+        existing.email,
+        existing.username ?? "there",
+        provider,
+        linkToken,
+      );
+    } catch (cause) {
+      console.error("[pass email]", cause);
+      return oauthFailure(context.env, "oauth_failed");
+    }
+    await safeAudit(context.env, {
+      userId: existing.id,
+      type: `oauth_${provider}_link_requested`,
+      request: context.req.raw,
+    });
+    return context.redirect(
+      `${context.env.PUBLIC_ORIGIN}/?oauthError=link_confirmation_sent`,
+      302,
+    );
+  }
+
+  const user = resolution.user;
   if (user.disabled_at) {
     return oauthFailure(context.env, "account_disabled");
   }
@@ -267,7 +331,59 @@ app.get("/api/oauth/callback/:provider", async (context) => {
     "Set-Cookie",
     makeSessionCookie(context.req.raw, context.env, created.token),
   );
+  if (!user.username) {
+    const welcome = new URL("/welcome", context.env.PUBLIC_ORIGIN);
+    welcome.searchParams.set("returnTo", result.returnTo);
+    return context.redirect(welcome.toString(), 302);
+  }
   return context.redirect(result.returnTo, 302);
+});
+
+app.post("/api/oauth/link", async (context) => {
+  const body = oauthLinkSchema.safeParse(await context.req.json());
+  if (!body.success) {
+    return apiError(context, 400, "invalid_input", firstIssue(body.error));
+  }
+
+  const limit = await rateLimit(
+    context.env,
+    "oauth-link",
+    clientIp(context.req.raw),
+    10,
+    3600,
+  );
+  if (!limit.allowed) return rateLimitError(context, limit.retryAfter);
+
+  const key = `oauthlink:${await hashToken(body.data.token)}`;
+  const pending = await context.env.SESSIONS.get<{
+    provider: string;
+    subject: string;
+    userId: string;
+  }>(key, "json");
+  if (!pending) {
+    return apiError(
+      context,
+      400,
+      "invalid_token",
+      "This linking request is invalid or has expired.",
+    );
+  }
+
+  await context.env.DB.prepare(
+    `INSERT INTO identities (
+       id, user_id, provider, provider_subject, password_hash
+     ) VALUES (?, ?, ?, ?, NULL)`,
+  )
+    .bind(crypto.randomUUID(), pending.userId, pending.provider, pending.subject)
+    .run();
+  await context.env.SESSIONS.delete(key);
+  await safeAudit(context.env, {
+    userId: pending.userId,
+    type: `oauth_${pending.provider}_linked`,
+    request: context.req.raw,
+  });
+
+  return context.json({ ok: true, provider: pending.provider });
 });
 
 app.post("/api/register", async (context) => {
@@ -317,6 +433,20 @@ app.post("/api/register", async (context) => {
     );
   }
 
+  const usernameTaken = await context.env.DB.prepare(
+    `SELECT id FROM users WHERE username = ? AND id IS NOT ? LIMIT 1`,
+  )
+    .bind(body.data.username, existing?.id ?? null)
+    .first<{ id: string }>();
+  if (usernameTaken) {
+    return apiError(
+      context,
+      409,
+      "username_taken",
+      "This username is already in use.",
+    );
+  }
+
   const userId = existing?.id ?? crypto.randomUUID();
   const identityId = existing?.identity_id ?? crypto.randomUUID();
   const passwordHash = await hashPassword(body.data.password);
@@ -330,9 +460,9 @@ app.post("/api/register", async (context) => {
     statements.push(
       context.env.DB.prepare(
         `UPDATE users
-         SET name = ?, updated_at = datetime('now')
+         SET username = ?, updated_at = datetime('now')
          WHERE id = ?`,
-      ).bind(body.data.name, userId),
+      ).bind(body.data.username, userId),
     );
     if (existing.identity_id) {
       statements.push(
@@ -355,9 +485,9 @@ app.post("/api/register", async (context) => {
   } else {
     statements.push(
       context.env.DB.prepare(
-        `INSERT INTO users (id, email, name)
+        `INSERT INTO users (id, email, username)
          VALUES (?, ?, ?)`,
-      ).bind(userId, body.data.email, body.data.name),
+      ).bind(userId, body.data.email, body.data.username),
       context.env.DB.prepare(
         `INSERT INTO identities (
            id, user_id, provider, provider_subject, password_hash
@@ -383,7 +513,7 @@ app.post("/api/register", async (context) => {
     await sendVerificationEmail(
       context.env,
       body.data.email,
-      body.data.name,
+      body.data.username,
       verification.raw,
     );
   } catch (cause) {
@@ -466,7 +596,7 @@ app.post("/api/verification/resend", async (context) => {
     await sendVerificationEmail(
       context.env,
       user.email,
-      user.name ?? "there",
+      user.username ?? "there",
       verification.raw,
     );
     await safeAudit(context.env, {
@@ -496,7 +626,7 @@ app.post("/api/verify-email", async (context) => {
 
   const tokenHash = await hashToken(body.data.token);
   const token = await context.env.DB.prepare(
-    `SELECT vt.id, vt.user_id, vt.expires_at, u.email, u.name,
+    `SELECT vt.id, vt.user_id, vt.expires_at, u.email, u.username,
             u.auth_version
      FROM verification_tokens vt
      JOIN users u ON u.id = vt.user_id
@@ -676,19 +806,115 @@ app.patch("/api/account", async (context) => {
     return apiError(context, 400, "invalid_input", firstIssue(body.error));
   }
 
+  const taken = await usernameTakenBy(
+    context.env,
+    body.data.username,
+    session.identity.id,
+  );
+  if (taken) {
+    return apiError(
+      context,
+      409,
+      "username_taken",
+      "This username is already in use.",
+    );
+  }
+
   await context.env.DB.prepare(
     `UPDATE users
-     SET name = ?, updated_at = datetime('now')
+     SET username = ?, updated_at = datetime('now')
      WHERE id = ?`,
   )
-    .bind(body.data.name, session.identity.id)
+    .bind(body.data.username, session.identity.id)
     .run();
 
-  const identity = { ...session.identity, name: body.data.name };
+  const identity = { ...session.identity, username: body.data.username };
   await putIdentityOverride(context.env, identity);
   await safeAudit(context.env, {
     userId: identity.id,
-    type: "name_updated",
+    type: "username_updated",
+    request: context.req.raw,
+  });
+
+  return context.json({ ok: true, user: identity });
+});
+
+app.post("/api/account/setup", async (context) => {
+  const session = await currentSession(context);
+  if (!session) {
+    return apiError(context, 401, "unauthorized", "Sign in first.");
+  }
+
+  const body = accountSetupSchema.safeParse(await context.req.json());
+  if (!body.success) {
+    return apiError(context, 400, "invalid_input", firstIssue(body.error));
+  }
+
+  const current = await context.env.DB.prepare(
+    `SELECT username FROM users WHERE id = ?`,
+  )
+    .bind(session.identity.id)
+    .first<{ username: string | null }>();
+  if (current?.username) {
+    return apiError(
+      context,
+      409,
+      "already_set",
+      "This account already has a username.",
+    );
+  }
+
+  const taken = await usernameTakenBy(
+    context.env,
+    body.data.username,
+    session.identity.id,
+  );
+  if (taken) {
+    return apiError(
+      context,
+      409,
+      "username_taken",
+      "This username is already in use.",
+    );
+  }
+
+  const statements: D1PreparedStatement[] = [
+    context.env.DB.prepare(
+      `UPDATE users
+       SET username = ?, updated_at = datetime('now')
+       WHERE id = ?`,
+    ).bind(body.data.username, session.identity.id),
+  ];
+
+  if (body.data.password) {
+    const hasPassword = await context.env.DB.prepare(
+      `SELECT id FROM identities WHERE user_id = ? AND provider = 'password'`,
+    )
+      .bind(session.identity.id)
+      .first<{ id: string }>();
+    if (!hasPassword) {
+      statements.push(
+        context.env.DB.prepare(
+          `INSERT INTO identities (
+             id, user_id, provider, provider_subject, password_hash
+           ) VALUES (?, ?, 'password', ?, ?)`,
+        ).bind(
+          crypto.randomUUID(),
+          session.identity.id,
+          session.identity.email,
+          await hashPassword(body.data.password),
+        ),
+      );
+    }
+  }
+
+  await context.env.DB.batch(statements);
+
+  const identity = { ...session.identity, username: body.data.username };
+  await putIdentityOverride(context.env, identity);
+  await safeAudit(context.env, {
+    userId: identity.id,
+    type: "account_setup",
     request: context.req.raw,
   });
 
@@ -883,7 +1109,7 @@ app.post("/api/password/forgot", async (context) => {
     await sendPasswordResetEmail(
       context.env,
       user.email,
-      user.name ?? "there",
+      user.username ?? "there",
       reset.raw,
     );
     await safeAudit(context.env, {
@@ -913,7 +1139,7 @@ app.post("/api/password/reset", async (context) => {
 
   const tokenHash = await hashToken(body.data.token);
   const token = await context.env.DB.prepare(
-    `SELECT vt.id, vt.user_id, vt.expires_at, u.email, u.name,
+    `SELECT vt.id, vt.user_id, vt.expires_at, u.email, u.username,
             u.auth_version
      FROM verification_tokens vt
      JOIN users u ON u.id = vt.user_id
@@ -1175,15 +1401,15 @@ app.get("/internal/identity", async (context) => {
   }
 
   const user = await context.env.DB.prepare(
-    `SELECT email, name FROM users WHERE id = ? AND disabled_at IS NULL`,
+    `SELECT email, username FROM users WHERE id = ? AND disabled_at IS NULL`,
   )
     .bind(id)
-    .first<{ email: string; name: string | null }>();
+    .first<{ email: string; username: string | null }>();
   if (!user) {
     return context.json({ code: "NOT_FOUND", message: "Unknown user." }, 404);
   }
 
-  return context.json({ email: user.email, name: user.name });
+  return context.json({ email: user.email, username: user.username });
 });
 
 app.get("/internal/challenge", async (context) => {
@@ -1220,6 +1446,19 @@ function sessionClient(request: Request) {
   };
 }
 
+async function usernameTakenBy(
+  env: Env,
+  username: string,
+  excludingUserId: string,
+): Promise<boolean> {
+  const row = await env.DB.prepare(
+    `SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1`,
+  )
+    .bind(username, excludingUserId)
+    .first<{ id: string }>();
+  return row !== null;
+}
+
 async function currentSession(context: AppContext) {
   const token = readSessionToken(context.req.raw);
   return token ? await getSession(context.env, token) : null;
@@ -1245,7 +1484,7 @@ function toIdentity(user: UserRow): Identity {
   return {
     id: user.id,
     email: user.email,
-    name: user.name,
+    username: user.username,
     role: user.role,
   };
 }
@@ -1255,7 +1494,7 @@ async function findUserByEmail(
   email: string,
 ): Promise<UserRow | null> {
   return env.DB.prepare(
-    `SELECT u.id, u.email, u.name, u.role, u.email_verified_at,
+    `SELECT u.id, u.email, u.username, u.role, u.email_verified_at,
             u.auth_version, u.disabled_at, i.id AS identity_id,
             i.password_hash
      FROM users u
@@ -1268,12 +1507,16 @@ async function findUserByEmail(
     .first<UserRow>();
 }
 
-async function findOrCreateOAuthUser(
+type OAuthResolution =
+  | { kind: "user"; user: UserRow }
+  | { kind: "link_required"; existing: UserRow };
+
+async function resolveOAuthUser(
   env: Env,
   profile: OAuthProfile,
-): Promise<UserRow> {
+): Promise<OAuthResolution> {
   const linked = await env.DB.prepare(
-    `SELECT u.id, u.email, u.name, u.role, u.email_verified_at,
+    `SELECT u.id, u.email, u.username, u.role, u.email_verified_at,
             u.auth_version, u.disabled_at, i.id AS identity_id,
             i.password_hash
      FROM identities i
@@ -1283,43 +1526,20 @@ async function findOrCreateOAuthUser(
   )
     .bind(profile.provider, profile.subject)
     .first<UserRow>();
-  if (linked) return linked;
+  if (linked) return { kind: "user", user: linked };
 
   const existing = await findUserByEmail(env, profile.email);
   if (existing) {
-    await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO identities
-         (id, user_id, provider, provider_subject, password_hash)
-         VALUES (?, ?, ?, ?, NULL)`,
-      ).bind(
-        crypto.randomUUID(),
-        existing.id,
-        profile.provider,
-        profile.subject,
-      ),
-      env.DB.prepare(
-        `UPDATE users
-         SET email_verified_at = COALESCE(email_verified_at, datetime('now')),
-             name = COALESCE(NULLIF(name, ''), ?),
-             updated_at = datetime('now')
-         WHERE id = ?`,
-      ).bind(profile.name, existing.id),
-    ]);
-    return {
-      ...existing,
-      name: existing.name || profile.name,
-      email_verified_at: existing.email_verified_at ?? new Date().toISOString(),
-    };
+    return { kind: "link_required", existing };
   }
 
   const userId = crypto.randomUUID();
   const identityId = crypto.randomUUID();
   await env.DB.batch([
     env.DB.prepare(
-      `INSERT INTO users (id, email, name, email_verified_at)
-       VALUES (?, ?, ?, datetime('now'))`,
-    ).bind(userId, profile.email, profile.name),
+      `INSERT INTO users (id, email, email_verified_at)
+       VALUES (?, ?, datetime('now'))`,
+    ).bind(userId, profile.email),
     env.DB.prepare(
       `INSERT INTO identities
        (id, user_id, provider, provider_subject, password_hash)
@@ -1328,15 +1548,18 @@ async function findOrCreateOAuthUser(
   ]);
 
   return {
-    id: userId,
-    email: profile.email,
-    name: profile.name,
-    role: "USER",
-    email_verified_at: new Date().toISOString(),
-    auth_version: 1,
-    disabled_at: null,
-    identity_id: identityId,
-    password_hash: null,
+    kind: "user",
+    user: {
+      id: userId,
+      email: profile.email,
+      username: null,
+      role: "USER",
+      email_verified_at: new Date().toISOString(),
+      auth_version: 1,
+      disabled_at: null,
+      identity_id: identityId,
+      password_hash: null,
+    },
   };
 }
 

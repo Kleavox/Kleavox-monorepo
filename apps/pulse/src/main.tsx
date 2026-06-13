@@ -1,6 +1,6 @@
 import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { apiFetch as api, firstName } from "@kleavox/core";
+import { apiFetch as api, displayHandle } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
@@ -161,7 +161,7 @@ function Header({ state }: { state: AppState }) {
       </a>
       <a href={PASS_ORIGIN} className="kvx-nav">
         {state.status === "ready"
-          ? firstName(state.identity.name, state.identity.email)
+          ? displayHandle(state.identity.username, state.identity.email)
           : "Account"}
       </a>
     </header>
