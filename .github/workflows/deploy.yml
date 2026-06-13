@@ -40,7 +40,6 @@ jobs:
       DROP_D1_ID: ${{ secrets.DROP_D1_ID }}
       DROP_BUCKET_NAME: ${{ vars.DROP_BUCKET_NAME }}
       AUTH_FROM_EMAIL: ${{ vars.AUTH_FROM_EMAIL }}
-      PORTFOLIO_FROM_EMAIL: ${{ vars.PORTFOLIO_FROM_EMAIL }}
       AGENT_DOWNLOAD_BASE: https://github.com/${{ github.repository }}/releases/latest/download
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
@@ -59,7 +58,6 @@ jobs:
       VITE_LINK_ORIGIN: https://link.${{ vars.APP_ROOT_DOMAIN }}
       VITE_PULSE_ORIGIN: https://pulse.${{ vars.APP_ROOT_DOMAIN }}
       PUBLIC_ROOT_ORIGIN: https://${{ vars.APP_ROOT_DOMAIN }}
-      PUBLIC_PORTFOLIO_ORIGIN: https://port.${{ vars.APP_ROOT_DOMAIN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -117,9 +115,6 @@ jobs:
 
       - name: Deploy Link
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/link.json
-
-      - name: Deploy Portfolio
-        run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/portfolio.json --secrets-file .wrangler/deploy/portfolio.secrets.json
 
       - name: Deploy Pulse
         run: pnpm exec wrangler deploy --strict --config .wrangler/deploy/pulse.json --secrets-file .wrangler/deploy/pulse.secrets.json

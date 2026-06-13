@@ -11,11 +11,16 @@ sharing, infrastructure monitoring, and a portfolio.
 | Link    | `https://link.<root-domain>`  | Short-link and file-sharing workspace         |
 | Pass    | `https://pass.<root-domain>`  | Account, email auth, Google, and GitHub OAuth |
 | Pulse   | `https://pulse.<root-domain>` | Infrastructure monitoring                     |
-| Port    | `https://port.<root-domain>`  | Portfolio and contact form                    |
+| Port    | `https://port.<root-domain>`  | Portfolio (separate private repo, own CI/CD)  |
 
 File links use `https://<root-domain>/f_<token>`. Short-link slugs cannot use the
 reserved `f_` prefix, so both products share the root namespace without
 collisions. Drop is an internal Worker and has no public subdomain.
+
+The portfolio lives in the separate private `Kleavox/portfolio` repository and
+deploys independently; the gateway reaches it through the `PORTFOLIO` service
+binding, which only requires the worker name `${WORKER_PREFIX}-portfolio` to
+stay in sync between the two repos.
 
 ## Repository layout
 
@@ -25,13 +30,11 @@ collisions. Drop is an internal Worker and has no public subdomain.
 | `apps/pass`         | React auth app: sign in, register, account, security challenge              |
 | `apps/pulse`        | React monitoring dashboard                                                   |
 | `apps/web`          | Astro marketing site served by the gateway                                  |
-| `apps/portfolio`    | Astro portfolio site with contact form                                      |
 | `workers/gateway`   | Root-domain router: short links, file links, subdomain proxying             |
 | `workers/link`      | Short-link API, link resolution pages, drop proxy                           |
 | `workers/pass`      | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification   |
 | `workers/drop`      | File storage API: R2 multipart uploads, quotas, scheduled cleanup cron      |
 | `workers/pulse`     | Monitoring API: nodes, checks, incidents, agent enrollment                  |
-| `workers/portfolio` | Portfolio assets + contact endpoint (Resend + Turnstile)                    |
 | `packages/auth`     | Shared session/challenge/Turnstile verification helpers                     |
 | `packages/core`     | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`    |
 | `packages/config`   | Shared origins, hosts, and cookie names                                     |
@@ -74,9 +77,9 @@ No environment variables or production credentials are needed for local work:
 
 - Wrangler configs in source control use local placeholder IDs for D1/KV/R2;
   `wrangler dev` provisions local emulations automatically.
-- Dev builds of Pass and Portfolio fall back to Cloudflare's public always-pass
+- Dev builds of Pass fall back to Cloudflare's public always-pass
   Turnstile test key, and the workers skip Turnstile verification outside
-  production, so signup, login, and the contact form work out of the box.
+  production, so signup and login work out of the box.
 - Dev email delivery is logged to the worker console instead of being sent.
 
 Run a worker locally (each serves its app's built assets):
@@ -106,14 +109,18 @@ Worker secrets belong in ignored `.dev.vars` files and must never be committed.
 
 ## Architecture notes
 
-**Auth and the security gate.** Pass guards account creation and password
-resets behind a verification challenge: the frontend shows a full-page security
-gate (invisible Turnstile) before the auth forms, then `POST /api/challenge`
+**Auth and the security challenge.** Pass guards account creation and password
+resets behind a Turnstile challenge that runs invisibly in the background while
+the user fills the form (login needs no challenge at all); `POST /api/challenge`
 sets a short-lived verification cookie (`fresh` 30 min, `basic` 24 h, scoped to
 the root domain). Guest actions across the suite — creating public short links,
 uploading files, and filing reports — require a `basic` verification, enforced
-server-side via the Pass service binding. Sessions are KV-backed with hashed
-tokens; passwords use Argon2 from the Rust crypto crate.
+server-side via the Pass service binding. Accounts use a unique `username`
+(set at registration, or during the `/welcome` onboarding after a first OAuth
+sign-in, where a password is optional). Signing in with Google/GitHub using an
+email that already has an account never auto-links: a confirmation email must
+be approved first. Sessions are KV-backed with hashed tokens; passwords use
+Argon2 from the Rust crypto crate.
 
 **WASM in Workers.** The Workers runtime forbids compiling WASM from bytes at
 runtime. Workers import the module as precompiled WASM — an import specifier
@@ -208,7 +215,6 @@ APP_ROOT_DOMAIN=<root-domain>
 WORKER_PREFIX=<worker-prefix>
 DROP_BUCKET_NAME=<bucket-name>
 AUTH_FROM_EMAIL=<auth-sender-address>
-PORTFOLIO_FROM_EMAIL=<portfolio-sender-address>
 ```
 
 Add these environment secrets:
@@ -320,8 +326,8 @@ port.<root-domain>
 
 Store the site key and secret in the GitHub `production` environment. The site
 key is injected at build time (`VITE_TURNSTILE_SITE_KEY` for Pass,
-`PUBLIC_TURNSTILE_SITE_KEY` for Portfolio); the secret is a Worker secret
-(`TURNSTILE_SECRET_KEY`) on the pass and portfolio workers. Dev builds fall
+`PUBLIC_TURNSTILE_SITE_KEY` for the portfolio repo); the secret is a Worker secret
+(`TURNSTILE_SECRET_KEY`) on the pass worker (and on the portfolio worker, managed in its own repo). Dev builds fall
 back to Cloudflare's public test key automatically. Remove previous hostnames
 only after the new domain has passed signup, login, upload, and contact-form
 checks.

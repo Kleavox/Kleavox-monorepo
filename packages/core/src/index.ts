@@ -38,12 +38,11 @@ export const RESERVED_SLUGS = [
 
 const reservedSlugSet = new Set<string>(RESERVED_SLUGS);
 
-export function firstName(
-  name?: string | null,
+export function displayHandle(
+  username?: string | null,
   email?: string | null,
 ): string {
-  const first = name?.trim().split(/\s+/u)[0];
-  if (first) return first;
+  if (username) return username;
   const local = email?.split("@")[0];
   return local || "Account";
 }
@@ -63,7 +62,7 @@ export function isFileSlug(value: string): boolean {
 export interface Identity {
   id: string;
   email: string;
-  name: string | null;
+  username: string | null;
   role: "ADMIN" | "USER";
 }
 

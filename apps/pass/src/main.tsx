@@ -42,7 +42,6 @@ const returnTo = new URLSearchParams(window.location.search).get("returnTo");
 function App() {
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [mode, setMode] = useState<Mode>("login");
-  const [gateKey, setGateKey] = useState(0);
   const [providers, setProviders] = useState<OAuthProviders>({
     google: false,
     github: false,
@@ -57,7 +56,7 @@ function App() {
       api<OAuthProviders>("/api/oauth/providers"),
     ])
       .then(([nextSession, nextProviders]) => {
-        if (nextSession.authenticated && returnTo) {
+        if (nextSession.authenticated && returnTo && nextSession.user?.username) {
           window.location.assign(returnTo);
           return;
         }
@@ -71,8 +70,23 @@ function App() {
     if (route === "/verify") return <VerifyEmail />;
     if (route === "/reset") return <ResetPassword />;
     if (route === "/challenge") return <ChallengePage />;
+    if (route === "/link-oauth") return <LinkOAuth />;
     if (session === null) return <LoadingState />;
     if (session.authenticated && session.user) {
+      if (!session.user.username) {
+        return (
+          <Welcome
+            user={session.user}
+            onCompleted={(user) => {
+              if (returnTo) {
+                window.location.assign(returnTo);
+                return;
+              }
+              setSession({ authenticated: true, user });
+            }}
+          />
+        );
+      }
       return (
         <Account
           user={session.user}
@@ -80,36 +94,26 @@ function App() {
         />
       );
     }
-    const requireChallenge = () => setGateKey((value) => value + 1);
-    let authView: ReactNode;
     if (mode === "register") {
-      authView = (
-        <Register onModeChange={setMode} onChallengeRequired={requireChallenge} />
-      );
-    } else if (mode === "forgot") {
-      authView = (
-        <ForgotPassword
-          onModeChange={setMode}
-          onChallengeRequired={requireChallenge}
-        />
-      );
-    } else {
-      authView = (
-        <Login
-          providers={providers}
-          onModeChange={setMode}
-          onAuthenticated={(user) => {
-            if (returnTo) {
-              window.location.assign(returnTo);
-              return;
-            }
-            setSession({ authenticated: true, user });
-          }}
-        />
-      );
+      return <Register onModeChange={setMode} />;
     }
-    return <SecurityGate key={gateKey}>{authView}</SecurityGate>;
-  }, [gateKey, mode, providers, route, session]);
+    if (mode === "forgot") {
+      return <ForgotPassword onModeChange={setMode} />;
+    }
+    return (
+      <Login
+        providers={providers}
+        onModeChange={setMode}
+        onAuthenticated={(user) => {
+          if (returnTo) {
+            window.location.assign(returnTo);
+            return;
+          }
+          setSession({ authenticated: true, user });
+        }}
+      />
+    );
+  }, [mode, providers, route, session]);
 
   return (
     <main className="kvx-shell-wide pass-layout">
@@ -212,8 +216,11 @@ function Login({
         </>
       )}
       {oauthError && (
-        <p className="pass-status pass-status-error" role="alert">
-          {oauthError}
+        <p
+          className={`pass-status pass-status-${oauthError.kind === "info" ? "success" : "error"}`}
+          role={oauthError.kind === "info" ? "status" : "alert"}
+        >
+          {oauthError.text}
         </p>
       )}
       <Field
@@ -249,13 +256,8 @@ function Login({
   );
 }
 
-function Register({
-  onModeChange,
-  onChallengeRequired,
-}: {
-  onModeChange: (mode: Mode) => void;
-  onChallengeRequired: () => void;
-}) {
+function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
+  const challenge = useChallenge();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -270,15 +272,20 @@ function Register({
     }
     setState({ status: "loading" });
     try {
+      await challenge.ensure();
       const response = await api<{ message: string }>("/api/register", {
-        name,
+        username: name,
         email,
         password,
       });
       setState({ status: "success", message: response.message });
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "challenge_failed") {
-        onChallengeRequired();
+        challenge.retry();
+        setState({
+          status: "error",
+          message: "The security check expired — submit again.",
+        });
         return;
       }
       setState({ status: "error", message: errorMessage(cause) });
@@ -294,9 +301,11 @@ function Register({
       submitLabel="Create account"
     >
       <Field
-        label="Name"
-        name="name"
-        autoComplete="name"
+        label="Username"
+        hint="3-20 lowercase letters, digits, or underscores."
+        name="username"
+        autoComplete="username"
+        maxLength={20}
         value={name}
         onChange={setName}
       />
@@ -333,17 +342,13 @@ function Register({
           Sign in
         </button>
       </p>
+      {challenge.widget}
     </AuthForm>
   );
 }
 
-function ForgotPassword({
-  onModeChange,
-  onChallengeRequired,
-}: {
-  onModeChange: (mode: Mode) => void;
-  onChallengeRequired: () => void;
-}) {
+function ForgotPassword({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
+  const challenge = useChallenge();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
 
@@ -351,13 +356,18 @@ function ForgotPassword({
     event.preventDefault();
     setState({ status: "loading" });
     try {
+      await challenge.ensure();
       const response = await api<{ message: string }>("/api/password/forgot", {
         email,
       });
       setState({ status: "success", message: response.message });
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "challenge_failed") {
-        onChallengeRequired();
+        challenge.retry();
+        setState({
+          status: "error",
+          message: "The security check expired — submit again.",
+        });
         return;
       }
       setState({ status: "error", message: errorMessage(cause) });
@@ -387,6 +397,7 @@ function ForgotPassword({
       >
         Back to sign in
       </button>
+      {challenge.widget}
     </AuthForm>
   );
 }
@@ -528,7 +539,7 @@ function Account({
   const [identity, setIdentity] = useState(user);
   const [providers, setProviders] = useState<string[]>();
   const [editing, setEditing] = useState(false);
-  const [nameInput, setNameInput] = useState(user.name ?? "");
+  const [nameInput, setNameInput] = useState(user.username ?? "");
   const [settingPassword, setSettingPassword] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [confirmInput, setConfirmInput] = useState("");
@@ -541,7 +552,7 @@ function Account({
     void api<{ user: Identity; providers: string[] }>("/api/account")
       .then((account) => {
         setIdentity(account.user);
-        setNameInput(account.user.name ?? "");
+        setNameInput(account.user.username ?? "");
         setProviders(account.providers);
       })
       .catch(() => {});
@@ -603,11 +614,11 @@ function Account({
     try {
       const result = await apiFetch<{ ok: true; user: Identity }>(
         "/api/account",
-        { method: "PATCH", body: JSON.stringify({ name: nameInput }) },
+        { method: "PATCH", body: JSON.stringify({ username: nameInput }) },
       );
       setIdentity(result.user);
       setEditing(false);
-      setState({ status: "success", message: "Name updated." });
+      setState({ status: "success", message: "Username updated." });
     } catch (cause) {
       setState({ status: "error", message: errorMessage(cause) });
     }
@@ -649,10 +660,11 @@ function Account({
       {editing ? (
         <form className="pass-name-edit" onSubmit={saveName}>
           <Field
-            label="Name"
-            name="name"
-            autoComplete="name"
-            maxLength={80}
+            label="Username"
+            hint="3-20 lowercase letters, digits, or underscores."
+            name="username"
+            autoComplete="username"
+            maxLength={20}
             value={nameInput}
             onChange={setNameInput}
           />
@@ -669,7 +681,7 @@ function Account({
               type="button"
               onClick={() => {
                 setEditing(false);
-                setNameInput(identity.name ?? "");
+                setNameInput(identity.username ?? "");
               }}
             >
               Cancel
@@ -678,7 +690,7 @@ function Account({
         </form>
       ) : (
         <div className="pass-name-row">
-          <h2>{identity.name || identity.email}</h2>
+          <h2>{identity.username || identity.email}</h2>
           <button
             className="pass-text-action"
             type="button"
@@ -687,7 +699,7 @@ function Account({
               setEditing(true);
             }}
           >
-            Edit name
+            Edit username
           </button>
         </div>
       )}
@@ -942,25 +954,52 @@ function Field({
   );
 }
 
-function SecurityGate({
-  scope = "fresh",
-  returnTo = null,
-  skipStatusCheck = false,
-  onComplete,
-  children = null,
-}: {
-  scope?: "basic" | "fresh";
-  returnTo?: string | null;
-  skipStatusCheck?: boolean;
-  onComplete?: (target: string) => void;
-  children?: ReactNode;
-}) {
+interface ChallengeController {
+  ready: boolean;
+  failed: boolean;
+  ensure: () => Promise<void>;
+  retry: () => void;
+  widget: ReactNode;
+}
+
+function useChallenge(
+  options: {
+    scope?: "basic" | "fresh";
+    returnTo?: string | null;
+    skipStatusCheck?: boolean;
+    onComplete?: (target: string) => void;
+  } = {},
+): ChallengeController {
+  const {
+    scope = "fresh",
+    returnTo = null,
+    skipStatusCheck = false,
+    onComplete,
+  } = options;
   const [status, setStatus] = useState<
-    "checking" | "challenge" | "verified" | "error"
+    "checking" | "pending" | "ready" | "error"
   >("checking");
-  const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const statusRef = useRef(status);
   const submitted = useRef(false);
+  const waiters = useRef<
+    Array<{ resolve: () => void; reject: (cause: Error) => void }>
+  >([]);
+
+  const move = (next: "checking" | "pending") => {
+    statusRef.current = next;
+    setStatus(next);
+  };
+
+  const settle = (next: "ready" | "error") => {
+    statusRef.current = next;
+    setStatus(next);
+    const pending = waiters.current.splice(0);
+    for (const waiter of pending) {
+      if (next === "ready") waiter.resolve();
+      else waiter.reject(new Error("The security check failed. Try again."));
+    }
+  };
 
   async function submitToken(token: string) {
     const response = await api<{ ok: true; returnTo: string }>(
@@ -971,7 +1010,7 @@ function SecurityGate({
       onComplete(response.returnTo);
       return;
     }
-    setStatus("verified");
+    settle("ready");
   }
 
   async function onToken(token?: string) {
@@ -979,17 +1018,15 @@ function SecurityGate({
     submitted.current = true;
     try {
       await submitToken(token);
-    } catch (cause) {
+    } catch {
       submitted.current = false;
-      setMessage(errorMessage(cause));
-      setStatus("error");
+      settle("error");
     }
   }
 
   useEffect(() => {
     let cancelled = false;
-    setStatus("checking");
-    setMessage(null);
+    move("checking");
     submitted.current = false;
     void (async () => {
       try {
@@ -999,23 +1036,17 @@ function SecurityGate({
           );
           if (cancelled) return;
           if (current.verified) {
-            setStatus("verified");
+            settle("ready");
             return;
           }
         }
         if (turnstileSiteKey) {
-          if (!cancelled) setStatus("challenge");
+          if (!cancelled) move("pending");
           return;
         }
         await submitToken("dev-fallback");
       } catch {
-        if (cancelled) return;
-        setMessage(
-          turnstileSiteKey
-            ? "Security check could not start. Try again."
-            : "Security verification is unavailable in this environment.",
-        );
-        setStatus("error");
+        if (!cancelled) settle("error");
       }
     })();
     return () => {
@@ -1023,60 +1054,204 @@ function SecurityGate({
     };
   }, [attempt]);
 
-  if (status === "verified") return <>{children}</>;
+  const ensure = () => {
+    if (statusRef.current === "ready") return Promise.resolve();
+    const wait = new Promise<void>((resolve, reject) => {
+      const waiter = { resolve, reject };
+      waiters.current.push(waiter);
+      setTimeout(() => {
+        const index = waiters.current.indexOf(waiter);
+        if (index >= 0) {
+          waiters.current.splice(index, 1);
+          reject(new Error("The security check is taking too long. Try again."));
+        }
+      }, 20_000);
+    });
+    if (statusRef.current === "error") setAttempt((value) => value + 1);
+    return wait;
+  };
 
-  return (
-    <section className="pass-result" aria-label="Security check">
-      <p className="pass-section-label">Kleavox Pass</p>
-      <h2>Just a moment</h2>
-      {status === "error" ? (
-        <>
-          <p className="pass-status pass-status-error" role="alert">
-            {message}
-          </p>
-          <button
-            className="pass-text-action"
-            type="button"
-            onClick={() => setAttempt((value) => value + 1)}
-          >
-            Try again
+  const retry = () => setAttempt((value) => value + 1);
+
+  const widget =
+    status === "ready" ? null : (
+      <div className="pass-challenge-inline" aria-live="polite">
+        {status === "error" ? (
+          <button className="pass-text-action" type="button" onClick={retry}>
+            Security check failed — retry
           </button>
-        </>
-      ) : (
-        <div className="pass-loading-lines" aria-label="Verifying">
-          <span />
-          <span />
-        </div>
-      )}
-      {status === "challenge" && turnstileSiteKey && (
-        <div className="pass-turnstile pass-turnstile-invisible">
-          <Turnstile
-            key={attempt}
-            siteKey={turnstileSiteKey}
-            onSuccess={onToken}
-            onExpire={() => {
-              submitted.current = false;
-            }}
-            options={{ size: "invisible", appearance: "interaction-only" }}
-          />
-        </div>
-      )}
-    </section>
-  );
+        ) : (
+          <span>Security check…</span>
+        )}
+        {status === "pending" && turnstileSiteKey && (
+          <span className="pass-turnstile-invisible">
+            <Turnstile
+              key={attempt}
+              siteKey={turnstileSiteKey}
+              onSuccess={onToken}
+              onExpire={() => {
+                submitted.current = false;
+              }}
+              options={{ size: "invisible", appearance: "interaction-only" }}
+            />
+          </span>
+        )}
+      </div>
+    );
+
+  return {
+    ready: status === "ready",
+    failed: status === "error",
+    ensure,
+    retry,
+    widget,
+  };
 }
 
 function ChallengePage() {
   const params = new URLSearchParams(window.location.search);
   const scope: "basic" | "fresh" =
     params.get("scope") === "fresh" ? "fresh" : "basic";
+  const challenge = useChallenge({
+    scope,
+    returnTo: params.get("returnTo"),
+    skipStatusCheck: true,
+    onComplete: (target) => window.location.assign(target),
+  });
 
   return (
-    <SecurityGate
-      scope={scope}
-      returnTo={params.get("returnTo")}
-      skipStatusCheck
-      onComplete={(target) => window.location.assign(target)}
-    />
+    <section className="pass-result" aria-label="Security check">
+      <p className="pass-section-label">Kleavox Pass</p>
+      <h2>Just a moment</h2>
+      {!challenge.failed && (
+        <div className="pass-loading-lines" aria-label="Verifying">
+          <span />
+          <span />
+        </div>
+      )}
+      {challenge.widget}
+    </section>
+  );
+}
+
+function Welcome({
+  user,
+  onCompleted,
+}: {
+  user: Identity;
+  onCompleted: (user: Identity) => void;
+}) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [state, setState] = useState<FormState>({ status: "idle" });
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (password && password !== confirm) {
+      setState({ status: "error", message: "Passwords do not match." });
+      return;
+    }
+    setState({ status: "loading" });
+    try {
+      const result = await api<{ ok: true; user: Identity }>(
+        "/api/account/setup",
+        password ? { username, password } : { username },
+      );
+      onCompleted(result.user);
+    } catch (cause) {
+      setState({ status: "error", message: errorMessage(cause) });
+    }
+  }
+
+  return (
+    <AuthForm
+      title="Pick your username"
+      description={`Signed in as ${user.email}. One last step before you continue.`}
+      onSubmit={submit}
+      state={state}
+      submitLabel="Continue"
+    >
+      <Field
+        label="Username"
+        hint="3-20 lowercase letters, digits, or underscores."
+        name="username"
+        autoComplete="username"
+        maxLength={20}
+        value={username}
+        onChange={setUsername}
+      />
+      <Field
+        label="Password (optional)"
+        hint="Leave empty to keep signing in with your provider only."
+        name="new-password"
+        type="password"
+        autoComplete="new-password"
+        minLength={12}
+        value={password}
+        onChange={setPassword}
+      />
+      {password && (
+        <Field
+          label="Confirm password"
+          name="confirm-new-password"
+          type="password"
+          autoComplete="new-password"
+          minLength={12}
+          value={confirm}
+          onChange={setConfirm}
+        />
+      )}
+    </AuthForm>
+  );
+}
+
+function LinkOAuth() {
+  const token = new URLSearchParams(window.location.search).get("token") ?? "";
+  const [state, setState] = useState<FormState>({ status: "loading" });
+  const [provider, setProvider] = useState<string>();
+
+  useEffect(() => {
+    if (!token) {
+      setState({ status: "error", message: "The linking token is missing." });
+      return;
+    }
+    void api<{ ok: true; provider: string }>("/api/oauth/link", { token })
+      .then((result) => {
+        setProvider(result.provider);
+        setState({ status: "success" });
+      })
+      .catch((cause) =>
+        setState({ status: "error", message: errorMessage(cause) }),
+      );
+  }, []);
+
+  return (
+    <section className="pass-result" aria-label="Link sign-in provider">
+      <p className="pass-section-label">Kleavox Pass</p>
+      {state.status === "success" ? (
+        <>
+          <h2>{provider === "google" ? "Google" : "GitHub"} linked</h2>
+          <p>You can now use it to sign in to this account.</p>
+          <a className="pass-primary-link" href="/">
+            Go to sign in
+          </a>
+        </>
+      ) : state.status === "error" ? (
+        <>
+          <h2>Linking failed</h2>
+          <Status state={state} />
+        </>
+      ) : (
+        <>
+          <h2>Linking…</h2>
+          <div className="pass-loading-lines" aria-label="Linking">
+            <span />
+            <span />
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -1151,8 +1326,16 @@ function startOAuth(provider: "google" | "github") {
   window.location.assign(url);
 }
 
-function oauthErrorMessage(code: string | null): string | null {
+function oauthErrorMessage(
+  code: string | null,
+): { text: string; kind: "error" | "info" } | null {
   if (!code) return null;
+  if (code === "link_confirmation_sent") {
+    return {
+      text: "This email already has an account. Check your inbox to confirm linking the provider, then sign in again.",
+      kind: "info",
+    };
+  }
   const messages: Record<string, string> = {
     provider_not_configured: "This provider is not configured yet.",
     oauth_cancelled: "Sign in was cancelled.",
@@ -1160,7 +1343,7 @@ function oauthErrorMessage(code: string | null): string | null {
     oauth_failed: "The provider could not complete sign in.",
     account_disabled: "This account is disabled.",
   };
-  return messages[code] ?? "OAuth sign in failed.";
+  return { text: messages[code] ?? "OAuth sign in failed.", kind: "error" };
 }
 
 createRoot(document.getElementById("root")!).render(
