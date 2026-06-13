@@ -1412,6 +1412,21 @@ app.get("/internal/identity", async (context) => {
   return context.json({ email: user.email, username: user.username });
 });
 
+app.get("/internal/admins", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
+    return context.body(null, 404);
+  }
+
+  const admins = await context.env.DB.prepare(
+    `SELECT email FROM users
+     WHERE role = 'ADMIN'
+       AND disabled_at IS NULL
+       AND email_verified_at IS NOT NULL`,
+  ).all<{ email: string }>();
+
+  return context.json({ emails: admins.results.map((row) => row.email) });
+});
+
 app.get("/internal/challenge", async (context) => {
   if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
     return context.body(null, 404);

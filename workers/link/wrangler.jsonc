@@ -33,6 +33,10 @@
       "binding": "DROP",
       "service": "local-drop",
     },
+    {
+      "binding": "PULSE",
+      "service": "local-pulse",
+    },
   ],
   "ratelimits": [
     {

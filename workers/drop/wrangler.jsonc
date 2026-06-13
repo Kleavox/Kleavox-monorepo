@@ -24,6 +24,10 @@
       "binding": "PASS",
       "service": "local-pass",
     },
+    {
+      "binding": "PULSE",
+      "service": "local-pulse",
+    },
   ],
   "vars": {
     "ENVIRONMENT": "development",

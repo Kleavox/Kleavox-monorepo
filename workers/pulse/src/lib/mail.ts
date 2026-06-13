@@ -44,11 +44,54 @@ export async function sendIncidentEmail(
   </body>
 </html>`;
 
+  await sendEmail(env, { to: message.to, subject, html });
+}
+
+export interface ReportEmail {
+  to: string[];
+  kind: "link" | "file";
+  reason: string;
+  target: string;
+}
+
+export async function sendReportEmail(
+  env: Env,
+  message: ReportEmail,
+): Promise<void> {
+  if (message.to.length === 0) return;
+  const label = message.kind === "link" ? "short link" : "file";
+  const subject = `[Pulse] New ${label} report`;
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;background:#f3f1ea;color:#161713;font-family:Arial,sans-serif">
+    <div style="max-width:560px;margin:0 auto;padding:48px 24px">
+      <p style="font-weight:700">Kleavox Pulse</p>
+      <h1 style="font-size:32px;line-height:1.1">New ${escapeHtml(label)} report</h1>
+      <p style="line-height:1.7;color:#56574f">A ${escapeHtml(label)} was reported and is waiting for review in the Pulse moderation inbox.</p>
+      <table style="margin:24px 0;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:6px 16px 6px 0;color:#77786f">Reason</td><td>${escapeHtml(message.reason)}</td></tr>
+        <tr><td style="padding:6px 16px 6px 0;color:#77786f">Target</td><td>${escapeHtml(message.target)}</td></tr>
+      </table>
+      <p style="margin:32px 0">
+        <a href="${escapeHtml(env.PUBLIC_ORIGIN)}" style="display:inline-block;background:#161713;color:#fff;padding:13px 18px;text-decoration:none;border-radius:4px">Review in Pulse</a>
+      </p>
+    </div>
+  </body>
+</html>`;
+
+  await sendEmail(env, { to: message.to, subject, html });
+}
+
+async function sendEmail(
+  env: Env,
+  message: { to: string | string[]; subject: string; html: string },
+): Promise<void> {
   if (!env.RESEND_API_KEY) {
     if (env.ENVIRONMENT === "production") {
       throw new Error("RESEND_API_KEY is required in production");
     }
-    console.log("[pulse email]", { to: message.to, subject });
+    console.log("[pulse email]", { to: message.to, subject: message.subject });
     return;
   }
 
@@ -61,8 +104,8 @@ export async function sendIncidentEmail(
     body: JSON.stringify({
       from: env.FROM_EMAIL,
       to: message.to,
-      subject,
-      html,
+      subject: message.subject,
+      html: message.html,
     }),
   });
   if (!response.ok) {

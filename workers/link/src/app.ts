@@ -1,5 +1,10 @@
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
-import { readCookie, verifyChallenge, verifySession } from "@kleavox/auth";
+import {
+  notifyReport,
+  readCookie,
+  verifyChallenge,
+  verifySession,
+} from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -531,6 +536,13 @@ app.post("/api/reports", async (context) => {
       body.data.details ?? null,
     )
     .run();
+  context.executionCtx.waitUntil(
+    notifyReport(context.env.PULSE, {
+      kind: "link",
+      reason: body.data.reason,
+      target: link ? `/${link.slug}` : body.data.slug,
+    }),
+  );
   return context.json({ ok: true }, 202);
 });
 
