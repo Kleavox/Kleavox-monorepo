@@ -37,6 +37,17 @@ function App() {
     }
   };
 
+  const refreshOverview = async () => {
+    try {
+      const overview = await api<Overview>("/api/overview");
+      setState((current) =>
+        current.status === "ready" ? { ...current, overview } : current,
+      );
+    } catch (error) {
+      setState({ status: "error", message: errorMessage(error) });
+    }
+  };
+
   useEffect(() => {
     void refresh();
   }, []);
@@ -58,7 +69,7 @@ function App() {
           <Dashboard
             identity={state.identity}
             overview={state.overview}
-            onRefresh={refresh}
+            onRefresh={refreshOverview}
             onEnrollment={setEnrollment}
           />
         )}

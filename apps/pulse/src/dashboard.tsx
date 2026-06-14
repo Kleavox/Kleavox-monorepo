@@ -15,6 +15,8 @@ import type {
 } from "./types";
 import { InlineEmpty, Metric, Resource, SectionTitle } from "./ui";
 
+const NO_CHECKS: CheckRecord[] = [];
+
 export function Dashboard({
   identity,
   overview,
@@ -31,6 +33,15 @@ export function Dashboard({
     () => overview.nodes.map((node) => ({ node, state: nodeState(node) })),
     [overview.nodes],
   );
+  const checksByNode = useMemo(() => {
+    const map = new Map<string, CheckRecord[]>();
+    for (const check of overview.checks) {
+      const list = map.get(check.node_id);
+      if (list) list.push(check);
+      else map.set(check.node_id, [check]);
+    }
+    return map;
+  }, [overview.checks]);
   const online = nodeStates.filter(({ state }) => state === "online").length;
   const openIncidents = overview.incidents.filter(
     (incident) => incident.status === "OPEN",
@@ -98,9 +109,7 @@ export function Dashboard({
                   key={node.id}
                   node={node}
                   state={state}
-                  checks={overview.checks.filter(
-                    (check) => check.node_id === node.id,
-                  )}
+                  checks={checksByNode.get(node.id) ?? NO_CHECKS}
                   onRefresh={onRefresh}
                   onEnrollment={onEnrollment}
                 />
