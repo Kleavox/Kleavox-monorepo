@@ -19,9 +19,9 @@ export async function runDropMaintenance(env: Env): Promise<void> {
        AND datetime(upload_expires_at) <= datetime('now')
      LIMIT 100`,
   ).all<UploadRow>();
-  for (const upload of staleUploads.results) {
-    await abortUpload(env, upload);
-  }
+  await Promise.all(
+    staleUploads.results.map((upload) => abortUpload(env, upload)),
+  );
 
   const completingUploads = await env.DB.prepare(
     `SELECT id, object_key FROM upload_sessions
@@ -29,11 +29,13 @@ export async function runDropMaintenance(env: Env): Promise<void> {
        AND datetime(updated_at) <= datetime('now', '-10 minutes')
      LIMIT 100`,
   ).all<{ id: string; object_key: string }>();
-  for (const upload of completingUploads.results) {
-    if (await env.FILES.head(upload.object_key)) {
-      await finalizeUploadRecord(env, upload.id);
-    }
-  }
+  await Promise.all(
+    completingUploads.results.map(async (upload) => {
+      if (await env.FILES.head(upload.object_key)) {
+        await finalizeUploadRecord(env, upload.id);
+      }
+    }),
+  );
 
   const endedDrops = await env.DB.prepare(
     `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
@@ -48,13 +50,15 @@ export async function runDropMaintenance(env: Env): Promise<void> {
        )
      LIMIT 100`,
   ).all<DropRow>();
-  for (const drop of endedDrops.results) {
-    await deleteDrop(
-      env,
-      drop,
-      drop.status === "EXHAUSTED" ? "DOWNLOAD_LIMIT" : "EXPIRED",
-    );
-  }
+  await Promise.all(
+    endedDrops.results.map((drop) =>
+      deleteDrop(
+        env,
+        drop,
+        drop.status === "EXHAUSTED" ? "DOWNLOAD_LIMIT" : "EXPIRED",
+      ),
+    ),
+  );
 
   await env.DB.prepare(
     `DELETE FROM upload_sessions
