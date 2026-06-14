@@ -730,6 +730,7 @@ export function registerAccountRoutes(app: PassApp): void {
       ).bind(token.user_id, token.id),
     ]);
     await invalidateUserSessions(context.env, token.user_id, nextAuthVersion);
+    await purgeUserSessions(context.env, token.user_id);
     await safeAudit(context.env, {
       userId: token.user_id,
       type: "password_reset_completed",

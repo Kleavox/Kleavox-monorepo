@@ -244,21 +244,23 @@ async function applyCheckResult(
       .run();
     await notifyIncident(env, nodeId, check.name, "opened", summary, checkedAt);
   } else if (shouldResolveIncident(check.status, result.status)) {
-    await db
+    const resolved = await db
       .prepare(
         `UPDATE incidents SET status = 'RESOLVED', resolved_at = ?
          WHERE check_id = ? AND status = 'OPEN'`,
       )
       .bind(checkedAt, check.id)
       .run();
-    await notifyIncident(
-      env,
-      nodeId,
-      check.name,
-      "resolved",
-      `${check.name} is responding again.`,
-      checkedAt,
-    );
+    if ((resolved.meta.changes ?? 0) > 0) {
+      await notifyIncident(
+        env,
+        nodeId,
+        check.name,
+        "resolved",
+        `${check.name} is responding again.`,
+        checkedAt,
+      );
+    }
   }
 }
 

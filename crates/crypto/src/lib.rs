@@ -82,3 +82,30 @@ pub fn decrypt_data(data: &[u8], password: &str) -> Result<Vec<u8>, JsValue> {
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     Ok(decrypted)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encrypt_then_decrypt_recovers_the_payload() {
+        let payload = b"kleavox drop end-to-end payload";
+        let key = "high-entropy-url-safe-key-from-the-fragment";
+        let sealed = encrypt_data(payload, key).expect("encryption succeeds");
+        assert_ne!(sealed.as_slice(), &payload[..]);
+        assert!(sealed.len() > payload.len() + 28);
+        let opened = decrypt_data(&sealed, key).expect("decryption succeeds");
+        assert_eq!(opened.as_slice(), &payload[..]);
+    }
+
+    #[test]
+    fn each_encryption_uses_a_fresh_salt_and_nonce() {
+        let payload = b"same plaintext";
+        let key = "same-key";
+        let first = encrypt_data(payload, key).expect("first encryption");
+        let second = encrypt_data(payload, key).expect("second encryption");
+        assert_ne!(first, second);
+        assert_eq!(decrypt_data(&first, key).expect("decrypt first").as_slice(), &payload[..]);
+        assert_eq!(decrypt_data(&second, key).expect("decrypt second").as_slice(), &payload[..]);
+    }
+}

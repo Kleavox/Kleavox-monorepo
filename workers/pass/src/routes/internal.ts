@@ -1,6 +1,10 @@
 import { INTERNAL_HOSTS, SESSION_COOKIE } from "@kleavox/config";
 
-import { getSession, invalidateUserSessions } from "../lib/session";
+import {
+  getSession,
+  invalidateUserSessions,
+  purgeUserSessions,
+} from "../lib/session";
 import { apiError, checkVerification, safeAudit, type PassApp } from "./shared";
 
 export function registerInternalRoutes(app: PassApp): void {
@@ -60,6 +64,7 @@ export function registerInternalRoutes(app: PassApp): void {
         row.auth_version,
       );
     }
+    await purgeUserSessions(context.env, session.identity.id);
 
     await safeAudit(context.env, {
       userId: session.identity.id,

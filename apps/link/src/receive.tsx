@@ -3,6 +3,7 @@ import { decrypt } from "@kleavox/crypto";
 import { ErrorScreen, LINK_ORIGIN } from "@kleavox/ui";
 import { useEffect, useState } from "react";
 
+import { dropKeyFromHash } from "./e2e";
 import { Footer, Header } from "./files-chrome";
 import {
   formatBytes,
@@ -71,11 +72,17 @@ export function ReceiveView({ token }: { token: string }) {
     }
 
     if (drop.storageEncoding === "aes-256-gcm") {
+      const key = dropKeyFromHash(window.location.hash);
+      if (!key) {
+        setError("The decryption key is missing from this link.");
+        return;
+      }
+      setUnlocking(true);
       try {
         const response = await fetch(`/api/public/${token}/download`);
         if (!response.ok) throw new Error("Download failed");
         const encryptedBuffer = new Uint8Array(await response.arrayBuffer());
-        const decryptedBuffer = await decrypt(encryptedBuffer, password);
+        const decryptedBuffer = await decrypt(encryptedBuffer, key);
         const blob = new Blob([decryptedBuffer as any], {
           type: drop.contentType,
         });

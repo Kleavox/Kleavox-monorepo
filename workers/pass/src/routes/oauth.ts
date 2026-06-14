@@ -1,7 +1,12 @@
 import { makeSessionCookie } from "../lib/cookies";
 import { hashToken, randomToken } from "../lib/crypto";
 import { sendOAuthLinkEmail } from "../lib/mail";
-import { beginOAuth, finishOAuth, oauthFailure } from "../lib/oauth";
+import {
+  beginOAuth,
+  clearedStateCookie,
+  finishOAuth,
+  oauthFailure,
+} from "../lib/oauth";
 import { rateLimit } from "../lib/rate-limit";
 import { createSession } from "../lib/session";
 import {
@@ -42,6 +47,7 @@ export function registerOAuthRoutes(app: PassApp): void {
     if (!provider) return context.body(null, 404);
     const result = await finishOAuth(context.req.raw, context.env, provider);
     if (result instanceof Response) return result;
+    context.header("Set-Cookie", clearedStateCookie());
 
     const resolution = await resolveOAuthUser(context.env, result.profile);
 
@@ -110,6 +116,7 @@ export function registerOAuthRoutes(app: PassApp): void {
     context.header(
       "Set-Cookie",
       makeSessionCookie(context.req.raw, context.env, created.token),
+      { append: true },
     );
     if (!user.username) {
       const welcome = new URL("/welcome", context.env.PUBLIC_ORIGIN);

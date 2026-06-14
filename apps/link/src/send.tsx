@@ -1,4 +1,4 @@
-import { prepareUpload } from "@kleavox/compression";
+import { prepareUpload, type PreparedUpload } from "@kleavox/compression";
 import {
   ApiError,
   displayHandle,
@@ -23,6 +23,7 @@ import type {
   UploadResult,
   UploadStart,
 } from "./files-types";
+import { dropKeyStorageKey, encryptedShareUrl, generateDropKey } from "./e2e";
 
 export function SendView({
   embedded,
@@ -38,7 +39,7 @@ export function SendView({
   const [dragging, setDragging] = useState(false);
   const [retentionSeconds, setRetentionSeconds] = useState(3600);
   const [maxDownloads, setMaxDownloads] = useState(3);
-  const [password, setPassword] = useState("");
+  const [encryptEnabled, setEncryptEnabled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<
     "idle" | "optimizing" | "preparing" | "uploading" | "finishing"
@@ -92,23 +93,20 @@ export function SendView({
 
   async function sendFile() {
     if (!file || !session || phase !== "idle") return;
-    if (password && password.length < 8) {
-      setError("Passwords need at least 8 characters.");
-      return;
-    }
 
     setError(undefined);
     setResult(undefined);
     setProgress(0);
     setPhase("optimizing");
     let start: UploadStart | undefined;
+    let dropKey: string | undefined;
 
     try {
-      let prepared = await prepareUpload(file);
-      if (password) {
-        setPhase("optimizing");
+      let prepared: PreparedUpload;
+      if (encryptEnabled) {
+        dropKey = generateDropKey();
         const buffer = new Uint8Array(await file.arrayBuffer());
-        const encrypted = await encrypt(buffer, password);
+        const encrypted = await encrypt(buffer, dropKey);
         prepared = {
           body: new Blob([encrypted as any], {
             type: "application/octet-stream",
@@ -118,6 +116,8 @@ export function SendView({
           storageEncoding: "aes-256-gcm",
           savedBytes: 0,
         };
+      } else {
+        prepared = await prepareUpload(file);
       }
       setPhase("preparing");
       const response = await fetch("/api/uploads", {
@@ -131,7 +131,6 @@ export function SendView({
           storageEncoding: prepared.storageEncoding,
           retentionSeconds,
           maxDownloads,
-          password: password || undefined,
         }),
       });
       start = await readApi<UploadStart>(response);
@@ -178,14 +177,23 @@ export function SendView({
         expiresAt: string;
       }>(completeResponse);
 
+      const shareUrl = dropKey
+        ? encryptedShareUrl(completed.shareUrl, dropKey)
+        : completed.shareUrl;
+      if (dropKey) {
+        localStorage.setItem(dropKeyStorageKey(completed.publicToken), dropKey);
+      }
+
       setProgress(100);
       setResult({
         ...completed,
+        shareUrl,
         manageToken: start.manageToken,
         savedBytes: prepared.savedBytes,
+        encrypted: Boolean(dropKey),
       });
       setFile(undefined);
-      setPassword("");
+      setEncryptEnabled(false);
       if (inputRef.current) inputRef.current.value = "";
       if (session.authenticated) {
         if (embedded) await onChanged?.();
@@ -216,6 +224,22 @@ export function SendView({
     window.setTimeout(() => setCopied(false), 1800);
   }
 
+  async function copyAccountDrop(drop: AccountDrop) {
+    const base = publicShareUrl(drop.public_token);
+    if (drop.encryption !== "aes-256-gcm") {
+      await copyShareUrl(base);
+      return;
+    }
+    const key = localStorage.getItem(dropKeyStorageKey(drop.public_token));
+    if (!key) {
+      setError(
+        "The encryption key for this transfer is not stored on this device.",
+      );
+      return;
+    }
+    await copyShareUrl(encryptedShareUrl(base, key));
+  }
+
   async function deleteResultDrop() {
     if (!result) return;
     const response = await fetch(`/api/public/${result.publicToken}`, {
@@ -226,6 +250,7 @@ export function SendView({
       setError("This transfer could not be deleted.");
       return;
     }
+    localStorage.removeItem(dropKeyStorageKey(result.publicToken));
     setResult(undefined);
     await onChanged?.();
   }
@@ -238,6 +263,7 @@ export function SendView({
       setError("That transfer could not be deleted.");
       return;
     }
+    localStorage.removeItem(dropKeyStorageKey(drop.public_token));
     setAccountDrops((items) => items.filter((item) => item.id !== drop.id));
   }
 
@@ -362,19 +388,15 @@ export function SendView({
                 }
               />
             </label>
-            <label className="drop-password">
+            <label className="drop-encrypt">
               <span>
-                Password <i>optional</i>
+                End-to-end encrypt <i>optional</i>
               </span>
               <input
-                type="password"
-                autoComplete="new-password"
-                minLength={8}
-                maxLength={128}
-                placeholder="At least 8 characters"
-                value={password}
+                type="checkbox"
+                checked={encryptEnabled}
                 disabled={busy}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => setEncryptEnabled(event.target.checked)}
               />
             </label>
           </div>
@@ -432,6 +454,12 @@ export function SendView({
               <p className="drop-compression">
                 Rust compression saved {formatBytes(result.savedBytes)} in
                 storage.
+              </p>
+            )}
+            {result.encrypted && (
+              <p className="drop-compression">
+                End-to-end encrypted. The key lives only in this link — copy it
+                now.
               </p>
             )}
             <button
@@ -501,9 +529,7 @@ export function SendView({
                       {drop.status === "ACTIVE" && (
                         <button
                           type="button"
-                          onClick={() =>
-                            void copyShareUrl(publicShareUrl(drop.public_token))
-                          }
+                          onClick={() => void copyAccountDrop(drop)}
                         >
                           Copy
                         </button>

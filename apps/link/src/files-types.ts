@@ -35,6 +35,7 @@ export interface UploadResult {
   manageToken: string;
   expiresAt: string;
   savedBytes: number;
+  encrypted: boolean;
 }
 
 export interface AccountDrop {
@@ -45,6 +46,7 @@ export interface AccountDrop {
   size_bytes: number;
   source_size_bytes: number;
   storage_encoding: string | null;
+  encryption: string | null;
   max_downloads: number | null;
   download_count: number;
   expires_at: string;

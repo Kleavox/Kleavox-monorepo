@@ -124,7 +124,12 @@ export async function getSession(
   );
 
   if (!stored || Date.parse(stored.expiresAt) <= Date.now()) {
-    if (stored) await env.SESSIONS.delete(`session:${sessionId}`);
+    if (stored) {
+      await Promise.all([
+        env.SESSIONS.delete(`session:${sessionId}`),
+        env.SESSIONS.delete(`usersession:${stored.identity.id}:${sessionId}`),
+      ]);
+    }
     return null;
   }
 
@@ -136,7 +141,10 @@ export async function getSession(
     currentVersion !== null &&
     Number(currentVersion) !== stored.authVersion
   ) {
-    await env.SESSIONS.delete(`session:${sessionId}`);
+    await Promise.all([
+      env.SESSIONS.delete(`session:${sessionId}`),
+      env.SESSIONS.delete(`usersession:${stored.identity.id}:${sessionId}`),
+    ]);
     return null;
   }
 
