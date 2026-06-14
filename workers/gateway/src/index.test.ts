@@ -10,7 +10,6 @@ describe("Gateway public namespace", () => {
     );
     const response = await app.request("https://product.test/launch", {}, {
       LINK: { fetch: linkFetch },
-      DROP: { fetch: vi.fn() },
       ASSETS: { fetch: vi.fn() },
       PUBLIC_ORIGIN: "https://product.test",
     } as unknown as Env);
@@ -34,7 +33,6 @@ describe("Gateway public namespace", () => {
       {},
       {
         LINK: { fetch: linkFetch },
-        DROP: { fetch: vi.fn() },
         ASSETS: { fetch: vi.fn() },
         PUBLIC_ORIGIN: "https://product.test",
       } as unknown as Env,
@@ -72,7 +70,6 @@ describe("Gateway public namespace", () => {
       {},
       {
         LINK: { fetch: linkFetch },
-        DROP: { fetch: vi.fn() },
         ASSETS: { fetch: vi.fn() },
         PUBLIC_ORIGIN: "https://product.test",
       } as unknown as Env,

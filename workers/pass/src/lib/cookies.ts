@@ -29,10 +29,6 @@ export function makeVerificationCookie(
   return serializeCookie(request, env, VERIFICATION_COOKIE, token, maxAge);
 }
 
-export function clearVerificationCookie(request: Request, env: Env): string {
-  return serializeCookie(request, env, VERIFICATION_COOKIE, "", 0);
-}
-
 function serializeCookie(
   request: Request,
   env: Env,

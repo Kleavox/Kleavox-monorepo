@@ -7,7 +7,7 @@ export const hostSchema = z.object({
   agentVersion: z.string().min(1).max(64),
 });
 
-export const metricsSchema = z.object({
+const metricsSchema = z.object({
   cpuPercent: z.number().min(0).max(100).nullable(),
   memoryUsedBytes: z.number().int().nonnegative().nullable(),
   memoryTotalBytes: z.number().int().nonnegative().nullable(),

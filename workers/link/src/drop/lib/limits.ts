@@ -1,12 +1,12 @@
 import type { Identity } from "@kleavox/core";
 
-export const MEBIBYTE = 1024 * 1024;
-export const GIBIBYTE = 1024 * MEBIBYTE;
+const MEBIBYTE = 1024 * 1024;
+const GIBIBYTE = 1024 * MEBIBYTE;
 export const PART_SIZE_BYTES = 10 * MEBIBYTE;
 export const UPLOAD_TTL_SECONDS = 30 * 60;
 export const GLOBAL_ACTIVE_STORAGE_BYTES = 8 * GIBIBYTE;
-export const USER_ACTIVE_STORAGE_BYTES = GIBIBYTE;
-export const GUEST_ACTIVE_STORAGE_BYTES = 100 * MEBIBYTE;
+const USER_ACTIVE_STORAGE_BYTES = GIBIBYTE;
+const GUEST_ACTIVE_STORAGE_BYTES = 100 * MEBIBYTE;
 
 export interface DropPolicy {
   kind: "guest" | "user";

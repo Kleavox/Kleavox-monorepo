@@ -1,10 +1,3 @@
----
-import "../styles/global.css";
-import "../styles/legal.css";
-
-const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
----
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -14,8 +7,9 @@ const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
       name="description"
       content="How Kleavox collects, uses, stores, and deletes account and service data."
     />
-    <link rel="canonical" href={`${rootOrigin}/privacy`} />
+    <link rel="canonical" href="{{ROOT_ORIGIN}}/privacy" />
     <title>Privacy Policy | Kleavox</title>
+    <script type="module" src="/src/legal.ts"></script>
   </head>
   <body>
     <header class="hdr">
@@ -125,7 +119,7 @@ const rootOrigin = import.meta.env.PUBLIC_ROOT_ORIGIN ?? "https://example.com";
     </main>
 
     <footer class="legal-footer">
-      <span>(c) {new Date().getFullYear()} Kleavox</span>
+      <span>(c) {{YEAR}} Kleavox</span>
       <a href="/terms">Terms of Service</a>
     </footer>
   </body>

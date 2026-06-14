@@ -1,10 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.base.json", "tooling/typescript/*.json"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "env": ["VITE_*", "PUBLIC_*"],
-      "outputs": ["dist/**", ".astro/**", "pkg/**"]
+      "outputs": ["dist/**", "pkg/**"]
     },
     "@kleavox/crypto#build": {
       "dependsOn": ["^build"],
@@ -21,7 +22,8 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": []
     },
     "test": {
       "dependsOn": ["^build"],

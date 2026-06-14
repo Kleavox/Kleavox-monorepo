@@ -31,7 +31,7 @@ stay in sync between the two repos.
 | `apps/link`            | React workspace for short links and file drops (includes the receive page) |
 | `apps/pass`            | React auth app: sign in, register, account, security challenge             |
 | `apps/pulse`           | React monitoring dashboard                                                 |
-| `apps/web`             | Astro marketing site served by the gateway                                 |
+| `apps/web`             | Static marketing site (Vite + TypeScript) served by the gateway            |
 | `workers/gateway`      | Root-domain router: short links, file links, subdomain proxying            |
 | `workers/link`         | Short-link + file API: resolution, R2 multipart uploads, quotas, cleanup cron |
 | `workers/pass`         | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification  |
@@ -50,7 +50,7 @@ stay in sync between the two repos.
 
 ## Stack
 
-- TypeScript, React, Astro, Hono, and Cloudflare Workers
+- TypeScript, React, Vite, Hono, and Cloudflare Workers
 - D1 for relational state, KV for sessions, and R2 for temporary objects
 - Rust compiled to WebAssembly for browser-side compression and password hashing
 - Go for the lightweight Pulse agent
