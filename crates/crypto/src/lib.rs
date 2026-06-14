@@ -1,3 +1,6 @@
+// Dead-code guard: fail the build if anything in this crate becomes unreachable.
+#![deny(dead_code)]
+
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
