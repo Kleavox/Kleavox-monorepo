@@ -6,6 +6,7 @@ import {
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
 import { isReservedSlug } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
+import { securityHeaders } from "@kleavox/worker";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import type { Env } from "./env";
@@ -176,16 +177,7 @@ app.onError((cause, context) => {
   );
 });
 
-app.use("*", async (context, next) => {
-  await next();
-  context.header("Referrer-Policy", "same-origin");
-  context.header("X-Content-Type-Options", "nosniff");
-  context.header("X-Frame-Options", "DENY");
-  context.header(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
-  );
-});
+app.use("*", securityHeaders({ referrerPolicy: "same-origin" }));
 
 app.use("/api/*", async (context, next) => {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(context.req.method)) {

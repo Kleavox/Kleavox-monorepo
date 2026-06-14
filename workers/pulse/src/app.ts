@@ -1,8 +1,9 @@
 import { INTERNAL_HOSTS, INTERNAL_URLS } from "@kleavox/config";
 import { verifySession } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
+import { requireRole, securityHeaders } from "@kleavox/worker";
 import { Hono } from "hono";
-import type { Context, MiddlewareHandler } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 
 import type { Env } from "./env";
@@ -57,41 +58,16 @@ app.onError((error, context) => {
   );
 });
 
-app.use("*", async (context, next) => {
-  await next();
-  context.header("Referrer-Policy", "same-origin");
-  context.header("X-Content-Type-Options", "nosniff");
-  context.header("X-Frame-Options", "DENY");
-  context.header(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
-  );
-});
+app.use("*", securityHeaders({ referrerPolicy: "same-origin" }));
 
 app.get("/health", (context) =>
   context.json({ service: "pulse", status: "ok" }),
 );
 
-const requireAdmin: MiddlewareHandler<{
-  Bindings: Env;
-  Variables: Variables;
-}> = async (context, next) => {
-  const session = await verifySession(context.req.raw, context.env.PASS);
-  if (!session) {
-    return context.json(
-      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
-      401,
-    );
-  }
-  if (session.identity.role !== "ADMIN") {
-    return context.json(
-      { code: "FORBIDDEN", message: "Pulse is restricted to the operator." },
-      403,
-    );
-  }
-  context.set("session", session);
-  await next();
-};
+const requireAdmin = requireRole<{ Bindings: Env; Variables: Variables }>(
+  "ADMIN",
+  "Pulse is restricted to the operator.",
+);
 
 app.get("/api/session", async (context) => {
   const session = await verifySession(context.req.raw, context.env.PASS);
