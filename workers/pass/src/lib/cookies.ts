@@ -13,7 +13,13 @@ export function makeSessionCookie(
   env: Env,
   token: string,
 ): string {
-  return serializeCookie(request, env, SESSION_COOKIE, token, SESSION_TTL_SECONDS);
+  return serializeCookie(
+    request,
+    env,
+    SESSION_COOKIE,
+    token,
+    SESSION_TTL_SECONDS,
+  );
 }
 
 export function clearSessionCookie(request: Request, env: Env): string {
@@ -27,10 +33,6 @@ export function makeVerificationCookie(
   maxAge: number,
 ): string {
   return serializeCookie(request, env, VERIFICATION_COOKIE, token, maxAge);
-}
-
-export function clearVerificationCookie(request: Request, env: Env): string {
-  return serializeCookie(request, env, VERIFICATION_COOKIE, "", 0);
 }
 
 function serializeCookie(

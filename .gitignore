@@ -16,7 +16,6 @@ coverage/
 /docs/
 
 # Framework output
-.astro/
 .vite/
 
 # Playwright

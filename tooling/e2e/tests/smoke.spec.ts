@@ -10,10 +10,6 @@ const repoRoot = path.resolve(
   "..",
 );
 
-// Browser-facing URLs use localhost: headless Chromium refuses to store the
-// __Secure- prefixed session cookie on plain-http 127.0.0.1, but honours the
-// localhost trustworthy-origin exemption. The workers listen on the same
-// loopback interface either way.
 const GATEWAY = "http://localhost:8786";
 const PASS = "http://localhost:8787";
 const LINK = "http://localhost:8788";
@@ -62,7 +58,9 @@ test("auth journey: register, sign in, account page, link header", async ({
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
   await page.locator('input[name="confirm-password"]').fill(password);
-  await page.getByRole("button", { name: "Create account", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
   await expect(page.getByText("Check your email")).toBeVisible();
 
   markEmailVerified(email);
@@ -93,8 +91,6 @@ test("guest short-link creation routes through the security challenge", async ({
     .fill("https://example.org/e2e");
   await page.getByRole("button", { name: "Shorten" }).click();
 
-  // The challenge page lives on the pass worker (port 8787); the exact host
-  // depends on the configured origins, so match on the port alone.
   await page.waitForURL((url) => url.port === "8787");
   await context.close();
 });

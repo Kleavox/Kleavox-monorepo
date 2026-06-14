@@ -15,7 +15,9 @@ sharing, infrastructure monitoring, and a portfolio.
 
 File links use `https://<root-domain>/f_<token>`. Short-link slugs cannot use the
 reserved `f_` prefix, so both products share the root namespace without
-collisions. Drop is an internal Worker and has no public subdomain.
+collisions. The Link Worker serves both short links and the file-sharing API
+(R2 uploads, downloads, moderation, and the cleanup cron) — there is no separate
+file Worker.
 
 The portfolio lives in the separate private `Kleavox/portfolio` repository and
 deploys independently; the gateway reaches it through the `PORTFOLIO` service
@@ -24,32 +26,31 @@ stay in sync between the two repos.
 
 ## Repository layout
 
-| Path                | Contents                                                                     |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `apps/link`         | React workspace for short links and file drops (includes the receive page)  |
-| `apps/pass`         | React auth app: sign in, register, account, security challenge              |
-| `apps/pulse`        | React monitoring dashboard                                                   |
-| `apps/web`          | Astro marketing site served by the gateway                                  |
-| `workers/gateway`   | Root-domain router: short links, file links, subdomain proxying             |
-| `workers/link`      | Short-link API, link resolution pages, drop proxy                           |
-| `workers/pass`      | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification   |
-| `workers/drop`      | File storage API: R2 multipart uploads, quotas, scheduled cleanup cron      |
-| `workers/pulse`     | Monitoring API: nodes, checks, incidents, agent enrollment                  |
-| `packages/auth`     | Shared session/challenge/Turnstile verification helpers                     |
-| `packages/core`     | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`    |
-| `packages/config`   | Shared origins, hosts, and cookie names                                     |
-| `packages/crypto`   | Rust/WASM wrapper: Argon2 password hashing, AES-256-GCM encryption          |
-| `packages/compression` | Rust/WASM wrapper: browser-side gzip before upload                       |
-| `packages/ui`       | Shared stylesheet: `--kvx-*` design tokens and base utilities              |
-| `packages/testing`  | Test factories and mocks                                                     |
-| `crates/crypto`     | Rust source for the crypto WASM module                                      |
-| `crates/compression`| Rust source for the compression WASM module                                 |
-| `services/agent`    | Go monitoring daemon installed on nodes (systemd, hardened)                 |
-| `tooling/`          | Deploy renderer and health-check scripts used by CI                         |
+| Path                   | Contents                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `apps/link`            | React workspace for short links and file drops (includes the receive page)    |
+| `apps/pass`            | React auth app: sign in, register, account, security challenge                |
+| `apps/pulse`           | React monitoring dashboard                                                    |
+| `apps/web`             | Static marketing site (Vite + TypeScript) served by the gateway               |
+| `workers/gateway`      | Root-domain router: short links, file links, subdomain proxying               |
+| `workers/link`         | Short-link + file API: resolution, R2 multipart uploads, quotas, cleanup cron |
+| `workers/pass`         | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification     |
+| `workers/pulse`        | Monitoring API: nodes, checks, incidents, agent enrollment                    |
+| `packages/auth`        | Shared session/challenge/Turnstile verification helpers                       |
+| `packages/core`        | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`      |
+| `packages/config`      | Shared origins, hosts, and cookie names                                       |
+| `packages/crypto`      | Rust/WASM wrapper: Argon2 password hashing, AES-256-GCM encryption            |
+| `packages/compression` | Rust/WASM wrapper: browser-side gzip before upload                            |
+| `packages/ui`          | Shared stylesheet: `--kvx-*` design tokens and base utilities                 |
+| `packages/testing`     | Test factories and mocks                                                      |
+| `crates/crypto`        | Rust source for the crypto WASM module                                        |
+| `crates/compression`   | Rust source for the compression WASM module                                   |
+| `services/agent`       | Go monitoring daemon installed on nodes (systemd, hardened)                   |
+| `tooling/`             | Deploy renderer and health-check scripts used by CI                           |
 
 ## Stack
 
-- TypeScript, React, Astro, Hono, and Cloudflare Workers
+- TypeScript, React, Vite, Hono, and Cloudflare Workers
 - D1 for relational state, KV for sessions, and R2 for temporary objects
 - Rust compiled to WebAssembly for browser-side compression and password hashing
 - Go for the lightweight Pulse agent
@@ -89,20 +90,22 @@ pnpm --filter @kleavox/pass-app build
 cd workers/pass && pnpm exec wrangler dev --port 8787
 ```
 
-Workers that call each other (gateway → link → pass/drop) connect through the
+Workers that call each other (gateway → link → pass) connect through the
 Wrangler dev registry when run in separate terminals.
 
 Root scripts (Turbo orchestrates per-workspace tasks):
 
-| Script            | Action                                                    |
-| ----------------- | --------------------------------------------------------- |
-| `pnpm dev`        | Run dev tasks across workspaces                           |
-| `pnpm build`      | Build every app, worker, and package                      |
-| `pnpm test`       | Run all test suites                                       |
-| `pnpm typecheck`  | Typecheck all workspaces                                  |
-| `pnpm lint`       | Lint all workspaces                                       |
-| `pnpm check`      | lint + typecheck + test + build + Go agent tests          |
-| `pnpm agent:test` | Go agent tests only                                       |
+| Script              | Action                                                                         |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `pnpm dev`          | Run dev tasks across workspaces                                                |
+| `pnpm build`        | Build every app, worker, and package                                           |
+| `pnpm test`         | Run all test suites                                                            |
+| `pnpm typecheck`    | Typecheck all workspaces                                                       |
+| `pnpm lint`         | Lint all workspaces                                                            |
+| `pnpm format:check` | Verify Prettier formatting                                                     |
+| `pnpm knip`         | Report unused files, exports, and dependencies                                 |
+| `pnpm check`        | format + lint + typecheck + test + build + Go agent tests + Go deadcode + knip |
+| `pnpm agent:test`   | Go agent tests only                                                            |
 
 Copy each app's `.env.example` to `.env.local` only when overriding defaults.
 Worker secrets belong in ignored `.dev.vars` files and must never be committed.
@@ -139,7 +142,7 @@ files above 32 MiB skip compression. R2 stores the smaller body with
 `Content-Encoding: gzip`, so the browser restores the original during download
 without spending Worker CPU.
 
-**Drop lifecycle.** A 15-minute cron in the drop worker aborts stale upload
+**File lifecycle.** A 15-minute cron in the Link Worker aborts stale upload
 sessions, finalizes stuck completions, deletes expired or exhausted drops, and
 garbage-collects old rows.
 
@@ -151,18 +154,29 @@ Pulse API endpoint rejects non-admin sessions, the dashboard shows a
 home page only appear for an admin session. The abuse-report inbox lives in
 the Pulse dashboard (Moderation section): it lists short-link and file
 reports, and supports resolve/reject, disabling a reported link, and deleting
-a reported file. Pulse proxies these actions to the link and drop workers via
-service bindings; the target workers re-check the `ADMIN` role themselves.
+a reported file. Pulse proxies these actions to the Link Worker via a service
+binding; Link re-checks the `ADMIN` role itself.
 
-Promotion to admin is deliberate and manual — there is no endpoint for it:
+**First-admin bootstrap.** A fresh deploy has no admin — every account starts
+as `USER`, and there is deliberately no promotion endpoint (Pass is the public
+identity provider, so auto-promoting "the first user" would be a race). After
+the first deploy, register and verify your own account in Pass, then promote it
+once:
 
 ```bash
-pnpm exec wrangler d1 execute DB --local --config workers/pass/wrangler.jsonc \
-  --command "UPDATE users SET role = 'ADMIN' WHERE email = '<your-email>'"
+# Local:
+pnpm admin:promote -- --email you@example.com --local
+
+# Production (resolves the deployed database from these values):
+WORKER_PREFIX=<prefix> PASS_D1_ID=<pass-d1-id> pnpm admin:promote -- --email you@example.com
+
+# List current admins:
+pnpm admin:promote -- --list [--local]
 ```
 
-For production, run the same statement with `--remote` against the rendered
-deploy config.
+The helper validates the email, refuses to promote a non-existent account, and
+warns if the address is unverified (only verified admins receive Pulse report
+emails).
 
 Two hard rules: admins cannot delete user accounts (no such endpoint exists —
 account deletion is strictly self-service, and works for OAuth-only accounts
@@ -185,7 +199,6 @@ Create these resources and keep the returned IDs outside the repository:
 pnpm exec wrangler d1 create kleavox-pass
 pnpm exec wrangler d1 create kleavox-link
 pnpm exec wrangler d1 create kleavox-pulse
-pnpm exec wrangler d1 create kleavox-drop
 pnpm exec wrangler kv namespace create kleavox-pass-sessions
 pnpm exec wrangler r2 bucket create kleavox-files
 ```
@@ -196,7 +209,6 @@ Map the returned values to GitHub environment secrets as follows:
 kleavox-pass -> PASS_D1_ID
 kleavox-link -> LINK_D1_ID
 kleavox-pulse -> PULSE_D1_ID
-kleavox-drop -> DROP_D1_ID
 kleavox-pass-sessions -> PASS_KV_ID
 ```
 
@@ -226,7 +238,6 @@ PASS_D1_ID
 PASS_KV_ID
 LINK_D1_ID
 PULSE_D1_ID
-DROP_D1_ID
 RESEND_API_KEY
 TURNSTILE_SITE_KEY
 TURNSTILE_SECRET_KEY

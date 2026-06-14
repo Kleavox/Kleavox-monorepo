@@ -15,7 +15,7 @@ import {
   type CheckStatus,
 } from "./lib/checks";
 import { randomToken, readBearerToken, sha256 } from "./lib/crypto";
-import { sendIncidentEmail } from "./lib/mail";
+import { sendIncidentEmail, sendReportEmail } from "./lib/mail";
 import { heartbeatSchema, hostSchema, resultSchema } from "./schemas";
 
 interface Variables {
@@ -100,6 +100,37 @@ app.get("/api/session", async (context) => {
     : context.json({ authenticated: false });
 });
 
+app.post("/internal/report-notify", async (context) => {
+  if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PULSE) {
+    return context.body(null, 404);
+  }
+
+  const body = z
+    .object({
+      kind: z.enum(["link", "file"]),
+      reason: z.string().max(100),
+      target: z.string().max(2048),
+    })
+    .safeParse(await readJson(context));
+  if (!body.success) return invalidRequest(context);
+
+  try {
+    const response = await context.env.PASS.fetch(INTERNAL_URLS.ADMINS_LOOKUP);
+    if (response.ok) {
+      const { emails } = await response.json<{ emails: string[] }>();
+      await sendReportEmail(context.env, {
+        to: emails,
+        kind: body.data.kind,
+        reason: body.data.reason,
+        target: body.data.target,
+      });
+    }
+  } catch (error) {
+    console.error("[pulse report-notify]", error);
+  }
+  return context.json({ ok: true });
+});
+
 app.all("/api/admin/link/*", requireAdmin, (context) =>
   proxyAdmin(
     context,
@@ -112,8 +143,8 @@ app.all("/api/admin/link/*", requireAdmin, (context) =>
 app.all("/api/admin/drop/*", requireAdmin, (context) =>
   proxyAdmin(
     context,
-    context.env.DROP,
-    INTERNAL_HOSTS.DROP,
+    context.env.LINK,
+    INTERNAL_HOSTS.LINK,
     context.req.path.replace(/^\/api\/admin\/drop/u, "/api"),
   ),
 );
@@ -803,7 +834,10 @@ async function notifyIncident(
     lookup.searchParams.set("id", node.owner_user_id);
     const response = await env.PASS.fetch(lookup);
     if (!response.ok) return;
-    const owner = await response.json<{ email: string; username: string | null }>();
+    const owner = await response.json<{
+      email: string;
+      username: string | null;
+    }>();
 
     await sendIncidentEmail(env, {
       to: owner.email,

@@ -1,5 +1,0 @@
-TURNSTILE_SECRET_KEY=
-GUEST_HASH_SECRET=replace-with-a-long-random-development-secret
-DOWNLOAD_SIGNING_SECRET=replace-with-a-separate-long-random-secret
-PASSWORD_HASH_SECRET=replace-with-a-separate-long-random-secret
-

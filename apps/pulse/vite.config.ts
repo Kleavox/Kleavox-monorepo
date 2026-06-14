@@ -1,4 +1,3 @@
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { reactApp } from "@kleavox/vite-config";
 
-export default defineConfig({ plugins: [react()] });
+export default reactApp();

@@ -36,7 +36,10 @@ export async function prepareUpload(file: File): Promise<PreparedUpload> {
   const { gzip_compress, max_input_bytes, should_compress } =
     await loadCompression();
 
-  if (file.size > max_input_bytes() || !should_compress(file.name, file.type, file.size)) {
+  if (
+    file.size > max_input_bytes() ||
+    !should_compress(file.name, file.type, file.size)
+  ) {
     return {
       body: file,
       originalSizeBytes: file.size,

@@ -1,5 +1,10 @@
 import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
-import { readCookie, verifyChallenge, verifySession } from "@kleavox/auth";
+import {
+  notifyReport,
+  readCookie,
+  verifyChallenge,
+  verifySession,
+} from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -10,6 +15,7 @@ import { linkUnavailablePage, protectedLinkPage } from "./lib/page";
 import { hashLinkPassword, verifyLinkPassword } from "./lib/password";
 import { clientContext, parseExpiration, parseTargetUrl } from "./lib/request";
 import { generateSlug, isValidSlug, normalizeSlug } from "./lib/slug";
+import { app as dropApp, purgeDropUser } from "./drop/app";
 
 interface Variables {
   session: SessionIdentity;
@@ -85,6 +91,7 @@ app.onError((error, context) => {
   }
   return context.html(
     linkUnavailablePage(
+      "500",
       "Something broke",
       "Something went wrong on our side. Give it a moment and try again.",
     ),
@@ -98,13 +105,7 @@ app.get("/health", (context) =>
 
 app.get("/files", (context) => context.redirect("/", 308));
 
-app.all("/api/drop/*", (context) =>
-  proxyDrop(context, context.req.path.replace(/^\/api\/drop/u, "/api")),
-);
-app.all("/api/uploads", (context) => proxyDrop(context, context.req.path));
-app.all("/api/uploads/*", (context) => proxyDrop(context, context.req.path));
-app.all("/api/drops", (context) => proxyDrop(context, context.req.path));
-app.all("/api/public/*", (context) => proxyDrop(context, context.req.path));
+app.route("/", dropApp);
 
 app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
   const url = new URL(context.req.url);
@@ -124,6 +125,7 @@ app.on(["GET", "HEAD", "POST"], "/internal/resolve/:slug", async (context) => {
   if (link.expires_at && Date.parse(link.expires_at) <= Date.now()) {
     return context.html(
       linkUnavailablePage(
+        "410",
         "Link expired",
         "This destination is no longer available.",
       ),
@@ -174,6 +176,7 @@ app.post("/internal/purge-user", async (context) => {
   await context.env.DB.prepare(`DELETE FROM links WHERE user_id = ?`)
     .bind(userId)
     .run();
+  await purgeDropUser(context.env, userId);
   return context.json({ ok: true });
 });
 
@@ -500,6 +503,20 @@ app.get("/api/links/:slug/stats", requireSession, async (context) => {
 });
 
 app.post("/api/reports", async (context) => {
+  const rateKey =
+    context.req.header("cf-connecting-ip") ??
+    context.req.header("user-agent") ??
+    "anonymous";
+  if (
+    !(await context.env.REPORT_RATE_LIMIT.limit({ key: `report:${rateKey}` }))
+      .success
+  ) {
+    return context.json(
+      { code: "RATE_LIMITED", message: "Try again in a minute." },
+      429,
+    );
+  }
+
   if (
     !(await verifySession(context.req.raw, context.env.PASS)) &&
     !(await verifyChallenge(context.req.raw, context.env.PASS, "basic"))
@@ -531,6 +548,13 @@ app.post("/api/reports", async (context) => {
       body.data.details ?? null,
     )
     .run();
+  context.executionCtx.waitUntil(
+    notifyReport(context.env.PULSE, {
+      kind: "link",
+      reason: body.data.reason,
+      target: link ? `/${link.slug}` : body.data.slug,
+    }),
+  );
   return context.json({ ok: true }, 202);
 });
 
@@ -564,14 +588,6 @@ app.patch("/api/admin/reports/:id", requireAdmin, async (context) => {
 });
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
-
-function proxyDrop(context: AppContext, pathname: string) {
-  const source = new URL(context.req.url);
-  const destination = new URL(source);
-  destination.hostname = INTERNAL_HOSTS.DROP;
-  destination.pathname = pathname;
-  return context.env.DROP.fetch(new Request(destination, context.req.raw));
-}
 
 async function readJson(context: AppContext): Promise<unknown> {
   return context.req.json().catch(() => null);

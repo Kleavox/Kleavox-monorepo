@@ -91,7 +91,9 @@ jobs:
         run: wasm-pack build --target web --out-dir /tmp/wasm-pack-warmup --release crates/compression --locked
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
       - run: pnpm exec turbo run typecheck test build
+      - run: pnpm knip
 
   e2e:
     needs: changes
@@ -174,6 +176,16 @@ jobs:
 
       - run: go build -o bin/kleavox-agent ./cmd/agent
         working-directory: services/agent
+
+      - name: Dead-code check
+        working-directory: services/agent
+        run: |
+          output="$(go run golang.org/x/tools/cmd/deadcode@latest ./...)"
+          if [ -n "$output" ]; then
+            echo "Dead Go code found:"
+            echo "$output"
+            exit 1
+          fi
 
   validate:
     name: validate

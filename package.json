@@ -16,16 +16,20 @@
     "compression:test": "pnpm --filter @kleavox/compression test",
     "agent:test": "go -C services/agent test ./...",
     "agent:build": "go -C services/agent build ./cmd/agent",
+    "agent:deadcode": "node tooling/lint/go-deadcode.mjs",
     "deploy:render": "node tooling/deploy/dist/cli.js render",
     "e2e": "pnpm --filter @kleavox/e2e e2e",
     "health:check": "node tooling/health/check.mjs",
-    "check": "turbo run lint typecheck test build && pnpm agent:test",
+    "admin:promote": "node tooling/deploy/promote-admin.mjs",
+    "check": "pnpm format:check && turbo run lint typecheck test build && pnpm agent:test && pnpm agent:deadcode && pnpm knip",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "knip": "knip"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250430.0",
     "@types/node": "^22.15.0",
+    "knip": "^6.16.1",
     "prettier": "^3.5.3",
     "turbo": "^2.5.4",
     "typescript": "^5.9.3",

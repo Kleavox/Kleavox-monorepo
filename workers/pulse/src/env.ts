@@ -1,10 +1,11 @@
+import type { DeployEnvironment } from "@kleavox/core";
+
 export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
   PASS: Fetcher;
   LINK: Fetcher;
-  DROP: Fetcher;
-  ENVIRONMENT: "development" | "preview" | "production";
+  ENVIRONMENT: DeployEnvironment;
   PUBLIC_ORIGIN: string;
   AGENT_DOWNLOAD_BASE: string;
   FROM_EMAIL: string;

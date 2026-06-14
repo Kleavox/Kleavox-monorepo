@@ -14,25 +14,22 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm exec wrangler dev --config ../../workers/pass/wrangler.jsonc --port 8787",
+      command:
+        "pnpm exec wrangler dev --config ../../workers/pass/wrangler.jsonc --port 8787",
       url: "http://127.0.0.1:8787/health",
       reuseExistingServer: reuse,
       timeout: 90_000,
     },
     {
-      command: "pnpm exec wrangler dev --config ../../workers/link/wrangler.jsonc --port 8788",
+      command:
+        "pnpm exec wrangler dev --config ../../workers/link/wrangler.jsonc --port 8788",
       url: "http://127.0.0.1:8788/health",
       reuseExistingServer: reuse,
       timeout: 90_000,
     },
     {
-      command: "pnpm exec wrangler dev --config ../../workers/drop/wrangler.jsonc --port 8789",
-      url: "http://127.0.0.1:8789/health",
-      reuseExistingServer: reuse,
-      timeout: 90_000,
-    },
-    {
-      command: "pnpm exec wrangler dev --config ../../workers/gateway/wrangler.jsonc --port 8786",
+      command:
+        "pnpm exec wrangler dev --config ../../workers/gateway/wrangler.jsonc --port 8786",
       url: "http://127.0.0.1:8786/health",
       reuseExistingServer: reuse,
       timeout: 90_000,

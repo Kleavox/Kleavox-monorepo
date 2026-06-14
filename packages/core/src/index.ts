@@ -1,6 +1,9 @@
 export { ApiError, apiFetch, readApiResponse } from "./api";
-export { renderErrorPage, escapeHtml } from "./error-page";
+export { renderErrorPage, errorCodeCopy, escapeHtml } from "./error-page";
 export type { ErrorPageOptions } from "./error-page";
+export { errorMessage } from "./errors";
+
+export type DeployEnvironment = "development" | "preview" | "production";
 
 export const PRODUCT_NAMES = [
   "web",
@@ -71,4 +74,3 @@ export interface SessionIdentity {
   sessionId: string;
   expiresAt: string;
 }
-

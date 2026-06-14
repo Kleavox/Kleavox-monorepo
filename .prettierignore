@@ -7,4 +7,7 @@ node_modules/
 **/bin/
 
 docs/
+pnpm-lock.yaml
 packages/compression/pkg/
+packages/crypto/pkg/
+**/wasm-base64.ts

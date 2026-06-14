@@ -30,13 +30,11 @@ export async function initCrypto(
   }
 
   // @ts-ignore
-  modulePromise = import("../pkg/kleavox_crypto.js").then(
-    async (module) => {
-      const input = wasm ?? decodeBase64ToUint8Array(WASM_BASE64);
-      await module.default({ module_or_path: input });
-      return module as unknown as CryptoModule;
-    },
-  );
+  modulePromise = import("../pkg/kleavox_crypto.js").then(async (module) => {
+    const input = wasm ?? decodeBase64ToUint8Array(WASM_BASE64);
+    await module.default({ module_or_path: input });
+    return module as unknown as CryptoModule;
+  });
   try {
     await modulePromise;
   } catch (error) {
@@ -52,22 +50,45 @@ async function loadCrypto(): Promise<CryptoModule> {
   return modulePromise!;
 }
 
-export async function hashPassword(password: string, salt: string): Promise<string> {
+export function withInitCrypto<F extends (...args: never[]) => unknown>(
+  wasm: WebAssembly.Module | BufferSource,
+  app: { fetch: F },
+): F {
+  const handler = async (...args: Parameters<F>) => {
+    await initCrypto(wasm);
+    return app.fetch(...args);
+  };
+  return handler as unknown as F;
+}
+
+export async function hashPassword(
+  password: string,
+  salt: string,
+): Promise<string> {
   const crypto = await loadCrypto();
   return crypto.hash_password(password, salt);
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   const crypto = await loadCrypto();
   return crypto.verify_password(password, hash);
 }
 
-export async function encrypt(data: Uint8Array, password: string): Promise<Uint8Array> {
+export async function encrypt(
+  data: Uint8Array,
+  password: string,
+): Promise<Uint8Array> {
   const crypto = await loadCrypto();
   return crypto.encrypt_data(data, password);
 }
 
-export async function decrypt(data: Uint8Array, password: string): Promise<Uint8Array> {
+export async function decrypt(
+  data: Uint8Array,
+  password: string,
+): Promise<Uint8Array> {
   const crypto = await loadCrypto();
   return crypto.decrypt_data(data, password);
 }

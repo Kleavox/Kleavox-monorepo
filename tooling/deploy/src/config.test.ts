@@ -10,7 +10,6 @@ const env = {
   PASS_KV_ID: "11111111111111111111111111111111",
   LINK_D1_ID: "22222222-2222-2222-2222-222222222222",
   PULSE_D1_ID: "33333333-3333-3333-3333-333333333333",
-  DROP_D1_ID: "44444444-4444-4444-4444-444444444444",
   DROP_BUCKET_NAME: "product-files",
   AUTH_FROM_EMAIL: "Product <no-reply@product.test>",
   AGENT_DOWNLOAD_BASE:
@@ -35,13 +34,13 @@ describe("production deployment config", () => {
       { pattern: "link.product.test", custom_domain: true },
     ]);
     expect(configs["portfolio"]).toBeUndefined();
-    expect(configs["drop"]?.routes).toBeUndefined();
-    expect(configs["drop"]?.vars).toMatchObject({
-      PUBLIC_ORIGIN: "https://product.test",
-    });
+    expect(configs["drop"]).toBeUndefined();
+    expect(configs["link"]?.r2_buckets).toEqual([
+      { binding: "FILES", bucket_name: "product-files" },
+    ]);
+    expect(configs["link"]?.triggers).toEqual({ crons: ["*/15 * * * *"] });
     expect(configs["gateway"]?.services).toEqual([
       { binding: "LINK", service: "product-link" },
-      { binding: "DROP", service: "product-drop" },
       { binding: "PASS", service: "product-pass" },
       { binding: "PULSE", service: "product-pulse" },
       { binding: "PORTFOLIO", service: "product-portfolio" },
@@ -81,7 +80,7 @@ describe("production secrets", () => {
       PASSWORD_HASH_SECRET: "password",
     });
     expect(result.pass.RESEND_API_KEY).toBe("resend");
-    expect(result.drop.PASSWORD_HASH_SECRET).toBe("password");
+    expect(result.link.PASSWORD_HASH_SECRET).toBe("password");
     expect(result).not.toHaveProperty("portfolio");
   });
 });

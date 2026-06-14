@@ -30,16 +30,57 @@
       "service": "local-pass",
     },
     {
-      "binding": "DROP",
-      "service": "local-drop",
+      "binding": "PULSE",
+      "service": "local-pulse",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "local-files",
+    },
+  ],
+  "triggers": {
+    "crons": ["*/15 * * * *"],
+  },
   "ratelimits": [
     {
       "name": "PUBLIC_CREATE_RATE_LIMIT",
       "namespace_id": "3201",
       "simple": {
         "limit": 10,
+        "period": 60,
+      },
+    },
+    {
+      "name": "REPORT_RATE_LIMIT",
+      "namespace_id": "3202",
+      "simple": {
+        "limit": 5,
+        "period": 60,
+      },
+    },
+    {
+      "name": "CREATE_RATE_LIMIT",
+      "namespace_id": "3101",
+      "simple": {
+        "limit": 12,
+        "period": 60,
+      },
+    },
+    {
+      "name": "DOWNLOAD_RATE_LIMIT",
+      "namespace_id": "3102",
+      "simple": {
+        "limit": 120,
+        "period": 60,
+      },
+    },
+    {
+      "name": "FILE_REPORT_RATE_LIMIT",
+      "namespace_id": "3103",
+      "simple": {
+        "limit": 5,
         "period": 60,
       },
     },
@@ -51,7 +92,7 @@
     {
       "type": "CompiledWasm",
       "globs": ["**/*.wasm"],
-      "fallthrough": true
-    }
-  ]
+      "fallthrough": true,
+    },
+  ],
 }
