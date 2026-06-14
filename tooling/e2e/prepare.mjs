@@ -19,7 +19,7 @@ const env = {
 };
 
 execSync(
-  "pnpm exec turbo run build --filter=@kleavox/pass-app --filter=@kleavox/link-app --filter=@kleavox/web-app --filter=@kleavox/auth --filter=@kleavox/crypto",
+  "pnpm exec turbo run build --filter=@kleavox/gateway-worker^... --filter=@kleavox/pass-worker^... --filter=@kleavox/link-worker^...",
   { cwd: repoRoot, env, stdio: "inherit" },
 );
 
