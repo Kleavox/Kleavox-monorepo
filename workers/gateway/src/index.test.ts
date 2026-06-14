@@ -10,7 +10,6 @@ describe("Gateway public namespace", () => {
     );
     const response = await app.request("https://product.test/launch", {}, {
       LINK: { fetch: linkFetch },
-      DROP: { fetch: vi.fn() },
       ASSETS: { fetch: vi.fn() },
       PUBLIC_ORIGIN: "https://product.test",
     } as unknown as Env);
@@ -34,7 +33,6 @@ describe("Gateway public namespace", () => {
       {},
       {
         LINK: { fetch: linkFetch },
-        DROP: { fetch: vi.fn() },
         ASSETS: { fetch: vi.fn() },
         PUBLIC_ORIGIN: "https://product.test",
       } as unknown as Env,
@@ -45,23 +43,22 @@ describe("Gateway public namespace", () => {
     expect(linkFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("proxies public file APIs to Drop", async () => {
-    const dropFetch = vi.fn(async (request: Request) =>
+  it("proxies public file APIs to Link", async () => {
+    const linkFetch = vi.fn(async (request: Request) =>
       Response.json({ host: new URL(request.url).hostname }),
     );
     const response = await app.request(
       "https://product.test/api/public/f_JG2nV6-pQ9",
       {},
       {
-        LINK: { fetch: vi.fn() },
-        DROP: { fetch: dropFetch },
+        LINK: { fetch: linkFetch },
         ASSETS: { fetch: vi.fn() },
         PUBLIC_ORIGIN: "https://product.test",
       } as unknown as Env,
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ host: "drop.internal" });
+    await expect(response.json()).resolves.toEqual({ host: "link.internal" });
   });
 
   it("proxies the receiver bundle to Link", async () => {
@@ -73,7 +70,6 @@ describe("Gateway public namespace", () => {
       {},
       {
         LINK: { fetch: linkFetch },
-        DROP: { fetch: vi.fn() },
         ASSETS: { fetch: vi.fn() },
         PUBLIC_ORIGIN: "https://product.test",
       } as unknown as Env,
@@ -83,5 +79,22 @@ describe("Gateway public namespace", () => {
     await expect(response.json()).resolves.toEqual({
       path: "/link-assets/index.js",
     });
+  });
+
+  it("renders the unified error page for an unknown HTML route", async () => {
+    const response = await app.request(
+      "https://product.test/no/such/path",
+      { headers: { accept: "text/html" } },
+      {
+        LINK: { fetch: vi.fn() },
+        ASSETS: {
+          fetch: vi.fn(async () => new Response("nope", { status: 404 })),
+        },
+        PUBLIC_ORIGIN: "https://product.test",
+      } as unknown as Env,
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toContain("Page not found");
   });
 });

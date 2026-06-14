@@ -13,7 +13,9 @@
   --accent-ink: #0a0b20;
   --shell: min(1360px, calc(100vw - 48px));
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-family: "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family:
+    "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
   background: var(--base);
   color: var(--ink);
   font-synthesis: none;
@@ -36,7 +38,11 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 18% 8%, rgb(139 142 248 / 10%), transparent 32rem),
+    radial-gradient(
+      circle at 18% 8%,
+      rgb(139 142 248 / 10%),
+      transparent 32rem
+    ),
     linear-gradient(90deg, rgb(139 142 248 / 2.2%) 1px, transparent 1px),
     var(--base);
   background-size:
@@ -128,7 +134,6 @@ h1 {
   transform: translateY(1px);
 }
 
-/* ── Header ── */
 .hdr {
   position: sticky;
   z-index: 40;
@@ -230,7 +235,9 @@ h1 {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-align: left;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .account-dropdown button:hover {
@@ -238,7 +245,6 @@ h1 {
   color: var(--accent);
 }
 
-/* ── Hero ── */
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 0.82fr) minmax(400px, 1.18fr);
@@ -310,7 +316,6 @@ h1 {
   transform: translateY(0);
 }
 
-/* Route sample */
 .route-sample {
   width: min(100%, 360px);
   min-height: 52px;
@@ -349,15 +354,18 @@ h1 {
   transform-origin: left;
 }
 
-/* ── Mosaic ── */
 .mosaic {
-  position: relative;
-  min-height: min(700px, 74vh);
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.7rem, 1.4vw, 1.1rem);
+  align-content: start;
 }
 
 .mc {
-  position: absolute;
+  position: relative;
   z-index: 0;
+  flex: 1 1 calc(50% - 0.55rem);
+  min-height: clamp(180px, 23vw, 240px);
   overflow: hidden;
   border: 1px solid var(--line-bright);
   border-radius: 10px;
@@ -372,45 +380,20 @@ h1 {
 
 .mc:hover {
   z-index: 5;
-  transform: translateY(-14px) rotate(-2deg);
+  transform: translateY(-10px) rotate(-1.5deg);
   box-shadow: 0 44px 90px rgb(0 0 0 / 55%);
 }
 
 .mc2:hover {
-  transform: translateY(-12px) rotate(2deg);
+  transform: translateY(-10px) rotate(1.5deg);
 }
 
 .mc3:hover {
-  transform: translateY(-13px) rotate(-1.8deg);
+  transform: translateY(-10px) rotate(-1.5deg);
 }
 
 .mc4:hover {
-  transform: translateY(-11px) rotate(2deg);
-}
-
-.mc1 {
-  inset: 0 10% 24% 0;
-}
-
-.mc2 {
-  width: 47%;
-  height: 42%;
-  right: 0;
-  top: 9%;
-}
-
-.mc3 {
-  width: 54%;
-  height: 41%;
-  left: 7%;
-  bottom: 0;
-}
-
-.mc4 {
-  width: 39%;
-  height: 36%;
-  right: 3%;
-  bottom: 5%;
+  transform: translateY(-10px) rotate(1.5deg);
 }
 
 .mc1:hover {
@@ -439,7 +422,11 @@ h1 {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 110%, var(--accent) 0%, transparent 65%);
+  background: radial-gradient(
+    ellipse at 50% 110%,
+    var(--accent) 0%,
+    transparent 65%
+  );
   opacity: 0;
   transition: opacity 380ms ease;
   border-radius: inherit;
@@ -461,19 +448,24 @@ h1 {
 }
 
 .mc1 .mc-in {
-  background: linear-gradient(145deg, rgb(72 202 240 / 6%), transparent 45%), var(--panel);
+  background:
+    linear-gradient(145deg, rgb(72 202 240 / 6%), transparent 45%), var(--panel);
 }
 
 .mc2 .mc-in {
-  background: linear-gradient(145deg, rgb(139 142 248 / 7%), transparent 45%), var(--panel);
+  background:
+    linear-gradient(145deg, rgb(139 142 248 / 7%), transparent 45%),
+    var(--panel);
 }
 
 .mc3 .mc-in {
-  background: linear-gradient(145deg, rgb(197 242 67 / 6%), transparent 45%), var(--panel);
+  background:
+    linear-gradient(145deg, rgb(197 242 67 / 6%), transparent 45%), var(--panel);
 }
 
 .mc4 .mc-in {
-  background: linear-gradient(145deg, rgb(61 219 224 / 7%), transparent 45%), var(--panel);
+  background:
+    linear-gradient(145deg, rgb(61 219 224 / 7%), transparent 45%), var(--panel);
 }
 
 .mc-label {
@@ -518,7 +510,12 @@ h1 {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 45%),
+    transparent
+  );
   animation: bar-shine 3s ease-in-out infinite;
 }
 
@@ -569,7 +566,6 @@ h1 {
   color: #041214;
 }
 
-/* Card mini-deco */
 .mc-deco {
   position: absolute;
   pointer-events: none;
@@ -735,7 +731,6 @@ h1 {
   animation-delay: 0.75s;
 }
 
-/* ── Footer ── */
 .ftr {
   padding: 2rem 0;
   border-top: 1px solid var(--line);
@@ -784,7 +779,6 @@ h1 {
   font-size: 0.62rem;
 }
 
-/* ── Animations ── */
 @keyframes route-sweep {
   0% {
     transform: scaleX(0) translateX(0);
@@ -802,10 +796,14 @@ h1 {
 
 @keyframes mc-grid-drift {
   from {
-    background-position: 0 0, 0 0;
+    background-position:
+      0 0,
+      0 0;
   }
   to {
-    background-position: 11px 11px, 11px 11px;
+    background-position:
+      11px 11px,
+      11px 11px;
   }
 }
 
@@ -844,15 +842,10 @@ h1 {
   }
 }
 
-/* ── Responsive ── */
 @media (max-width: 860px) {
   .hero {
     grid-template-columns: 1fr;
     min-height: auto;
-  }
-
-  .mosaic {
-    min-height: 520px;
   }
 }
 
@@ -874,30 +867,9 @@ h1 {
     max-width: 29rem;
   }
 
-  .mosaic {
-    min-height: 420px;
-  }
-
-  .mc1 {
-    inset: 0 4% 26% 0;
-  }
-
-  .mc2 {
-    width: 50%;
-    height: 38%;
-  }
-
-  .mc3 {
-    width: 58%;
-    height: 38%;
-    left: 2%;
-  }
-
-  .mc4 {
-    width: 42%;
-    height: 33%;
-    right: 0;
-    bottom: 3%;
+  .mc {
+    flex-basis: 100%;
+    min-height: 150px;
   }
 
   .hero-acts {
@@ -926,10 +898,6 @@ h1 {
 @media (max-width: 480px) {
   .hero h1 {
     font-size: clamp(3.2rem, 16vw, 4.5rem);
-  }
-
-  .mosaic {
-    min-height: 340px;
   }
 
   .route-sample {

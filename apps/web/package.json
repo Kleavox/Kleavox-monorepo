@@ -4,20 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "astro build",
-    "dev": "astro dev",
-    "lint": "astro check",
+    "build": "vite build",
+    "dev": "vite",
+    "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "astro check"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@kleavox/config": "workspace:*",
-    "@kleavox/core": "workspace:*",
-    "astro": "catalog:"
+    "@kleavox/core": "workspace:*"
   },
   "devDependencies": {
-    "@astrojs/check": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   }
 }

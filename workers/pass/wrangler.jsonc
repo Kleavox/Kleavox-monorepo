@@ -22,10 +22,6 @@
       "binding": "LINK",
       "service": "local-link",
     },
-    {
-      "binding": "DROP",
-      "service": "local-drop",
-    },
   ],
   "kv_namespaces": [
     {
@@ -48,7 +44,7 @@
     {
       "type": "CompiledWasm",
       "globs": ["**/*.wasm"],
-      "fallthrough": true
-    }
-  ]
+      "fallthrough": true,
+    },
+  ],
 }

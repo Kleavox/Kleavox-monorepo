@@ -1,19 +1,31 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.base.json", "tooling/typescript/*.json"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "env": ["VITE_*", "PUBLIC_*"],
-      "outputs": ["dist/**", ".astro/**", "pkg/**"]
+      "outputs": ["dist/**", "pkg/**"]
     },
     "@kleavox/crypto#build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "!src/wasm-base64.ts", "../../crates/crypto/src/**", "../../crates/crypto/Cargo.toml", "../../crates/crypto/Cargo.lock"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!src/wasm-base64.ts",
+        "../../crates/crypto/src/**",
+        "../../crates/crypto/Cargo.toml",
+        "../../crates/crypto/Cargo.lock"
+      ],
       "outputs": ["dist/**", "pkg/**", "src/wasm-base64.ts"]
     },
     "@kleavox/compression#build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "../../crates/compression/src/**", "../../crates/compression/Cargo.toml", "../../crates/compression/Cargo.lock"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../crates/compression/src/**",
+        "../../crates/compression/Cargo.toml",
+        "../../crates/compression/Cargo.lock"
+      ],
       "outputs": ["dist/**", "pkg/**", "src/wasm-base64.ts"]
     },
     "dev": {
@@ -21,7 +33,8 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": []
     },
     "test": {
       "dependsOn": ["^build"],

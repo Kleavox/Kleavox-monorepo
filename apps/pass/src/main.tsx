@@ -1,6 +1,6 @@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { createRoot } from "react-dom/client";
-import { ApiError, apiFetch } from "@kleavox/core";
+import { ApiError, apiFetch, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 import {
   type FormEvent,
@@ -13,7 +13,7 @@ import {
 } from "react";
 
 import "@kleavox/ui/styles.css";
-import { ROOT_ORIGIN } from "./config";
+import { ErrorScreen, ROOT_ORIGIN } from "@kleavox/ui";
 import "./pass.css";
 
 type Mode = "login" | "register" | "forgot";
@@ -56,7 +56,11 @@ function App() {
       api<OAuthProviders>("/api/oauth/providers"),
     ])
       .then(([nextSession, nextProviders]) => {
-        if (nextSession.authenticated && returnTo && nextSession.user?.username) {
+        if (
+          nextSession.authenticated &&
+          returnTo &&
+          nextSession.user?.username
+        ) {
           window.location.assign(returnTo);
           return;
         }
@@ -347,7 +351,11 @@ function Register({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
   );
 }
 
-function ForgotPassword({ onModeChange }: { onModeChange: (mode: Mode) => void }) {
+function ForgotPassword({
+  onModeChange,
+}: {
+  onModeChange: (mode: Mode) => void;
+}) {
   const challenge = useChallenge();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>({ status: "idle" });
@@ -422,6 +430,17 @@ function VerifyEmail() {
         setState({ status: "error", message: errorMessage(cause) }),
       );
   }, [token]);
+
+  if (state.status === "error") {
+    return (
+      <ErrorScreen
+        title="Verification failed"
+        message={
+          state.message ?? "This verification link is invalid or has expired."
+        }
+      />
+    );
+  }
 
   return (
     <ResultState title="Verify email" state={state}>
@@ -833,8 +852,8 @@ function Account({
         {deleting ? (
           <form className="pass-name-edit" onSubmit={deleteAccount}>
             <p className="pass-danger-note">
-              This permanently removes your account, links, and files. Type
-              your email to confirm.
+              This permanently removes your account, links, and files. Type your
+              email to confirm.
             </p>
             <Field
               label="Email"
@@ -1063,7 +1082,9 @@ function useChallenge(
         const index = waiters.current.indexOf(waiter);
         if (index >= 0) {
           waiters.current.splice(index, 1);
-          reject(new Error("The security check is taking too long. Try again."));
+          reject(
+            new Error("The security check is taking too long. Try again."),
+          );
         }
       }, 20_000);
     });
@@ -1144,11 +1165,21 @@ function Welcome({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [canSetPassword, setCanSetPassword] = useState(false);
   const [state, setState] = useState<FormState>({ status: "idle" });
+
+  useEffect(() => {
+    void api<{ providers: string[] }>("/api/account")
+      .then((account) =>
+        setCanSetPassword(!account.providers.includes("password")),
+      )
+      .catch(() => {});
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (password && password !== confirm) {
+    const withPassword = canSetPassword && password;
+    if (withPassword && password !== confirm) {
       setState({ status: "error", message: "Passwords do not match." });
       return;
     }
@@ -1156,7 +1187,7 @@ function Welcome({
     try {
       const result = await api<{ ok: true; user: Identity }>(
         "/api/account/setup",
-        password ? { username, password } : { username },
+        withPassword ? { username, password } : { username },
       );
       onCompleted(result.user);
     } catch (cause) {
@@ -1181,26 +1212,30 @@ function Welcome({
         value={username}
         onChange={setUsername}
       />
-      <Field
-        label="Password (optional)"
-        hint="Leave empty to keep signing in with your provider only."
-        name="new-password"
-        type="password"
-        autoComplete="new-password"
-        minLength={12}
-        value={password}
-        onChange={setPassword}
-      />
-      {password && (
-        <Field
-          label="Confirm password"
-          name="confirm-new-password"
-          type="password"
-          autoComplete="new-password"
-          minLength={12}
-          value={confirm}
-          onChange={setConfirm}
-        />
+      {canSetPassword && (
+        <>
+          <Field
+            label="Password (optional)"
+            hint="Leave empty to keep signing in with your provider only."
+            name="new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            value={password}
+            onChange={setPassword}
+          />
+          {password && (
+            <Field
+              label="Confirm password"
+              name="confirm-new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={12}
+              value={confirm}
+              onChange={setConfirm}
+            />
+          )}
+        </>
       )}
     </AuthForm>
   );
@@ -1226,6 +1261,15 @@ function LinkOAuth() {
       );
   }, []);
 
+  if (state.status === "error") {
+    return (
+      <ErrorScreen
+        title="Linking failed"
+        message={state.message ?? "We couldn't link this sign-in provider."}
+      />
+    );
+  }
+
   return (
     <section className="pass-result" aria-label="Link sign-in provider">
       <p className="pass-section-label">Kleavox Pass</p>
@@ -1236,11 +1280,6 @@ function LinkOAuth() {
           <a className="pass-primary-link" href="/">
             Go to sign in
           </a>
-        </>
-      ) : state.status === "error" ? (
-        <>
-          <h2>Linking failed</h2>
-          <Status state={state} />
         </>
       ) : (
         <>
@@ -1314,10 +1353,6 @@ async function api<T = { ok: boolean }>(
     method: body ? "POST" : "GET",
     body: body ? JSON.stringify(body) : undefined,
   });
-}
-
-function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : "Request failed.";
 }
 
 function startOAuth(provider: "google" | "github") {

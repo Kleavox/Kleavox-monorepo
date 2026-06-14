@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreBinaries": ["go", "wasm-pack"],
+  "workspaces": {
+    "apps/web": {
+      "entry": ["index.html", "privacy.html", "terms.html", "src/legal.ts"]
+    },
+    "workers/gateway": {
+      "ignoreDependencies": ["@kleavox/web-app"]
+    },
+    "workers/link": {
+      "ignoreDependencies": ["@kleavox/link-app"]
+    },
+    "workers/pass": {
+      "ignoreDependencies": ["@kleavox/pass-app"]
+    },
+    "workers/pulse": {
+      "ignoreDependencies": ["@kleavox/pulse-app"]
+    }
+  }
+}

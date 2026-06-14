@@ -8,7 +8,6 @@ import { hostRedirect } from "./hosts";
 export interface Env {
   ASSETS: Fetcher;
   LINK: Fetcher;
-  DROP: Fetcher;
   PASS: Fetcher;
   PULSE: Fetcher;
   PORTFOLIO: Fetcher;
@@ -30,7 +29,8 @@ app.onError((error, context) => {
   }
   return context.html(
     renderErrorPage({
-      service: "KLEAVOX",
+      service: "Kleavox",
+      code: "500",
       title: "Something broke",
       message:
         "Something went wrong on our side. Give it a moment and try again.",
@@ -71,8 +71,8 @@ app.post("/api/logout", async (context) => {
 
 app.all("/api/public/*", (context) => {
   const url = new URL(context.req.url);
-  url.hostname = INTERNAL_HOSTS.DROP;
-  return context.env.DROP.fetch(new Request(url, context.req.raw));
+  url.hostname = INTERNAL_HOSTS.LINK;
+  return context.env.LINK.fetch(new Request(url, context.req.raw));
 });
 
 app.all("/link-assets/*", (context) => {
@@ -88,7 +88,7 @@ app.all("*", async (context) => {
 
   if (hostname.endsWith(`.${rootOrigin.hostname}`)) {
     const subdomain = hostname.replace(`.${rootOrigin.hostname}`, "");
-    
+
     if (subdomain === "pass") {
       return context.env.PASS.fetch(context.req.raw);
     }
@@ -139,7 +139,27 @@ app.all("*", async (context) => {
     }
   }
 
-  return context.env.ASSETS.fetch(context.req.raw);
+  const assetResponse = await context.env.ASSETS.fetch(context.req.raw);
+  if (
+    assetResponse.status === 404 &&
+    (context.req.header("accept") ?? "").includes("text/html")
+  ) {
+    return context.html(
+      renderErrorPage({
+        service: "Kleavox",
+        code: "404",
+        title: "Page not found",
+        message:
+          "This page does not exist, or the short link or file has expired.",
+      }),
+      404,
+      {
+        "Content-Security-Policy":
+          "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      },
+    );
+  }
+  return assetResponse;
 });
 
 function getPublicSlug(pathname: string): string | null {

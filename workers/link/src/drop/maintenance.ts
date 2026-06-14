@@ -1,19 +1,11 @@
-import { abortUpload, app, deleteDrop, finalizeUploadRecord } from "./app";
-import type { DropRow, UploadRow } from "./app";
-import type { Env } from "./env";
-
-const worker = {
-  fetch(request: Request, env: Env, context: ExecutionContext) {
-    return app.fetch(request, env, context);
-  },
-  scheduled(
-    _controller: ScheduledController,
-    env: Env,
-    context: ExecutionContext,
-  ): void {
-    context.waitUntil(runDropMaintenance(env));
-  },
-};
+import {
+  abortUpload,
+  deleteDrop,
+  finalizeUploadRecord,
+  type DropRow,
+  type UploadRow,
+} from "./app";
+import type { Env } from "../env";
 
 export async function runDropMaintenance(env: Env): Promise<void> {
   const staleUploads = await env.DB.prepare(
@@ -80,5 +72,3 @@ export async function runDropMaintenance(env: Env): Promise<void> {
        AND datetime(resolved_at) < datetime('now', '-180 days')`,
   ).run();
 }
-
-export default worker;

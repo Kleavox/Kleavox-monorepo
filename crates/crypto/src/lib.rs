@@ -1,3 +1,5 @@
+#![deny(dead_code)]
+
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
@@ -14,9 +16,6 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn hash_password(password: &str, salt: &str) -> Result<String, JsValue> {
-    // Attempt to normalize base64url to standard base64 if needed, or rely on argon2's strictness
-    // Since we control JS, we ensure JS sends standard or base64url without padding.
-    // SaltString::from_b64 requires standard base64 without padding.
     let standard_salt = salt.replace("-", "+").replace("_", "/");
     let salt_string = SaltString::from_b64(&standard_salt)
         .map_err(|e| JsValue::from_str(&format!("Invalid salt: {}", e)))?;
