@@ -648,13 +648,16 @@ function topDimension(
   linkId: string,
   column: "browser" | "country" | "referrer_host",
 ) {
+  const since = new Date(Date.now() - 30 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
   return db
     .prepare(
       `SELECT COALESCE(${column}, 'Unknown') AS name, COUNT(*) AS value
-       FROM clicks WHERE link_id = ?
+       FROM clicks WHERE link_id = ? AND clicked_at >= ?
        GROUP BY ${column} ORDER BY value DESC LIMIT 5`,
     )
-    .bind(linkId)
+    .bind(linkId, since)
     .all<{ name: string; value: number }>();
 }
 

@@ -75,4 +75,7 @@ export async function runDropMaintenance(env: Env): Promise<void> {
      WHERE status != 'OPEN'
        AND datetime(resolved_at) < datetime('now', '-180 days')`,
   ).run();
+  await env.DB.prepare(
+    `DELETE FROM clicks WHERE clicked_at < datetime('now', '-90 days')`,
+  ).run();
 }
