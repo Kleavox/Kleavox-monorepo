@@ -1,11 +1,14 @@
 import {
+  decodeBase64Url,
+  encodeBase64Url,
   hashPassword as rustHashPassword,
+  timingSafeEqual,
   verifyPassword as rustVerifyPassword,
 } from "@kleavox/crypto";
 
 export async function hashLinkPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  return rustHashPassword(password, toBase64Url(salt));
+  return rustHashPassword(password, encodeBase64Url(salt));
 }
 
 export async function verifyLinkPassword(
@@ -37,8 +40,8 @@ async function verifyLegacyPassword(
     return false;
   }
 
-  const expected = fromBase64Url(hashText);
-  const actual = await derive(password, fromBase64Url(saltText), iterations);
+  const expected = decodeBase64Url(hashText);
+  const actual = await derive(password, decodeBase64Url(saltText), iterations);
   return timingSafeEqual(actual, expected);
 }
 
@@ -63,28 +66,4 @@ async function derive(
     KEY_LENGTH * 8,
   );
   return new Uint8Array(bits);
-}
-
-function timingSafeEqual(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) return false;
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    difference |= left[index]! ^ right[index]!;
-  }
-  return difference === 0;
-}
-
-function toBase64Url(value: Uint8Array): string {
-  let binary = "";
-  for (const byte of value) binary += String.fromCharCode(byte);
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
-}
-
-function fromBase64Url(value: string): Uint8Array {
-  const padded = value.replaceAll("-", "+").replaceAll("_", "/");
-  const binary = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, "="));
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
