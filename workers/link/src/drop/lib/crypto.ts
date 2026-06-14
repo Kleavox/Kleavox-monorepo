@@ -1,14 +1,12 @@
-export function randomToken(bytes = 24): string {
-  return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
-}
+import {
+  decodeBase64Url,
+  encodeBase64Url,
+  randomToken,
+  sha256Base64Url,
+  timingSafeEqual,
+} from "@kleavox/crypto";
 
-export async function sha256(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return toBase64Url(new Uint8Array(digest));
-}
+export { randomToken, sha256Base64Url as sha256 };
 
 export function readBearerToken(request: Request): string | null {
   const value = request.headers.get("authorization");
@@ -57,7 +55,7 @@ export async function createDownloadGrant(
     expiresAt: Math.floor(Date.now() / 1000) + ttlSeconds,
     nonce: randomToken(8),
   });
-  const encoded = toBase64Url(new TextEncoder().encode(payload));
+  const encoded = encodeBase64Url(new TextEncoder().encode(payload));
   return `${encoded}.${await sign(encoded, secret)}`;
 }
 
@@ -83,7 +81,7 @@ export async function verifyDownloadGrant(
 
   try {
     const payload = JSON.parse(
-      new TextDecoder().decode(fromBase64Url(encoded)),
+      new TextDecoder().decode(decodeBase64Url(encoded)),
     ) as { dropId?: string; expiresAt?: number };
     return (
       payload.dropId === dropId &&
@@ -108,31 +106,5 @@ async function sign(value: string, secret: string): Promise<string> {
     key,
     new TextEncoder().encode(value),
   );
-  return toBase64Url(new Uint8Array(signature));
-}
-
-function timingSafeEqual(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) return false;
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    difference |= left[index]! ^ right[index]!;
-  }
-  return difference === 0;
-}
-
-function toBase64Url(value: Uint8Array): string {
-  let binary = "";
-  for (const byte of value) binary += String.fromCharCode(byte);
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
-}
-
-function fromBase64Url(value: string): Uint8Array {
-  const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
-  const binary = atob(
-    normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="),
-  );
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return encodeBase64Url(new Uint8Array(signature));
 }

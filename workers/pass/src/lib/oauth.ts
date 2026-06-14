@@ -1,3 +1,4 @@
+import { readCookie } from "@kleavox/auth";
 import type { Env } from "../env";
 import { randomToken } from "./crypto";
 
@@ -21,6 +22,21 @@ interface OAuthConfig {
 }
 
 const STATE_TTL_SECONDS = 600;
+const OAUTH_STATE_COOKIE = "__Secure-kleavox_oauth";
+
+function redirectWithCookie(location: string, cookie: string): Response {
+  const headers = new Headers({ Location: location });
+  headers.append("Set-Cookie", cookie);
+  return new Response(null, { status: 302, headers });
+}
+
+function stateCookie(state: string): string {
+  return `${OAUTH_STATE_COOKIE}=${state}; Path=/api/oauth; HttpOnly; Secure; SameSite=Lax; Max-Age=${STATE_TTL_SECONDS}`;
+}
+
+export function clearedStateCookie(): string {
+  return `${OAUTH_STATE_COOKIE}=; Path=/api/oauth; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
 
 export async function beginOAuth(
   request: Request,
@@ -61,7 +77,7 @@ export async function beginOAuth(
     url.searchParams.set("prompt", "select_account");
   }
 
-  return Response.redirect(url.toString(), 302);
+  return redirectWithCookie(url.toString(), stateCookie(state));
 }
 
 export async function finishOAuth(
@@ -75,6 +91,9 @@ export async function finishOAuth(
   const providerError = url.searchParams.get("error");
   if (!state || !code || providerError) {
     return oauthFailure(env, providerError ?? "oauth_cancelled");
+  }
+  if (readCookie(request, OAUTH_STATE_COOKIE) !== state) {
+    return oauthFailure(env, "oauth_state_expired");
   }
 
   const key = `oauth:${state}`;
@@ -103,7 +122,7 @@ export async function finishOAuth(
 export function oauthFailure(env: Env, code: string): Response {
   const url = new URL(env.PUBLIC_ORIGIN);
   url.searchParams.set("oauthError", code);
-  return Response.redirect(url.toString(), 302);
+  return redirectWithCookie(url.toString(), clearedStateCookie());
 }
 
 export function safeReturnTo(value: string | null, env: Env): string {

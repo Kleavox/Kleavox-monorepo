@@ -6,8 +6,13 @@ import {
   verifySession,
 } from "@kleavox/auth";
 import type { SessionIdentity } from "@kleavox/core";
+import {
+  requireRole,
+  requireSession as makeRequireSession,
+  securityHeaders,
+} from "@kleavox/worker";
 import { Hono } from "hono";
-import type { Context, MiddlewareHandler } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 
 import type { Env } from "./env";
@@ -57,26 +62,13 @@ const updateSchema = z.object({
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-app.use("*", async (context, next) => {
-  await next();
-  context.header("Referrer-Policy", "strict-origin-when-cross-origin");
-  context.header("X-Content-Type-Options", "nosniff");
-  context.header("X-Frame-Options", "DENY");
-  context.header(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
-  );
-  const contentType = context.res.headers.get("content-type") ?? "";
-  if (
-    contentType.includes("text/html") &&
-    !context.res.headers.has("content-security-policy")
-  ) {
-    context.header(
-      "Content-Security-Policy",
-      "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
-    );
-  }
-});
+app.use(
+  "*",
+  securityHeaders({
+    referrerPolicy: "strict-origin-when-cross-origin",
+    csp: "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  }),
+);
 
 app.onError((error, context) => {
   console.error("[link]", error);
@@ -180,38 +172,15 @@ app.post("/internal/purge-user", async (context) => {
   return context.json({ ok: true });
 });
 
-const requireSession: MiddlewareHandler<{
+const requireSession = makeRequireSession<{
   Bindings: Env;
   Variables: Variables;
-}> = async (context, next) => {
-  const session = await verifySession(context.req.raw, context.env.PASS);
-  if (!session) {
-    return context.json(
-      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
-      401,
-    );
-  }
-  context.set("session", session);
-  await next();
-};
+}>();
 
-const requireAdmin: MiddlewareHandler<{
-  Bindings: Env;
-  Variables: Variables;
-}> = async (context, next) => {
-  const session = await verifySession(context.req.raw, context.env.PASS);
-  if (!session) {
-    return context.json(
-      { code: "UNAUTHORIZED", message: "Sign in with Kleavox Pass." },
-      401,
-    );
-  }
-  if (session.identity.role !== "ADMIN") {
-    return context.json({ code: "FORBIDDEN", message: "Admin only." }, 403);
-  }
-  context.set("session", session);
-  await next();
-};
+const requireAdmin = requireRole<{ Bindings: Env; Variables: Variables }>(
+  "ADMIN",
+  "Admin only.",
+);
 
 app.get("/api/session", async (context) => {
   const session = await verifySession(context.req.raw, context.env.PASS);
@@ -679,13 +648,16 @@ function topDimension(
   linkId: string,
   column: "browser" | "country" | "referrer_host",
 ) {
+  const since = new Date(Date.now() - 30 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
   return db
     .prepare(
       `SELECT COALESCE(${column}, 'Unknown') AS name, COUNT(*) AS value
-       FROM clicks WHERE link_id = ?
+       FROM clicks WHERE link_id = ? AND clicked_at >= ?
        GROUP BY ${column} ORDER BY value DESC LIMIT 5`,
     )
-    .bind(linkId)
+    .bind(linkId, since)
     .all<{ name: string; value: number }>();
 }
 

@@ -17,6 +17,7 @@
     "@kleavox/core": "workspace:*",
     "@kleavox/crypto": "workspace:*",
     "@kleavox/link-app": "workspace:*",
+    "@kleavox/worker": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },

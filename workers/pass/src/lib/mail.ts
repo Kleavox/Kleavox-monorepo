@@ -1,10 +1,5 @@
+import { sendEmail } from "@kleavox/worker";
 import type { Env } from "../env";
-
-interface EmailMessage {
-  to: string;
-  subject: string;
-  html: string;
-}
 
 export async function sendVerificationEmail(
   env: Env,
@@ -15,7 +10,7 @@ export async function sendVerificationEmail(
   const url = new URL("/verify", env.PUBLIC_ORIGIN);
   url.searchParams.set("token", token);
 
-  await sendEmail(env, {
+  await sendEmail(env, "[pass email]", {
     to: email,
     subject: "Verify your Kleavox account",
     html: accountEmail(
@@ -37,7 +32,7 @@ export async function sendPasswordResetEmail(
   const url = new URL("/reset", env.PUBLIC_ORIGIN);
   url.searchParams.set("token", token);
 
-  await sendEmail(env, {
+  await sendEmail(env, "[pass email]", {
     to: email,
     subject: "Reset your Kleavox password",
     html: accountEmail(
@@ -61,7 +56,7 @@ export async function sendOAuthLinkEmail(
   url.searchParams.set("token", token);
   const providerLabel = provider === "google" ? "Google" : "GitHub";
 
-  await sendEmail(env, {
+  await sendEmail(env, "[pass email]", {
     to: email,
     subject: `Confirm linking ${providerLabel} to your Kleavox account`,
     html: accountEmail(
@@ -72,34 +67,6 @@ export async function sendOAuthLinkEmail(
       "This link expires in 15 minutes.",
     ),
   });
-}
-
-async function sendEmail(env: Env, message: EmailMessage): Promise<void> {
-  if (!env.RESEND_API_KEY) {
-    if (env.ENVIRONMENT === "production") {
-      throw new Error("RESEND_API_KEY is required in production");
-    }
-    console.log("[pass email]", message);
-    return;
-  }
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: env.FROM_EMAIL,
-      to: message.to,
-      subject: message.subject,
-      html: message.html,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Resend rejected email with status ${response.status}`);
-  }
 }
 
 function accountEmail(

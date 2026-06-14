@@ -27,13 +27,13 @@
     "knip": "knip"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250430.0",
-    "@types/node": "^22.15.0",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "catalog:",
     "knip": "^6.16.1",
     "prettier": "^3.5.3",
     "turbo": "^2.5.4",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "wrangler": "^4.92.0"
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   }
 }

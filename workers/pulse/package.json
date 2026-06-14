@@ -15,7 +15,9 @@
     "@kleavox/auth": "workspace:*",
     "@kleavox/config": "workspace:*",
     "@kleavox/core": "workspace:*",
+    "@kleavox/crypto": "workspace:*",
     "@kleavox/pulse-app": "workspace:*",
+    "@kleavox/worker": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },

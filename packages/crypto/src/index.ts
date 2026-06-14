@@ -1,6 +1,8 @@
 // @ts-ignore - Generated at build time
 import { WASM_BASE64 } from "./wasm-base64";
 
+export * from "./tokens";
+
 interface CryptoModule {
   default: (wasm?: WebAssembly.Module | BufferSource) => Promise<unknown>;
   hash_password: (password: string, salt: string) => string;

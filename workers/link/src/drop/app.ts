@@ -86,6 +86,7 @@ export interface DropRow {
   size_bytes: number;
   source_size_bytes: number | null;
   storage_encoding: string | null;
+  encryption: string | null;
   password_hash: string | null;
   max_downloads: number | null;
   download_count: number;
@@ -237,7 +238,9 @@ app.post("/api/uploads", async (context) => {
   const originalName = sanitizeFileName(body.data.name);
   const contentType = normalizeContentType(body.data.contentType);
   const storedSizeBytes = body.data.storedSizeBytes ?? body.data.sizeBytes;
-  const storageEncoding = body.data.storageEncoding ?? null;
+  const storageEncoding = body.data.storageEncoding === "gzip" ? "gzip" : null;
+  const encryption =
+    body.data.storageEncoding === "aes-256-gcm" ? "aes-256-gcm" : null;
   const partCount = Math.ceil(storedSizeBytes / PART_SIZE_BYTES);
   const createdAt = new Date().toISOString();
   const expiresAt = new Date(
@@ -262,11 +265,11 @@ app.post("/api/uploads", async (context) => {
     `INSERT INTO upload_sessions (
        id, owner_user_id, guest_actor_hash, manage_token_hash, public_token,
        public_token_hash, object_key, original_name, content_type, size_bytes,
-       source_size_bytes, storage_encoding, part_size_bytes, part_count,
-       password_hash, max_downloads, expires_at, upload_expires_at, status,
-       created_at, updated_at
+       source_size_bytes, storage_encoding, encryption, part_size_bytes,
+       part_count, password_hash, max_downloads, expires_at, upload_expires_at,
+       status, created_at, updated_at
      )
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
             'OPENING', ?, ?
      WHERE ? <= ?
        AND (
@@ -331,6 +334,7 @@ app.post("/api/uploads", async (context) => {
       storedSizeBytes,
       body.data.sizeBytes,
       storageEncoding,
+      encryption,
       PART_SIZE_BYTES,
       partCount,
       passwordHash,
@@ -371,7 +375,6 @@ app.post("/api/uploads", async (context) => {
       httpMetadata: {
         contentType,
         contentDisposition: contentDisposition(originalName),
-        contentEncoding: storageEncoding ?? undefined,
       },
       customMetadata: {
         dropId: uploadId,
@@ -614,8 +617,8 @@ app.get("/api/drops", requireSession, async (context) => {
   const drops = await context.env.DB.prepare(
     `SELECT id, public_token, original_name, content_type, size_bytes,
             COALESCE(source_size_bytes, size_bytes) AS source_size_bytes,
-            storage_encoding, max_downloads, download_count, expires_at,
-            status, created_at, completed_at,
+            storage_encoding, encryption, max_downloads, download_count,
+            expires_at, status, created_at, completed_at,
             password_hash IS NOT NULL AS protected
      FROM drops WHERE owner_user_id = ?
        AND public_token IS NOT NULL
@@ -783,6 +786,7 @@ app.get("/api/public/:token/download", async (context) => {
 
   const headers = new Headers();
   object.writeHttpMetadata(headers);
+  headers.delete("Content-Encoding");
   headers.set("Content-Disposition", contentDisposition(drop.original_name));
   headers.set("Content-Type", drop.content_type);
   headers.set("Cache-Control", "private, no-store");
@@ -905,13 +909,14 @@ export async function finalizeUploadRecord(
       `INSERT OR IGNORE INTO drops (
          id, owner_user_id, guest_actor_hash, public_token, public_token_hash,
          manage_token_hash, object_key, original_name, content_type, size_bytes,
-         source_size_bytes, storage_encoding, password_hash, max_downloads,
-         expires_at, status, created_at, completed_at
+         source_size_bytes, storage_encoding, encryption, password_hash,
+         max_downloads, expires_at, status, created_at, completed_at
        )
        SELECT id, owner_user_id, guest_actor_hash, public_token,
               public_token_hash, manage_token_hash, object_key, original_name,
               content_type, size_bytes, source_size_bytes, storage_encoding,
-              password_hash, max_downloads, expires_at, 'ACTIVE', created_at,
+              encryption, password_hash, max_downloads, expires_at, 'ACTIVE',
+              created_at,
               datetime('now')
        FROM upload_sessions
        WHERE id = ? AND status = 'COMPLETING'`,
@@ -1012,8 +1017,8 @@ async function findPublicDrop(
       `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
               public_token, public_token_hash, object_key, original_name,
               content_type, size_bytes, source_size_bytes, storage_encoding,
-              password_hash, max_downloads, download_count, expires_at,
-              status, created_at, completed_at
+              encryption, password_hash, max_downloads, download_count,
+              expires_at, status, created_at, completed_at
        FROM drops WHERE public_token_hash = ?`,
     )
     .bind(await sha256(token))
@@ -1026,7 +1031,7 @@ function publicDrop(drop: DropRow) {
     contentType: drop.content_type,
     sizeBytes: drop.source_size_bytes ?? drop.size_bytes,
     storedSizeBytes: drop.size_bytes,
-    storageEncoding: drop.storage_encoding,
+    storageEncoding: drop.encryption ?? drop.storage_encoding,
     compressed: drop.storage_encoding === "gzip",
     protected: Boolean(drop.password_hash),
     maxDownloads: drop.max_downloads,

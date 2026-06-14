@@ -1,21 +1,15 @@
 import {
+  decodeBase64Url,
+  encodeBase64Url,
   hashPassword as rustHashPassword,
+  timingSafeEqual,
   verifyPassword as rustVerifyPassword,
 } from "@kleavox/crypto";
 
+export { randomToken, sha256Base64Url as hashToken } from "@kleavox/crypto";
+
 const encoder = new TextEncoder();
 const PASSWORD_SALT_BYTES = 16;
-
-export function randomToken(bytes = 32): string {
-  const value = new Uint8Array(bytes);
-  crypto.getRandomValues(value);
-  return encodeBase64Url(value);
-}
-
-export async function hashToken(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
-  return encodeBase64Url(new Uint8Array(digest));
-}
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = new Uint8Array(PASSWORD_SALT_BYTES);
@@ -103,30 +97,4 @@ export async function hashAuditIp(ip: string, secret: string): Promise<string> {
   );
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(ip));
   return encodeBase64Url(new Uint8Array(signature));
-}
-
-function timingSafeEqual(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) return false;
-
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    difference |= left[index]! ^ right[index]!;
-  }
-  return difference === 0;
-}
-
-function encodeBase64Url(value: Uint8Array): string {
-  let binary = "";
-  for (const byte of value) binary += String.fromCharCode(byte);
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replaceAll("=", "");
-}
-
-function decodeBase64Url(value: string): Uint8Array {
-  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
-  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
