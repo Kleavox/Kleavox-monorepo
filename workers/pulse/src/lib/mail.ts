@@ -1,4 +1,5 @@
 import { escapeHtml } from "@kleavox/core";
+import { sendEmail } from "@kleavox/worker";
 import type { Env } from "../env";
 
 export interface IncidentEmail {
@@ -44,7 +45,7 @@ export async function sendIncidentEmail(
   </body>
 </html>`;
 
-  await sendEmail(env, { to: message.to, subject, html });
+  await sendEmail(env, "[pulse email]", { to: message.to, subject, html });
 }
 
 export interface ReportEmail {
@@ -80,35 +81,5 @@ export async function sendReportEmail(
   </body>
 </html>`;
 
-  await sendEmail(env, { to: message.to, subject, html });
-}
-
-async function sendEmail(
-  env: Env,
-  message: { to: string | string[]; subject: string; html: string },
-): Promise<void> {
-  if (!env.RESEND_API_KEY) {
-    if (env.ENVIRONMENT === "production") {
-      throw new Error("RESEND_API_KEY is required in production");
-    }
-    console.log("[pulse email]", { to: message.to, subject: message.subject });
-    return;
-  }
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: env.FROM_EMAIL,
-      to: message.to,
-      subject: message.subject,
-      html: message.html,
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(`Resend responded with ${response.status}`);
-  }
+  await sendEmail(env, "[pulse email]", { to: message.to, subject, html });
 }
