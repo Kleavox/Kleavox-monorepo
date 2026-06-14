@@ -1,4 +1,7 @@
-import { hashPassword as rustHashPassword, verifyPassword as rustVerifyPassword } from "@kleavox/crypto";
+import {
+  hashPassword as rustHashPassword,
+  verifyPassword as rustVerifyPassword,
+} from "@kleavox/crypto";
 
 const encoder = new TextEncoder();
 const PASSWORD_SALT_BYTES = 16;
@@ -14,9 +17,7 @@ export async function hashToken(value: string): Promise<string> {
   return encodeBase64Url(new Uint8Array(digest));
 }
 
-export async function hashPassword(
-  password: string,
-): Promise<string> {
+export async function hashPassword(password: string): Promise<string> {
   const salt = new Uint8Array(PASSWORD_SALT_BYTES);
   crypto.getRandomValues(salt);
   return rustHashPassword(password, encodeBase64Url(salt));

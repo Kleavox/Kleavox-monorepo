@@ -7,7 +7,8 @@
 
 body {
   min-width: 320px;
-  background: radial-gradient(circle, #1d2040 0.75px, transparent 0.75px), #070810;
+  background:
+    radial-gradient(circle, #1d2040 0.75px, transparent 0.75px), #070810;
   background-size: 22px 22px;
 }
 

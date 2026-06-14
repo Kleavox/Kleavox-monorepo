@@ -39,7 +39,9 @@ logout?.addEventListener("click", async () => {
 });
 
 fetch("/api/session", { credentials: "include" })
-  .then((response) => (response.ok ? response.json() : { authenticated: false }))
+  .then((response) =>
+    response.ok ? response.json() : { authenticated: false },
+  )
   .then(
     (data: {
       authenticated: boolean;

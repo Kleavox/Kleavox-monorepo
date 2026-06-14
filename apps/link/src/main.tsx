@@ -17,8 +17,15 @@ import {
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
-import { AppFooter, AppHeader, ErrorScreen } from "@kleavox/ui";
-import { ROOT_HOST, ROOT_ORIGIN, challengeUrl, signInUrl } from "./config";
+import {
+  AppFooter,
+  AppHeader,
+  ErrorScreen,
+  ROOT_HOST,
+  ROOT_ORIGIN,
+  challengeUrl,
+  signInUrl,
+} from "@kleavox/ui";
 import { FilesApp } from "./files";
 import type { AccountDrop } from "./files";
 import "./link.css";
@@ -679,17 +686,13 @@ function readDraft<T>(key: string): T | undefined {
 function saveDraft(key: string, value: unknown): void {
   try {
     sessionStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Storage unavailable; the redirect still works, only the draft is lost.
-  }
+  } catch {}
 }
 
 function clearDraft(key: string): void {
   try {
     sessionStorage.removeItem(key);
-  } catch {
-    // Ignore.
-  }
+  } catch {}
 }
 
 function PublicLinkForm() {

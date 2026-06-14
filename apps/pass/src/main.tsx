@@ -13,8 +13,7 @@ import {
 } from "react";
 
 import "@kleavox/ui/styles.css";
-import { ErrorScreen } from "@kleavox/ui";
-import { ROOT_ORIGIN } from "./config";
+import { ErrorScreen, ROOT_ORIGIN } from "@kleavox/ui";
 import "./pass.css";
 
 type Mode = "login" | "register" | "forgot";

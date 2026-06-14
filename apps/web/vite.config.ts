@@ -2,9 +2,6 @@ import { resolve } from "node:path";
 import { getPublicOrigin } from "@kleavox/config";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
-// Inject origin-derived values into the static HTML at build time: a tiny plugin
-// that swaps {{TOKEN}} placeholders for real hrefs, so the markup ships ready to
-// serve without any client-side JS.
 function htmlVars(rootOrigin: string): Plugin {
   const passHref = getPublicOrigin(rootOrigin, "pass");
   const vars: Record<string, string> = {

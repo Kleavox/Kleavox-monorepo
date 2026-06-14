@@ -1,9 +1,11 @@
+import type { DeployEnvironment } from "@kleavox/core";
+
 export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
   SESSIONS: KVNamespace;
   LINK: Fetcher;
-  ENVIRONMENT: "development" | "preview" | "production";
+  ENVIRONMENT: DeployEnvironment;
   PUBLIC_ORIGIN: string;
   ROOT_DOMAIN: string;
   FROM_EMAIL: string;

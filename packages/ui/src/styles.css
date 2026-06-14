@@ -9,7 +9,6 @@
   --kvx-muted: #84938a;
   --kvx-quiet: #4d5952;
 
-  /* Fallback accent, to be overridden by apps */
   --kvx-accent: #a3e635;
   --kvx-accent-glow: rgb(163 230 53 / 12%);
   --kvx-accent-text: #11190b;
@@ -103,10 +102,6 @@ textarea:focus-visible {
   background: var(--kvx-accent);
   color: var(--kvx-accent-text);
 }
-
-/* ==========================================================================
-   LAYOUT
-   ========================================================================== */
 
 .kvx-shell {
   width: var(--kvx-shell);
@@ -218,10 +213,6 @@ textarea:focus-visible {
   font-size: 0.62rem;
 }
 
-/* ==========================================================================
-   TYPOGRAPHY
-   ========================================================================== */
-
 .kvx-kicker {
   margin: 0 0 1rem;
   color: var(--kvx-accent);
@@ -250,10 +241,6 @@ textarea:focus-visible {
   font-size: clamp(1rem, 1.4vw, 1.15rem);
   line-height: 1.65;
 }
-
-/* ==========================================================================
-   COMPONENTS
-   ========================================================================== */
 
 .kvx-button,
 .kvx-action {
@@ -364,14 +351,6 @@ textarea:focus-visible {
   margin: 1.5rem 0;
 }
 
-/* ==========================================================================
-   ERROR SCREEN (shared, identical across every service)
-   Uses a fixed accent (not --kvx-accent) so it looks the same in every app.
-   ========================================================================== */
-
-/* The error page stays neutral (gateway lime) even inside apps that override
-   --kvx-accent, by resetting the token locally — so the reused AppHeader /
-   AppFooter wordmark renders lime too. */
 .kvx-error {
   --kvx-accent: #a3e635;
   min-height: 100dvh;

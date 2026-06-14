@@ -26,27 +26,27 @@ stay in sync between the two repos.
 
 ## Repository layout
 
-| Path                   | Contents                                                                   |
-| ---------------------- | -------------------------------------------------------------------------- |
-| `apps/link`            | React workspace for short links and file drops (includes the receive page) |
-| `apps/pass`            | React auth app: sign in, register, account, security challenge             |
-| `apps/pulse`           | React monitoring dashboard                                                 |
-| `apps/web`             | Static marketing site (Vite + TypeScript) served by the gateway            |
-| `workers/gateway`      | Root-domain router: short links, file links, subdomain proxying            |
+| Path                   | Contents                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `apps/link`            | React workspace for short links and file drops (includes the receive page)    |
+| `apps/pass`            | React auth app: sign in, register, account, security challenge                |
+| `apps/pulse`           | React monitoring dashboard                                                    |
+| `apps/web`             | Static marketing site (Vite + TypeScript) served by the gateway               |
+| `workers/gateway`      | Root-domain router: short links, file links, subdomain proxying               |
 | `workers/link`         | Short-link + file API: resolution, R2 multipart uploads, quotas, cleanup cron |
-| `workers/pass`         | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification  |
-| `workers/pulse`        | Monitoring API: nodes, checks, incidents, agent enrollment                 |
-| `packages/auth`        | Shared session/challenge/Turnstile verification helpers                    |
-| `packages/core`        | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`   |
-| `packages/config`      | Shared origins, hosts, and cookie names                                    |
-| `packages/crypto`      | Rust/WASM wrapper: Argon2 password hashing, AES-256-GCM encryption         |
-| `packages/compression` | Rust/WASM wrapper: browser-side gzip before upload                         |
-| `packages/ui`          | Shared stylesheet: `--kvx-*` design tokens and base utilities              |
-| `packages/testing`     | Test factories and mocks                                                   |
-| `crates/crypto`        | Rust source for the crypto WASM module                                     |
-| `crates/compression`   | Rust source for the compression WASM module                                |
-| `services/agent`       | Go monitoring daemon installed on nodes (systemd, hardened)                |
-| `tooling/`             | Deploy renderer and health-check scripts used by CI                        |
+| `workers/pass`         | Auth API: sessions (KV), users (D1), OAuth, email, challenge verification     |
+| `workers/pulse`        | Monitoring API: nodes, checks, incidents, agent enrollment                    |
+| `packages/auth`        | Shared session/challenge/Turnstile verification helpers                       |
+| `packages/core`        | Shared types, constants, `apiFetch`/`ApiError` client, `renderErrorPage`      |
+| `packages/config`      | Shared origins, hosts, and cookie names                                       |
+| `packages/crypto`      | Rust/WASM wrapper: Argon2 password hashing, AES-256-GCM encryption            |
+| `packages/compression` | Rust/WASM wrapper: browser-side gzip before upload                            |
+| `packages/ui`          | Shared stylesheet: `--kvx-*` design tokens and base utilities                 |
+| `packages/testing`     | Test factories and mocks                                                      |
+| `crates/crypto`        | Rust source for the crypto WASM module                                        |
+| `crates/compression`   | Rust source for the compression WASM module                                   |
+| `services/agent`       | Go monitoring daemon installed on nodes (systemd, hardened)                   |
+| `tooling/`             | Deploy renderer and health-check scripts used by CI                           |
 
 ## Stack
 
@@ -95,15 +95,17 @@ Wrangler dev registry when run in separate terminals.
 
 Root scripts (Turbo orchestrates per-workspace tasks):
 
-| Script            | Action                                           |
-| ----------------- | ------------------------------------------------ |
-| `pnpm dev`        | Run dev tasks across workspaces                  |
-| `pnpm build`      | Build every app, worker, and package             |
-| `pnpm test`       | Run all test suites                              |
-| `pnpm typecheck`  | Typecheck all workspaces                         |
-| `pnpm lint`       | Lint all workspaces                              |
-| `pnpm check`      | lint + typecheck + test + build + Go agent tests |
-| `pnpm agent:test` | Go agent tests only                              |
+| Script              | Action                                                                         |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `pnpm dev`          | Run dev tasks across workspaces                                                |
+| `pnpm build`        | Build every app, worker, and package                                           |
+| `pnpm test`         | Run all test suites                                                            |
+| `pnpm typecheck`    | Typecheck all workspaces                                                       |
+| `pnpm lint`         | Lint all workspaces                                                            |
+| `pnpm format:check` | Verify Prettier formatting                                                     |
+| `pnpm knip`         | Report unused files, exports, and dependencies                                 |
+| `pnpm check`        | format + lint + typecheck + test + build + Go agent tests + Go deadcode + knip |
+| `pnpm agent:test`   | Go agent tests only                                                            |
 
 Copy each app's `.env.example` to `.env.local` only when overriding defaults.
 Worker secrets belong in ignored `.dev.vars` files and must never be committed.

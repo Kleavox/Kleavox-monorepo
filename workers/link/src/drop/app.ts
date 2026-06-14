@@ -790,7 +790,6 @@ app.get("/api/public/:token/download", async (context) => {
 
   let body = object.body;
   if (drop.storage_encoding === "gzip") {
-    // Decompress on the edge so browsers don't mishandle attachment encoding
     body = body.pipeThrough(new DecompressionStream("gzip"));
     headers.set(
       "Content-Length",

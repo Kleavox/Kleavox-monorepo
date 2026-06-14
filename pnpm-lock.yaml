@@ -105,15 +105,15 @@ importers:
         specifier: 'catalog:'
         version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@kleavox/vite-config':
+        specifier: workspace:*
+        version: link:../../tooling/vite-config
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.16
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.16)
-      '@vitejs/plugin-react':
-        specifier: 'catalog:'
-        version: 5.2.0(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(yaml@2.9.0))
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -142,15 +142,15 @@ importers:
         specifier: 'catalog:'
         version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@kleavox/vite-config':
+        specifier: workspace:*
+        version: link:../../tooling/vite-config
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.16
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.16)
-      '@vitejs/plugin-react':
-        specifier: 'catalog:'
-        version: 5.2.0(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(yaml@2.9.0))
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -176,15 +176,15 @@ importers:
         specifier: 'catalog:'
         version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@kleavox/vite-config':
+        specifier: workspace:*
+        version: link:../../tooling/vite-config
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.16
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.16)
-      '@vitejs/plugin-react':
-        specifier: 'catalog:'
-        version: 5.2.0(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(yaml@2.9.0))
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -287,6 +287,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 7.3.5(@types/node@22.19.19)(jiti@2.7.0)(yaml@2.9.0)
 
   tooling/deploy:
     devDependencies:
@@ -313,6 +316,19 @@ importers:
         version: 5.9.3
 
   tooling/typescript: {}
+
+  tooling/vite-config:
+    dependencies:
+      '@vitejs/plugin-react':
+        specifier: 'catalog:'
+        version: 5.2.0(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(yaml@2.9.0))
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 7.3.5(@types/node@22.19.19)(jiti@2.7.0)(yaml@2.9.0)
 
   workers/gateway:
     dependencies:

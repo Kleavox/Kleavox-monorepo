@@ -1,4 +1,3 @@
-// Dead-code guard: fail the build if anything in this crate becomes unreachable.
 #![deny(dead_code)]
 
 use flate2::Compression;

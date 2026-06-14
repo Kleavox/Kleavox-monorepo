@@ -24,9 +24,7 @@ export async function notifyReport(
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
-  } catch {
-    // Best-effort: a notification failure must never block filing the report.
-  }
+  } catch {}
 }
 
 export function readCookie(request: Request, name: string): string | null {

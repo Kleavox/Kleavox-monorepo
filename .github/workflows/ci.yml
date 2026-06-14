@@ -91,6 +91,7 @@ jobs:
         run: wasm-pack build --target web --out-dir /tmp/wasm-pack-warmup --release crates/compression --locked
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
       - run: pnpm exec turbo run typecheck test build
       - run: pnpm knip
 
