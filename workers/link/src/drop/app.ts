@@ -371,7 +371,6 @@ app.post("/api/uploads", async (context) => {
       httpMetadata: {
         contentType,
         contentDisposition: contentDisposition(originalName),
-        contentEncoding: storageEncoding ?? undefined,
       },
       customMetadata: {
         dropId: uploadId,
@@ -783,6 +782,7 @@ app.get("/api/public/:token/download", async (context) => {
 
   const headers = new Headers();
   object.writeHttpMetadata(headers);
+  headers.delete("Content-Encoding");
   headers.set("Content-Disposition", contentDisposition(drop.original_name));
   headers.set("Content-Type", drop.content_type);
   headers.set("Cache-Control", "private, no-store");
