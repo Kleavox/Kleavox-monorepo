@@ -1,8 +1,3 @@
-// Dead-code guard for the Go agent service.
-//
-// `deadcode` prints unreachable functions to stdout but exits 0 even when it
-// finds them, so this wrapper turns any finding into a non-zero exit. Kept as a
-// node script (not a shell one-liner) so it runs the same on Windows and CI.
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 

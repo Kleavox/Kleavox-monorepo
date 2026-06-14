@@ -24,8 +24,6 @@ export function getPublicOrigin(
   const url = new URL(rootOrigin);
   if (!subdomain) return url.origin;
 
-  // If we are on localhost, we might use different ports instead of subdomains
-  // But for production, it's always subdomain.domain.tld
   if (url.hostname === "localhost") {
     const ports: Record<string, string> = {
       pass: "3001",

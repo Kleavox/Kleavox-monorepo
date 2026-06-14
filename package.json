@@ -21,7 +21,7 @@
     "e2e": "pnpm --filter @kleavox/e2e e2e",
     "health:check": "node tooling/health/check.mjs",
     "admin:promote": "node tooling/deploy/promote-admin.mjs",
-    "check": "turbo run lint typecheck test build && pnpm agent:test && pnpm agent:deadcode && pnpm knip",
+    "check": "pnpm format:check && turbo run lint typecheck test build && pnpm agent:test && pnpm agent:deadcode && pnpm knip",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip"

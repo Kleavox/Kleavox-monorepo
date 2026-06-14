@@ -15,6 +15,7 @@
     "@kleavox/core": "workspace:*"
   },
   "devDependencies": {
+    "@kleavox/vite-config": "workspace:*",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

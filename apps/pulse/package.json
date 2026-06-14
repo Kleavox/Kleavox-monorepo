@@ -17,9 +17,9 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@kleavox/vite-config": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vitejs/plugin-react": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

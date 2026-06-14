@@ -4,8 +4,14 @@ import { apiFetch as api, displayHandle, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 
 import "@kleavox/ui/styles.css";
-import { AppFooter, AppHeader, ErrorScreen } from "@kleavox/ui";
-import { PASS_ORIGIN, ROOT_ORIGIN, signInUrl } from "./config";
+import {
+  AppFooter,
+  AppHeader,
+  ErrorScreen,
+  PASS_ORIGIN,
+  ROOT_ORIGIN,
+  signInUrl,
+} from "@kleavox/ui";
 import "./pulse.css";
 
 interface SessionResponse {

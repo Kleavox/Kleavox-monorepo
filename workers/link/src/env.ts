@@ -1,3 +1,5 @@
+import type { DeployEnvironment } from "@kleavox/core";
+
 export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
@@ -9,7 +11,7 @@ export interface Env {
   CREATE_RATE_LIMIT: RateLimit;
   DOWNLOAD_RATE_LIMIT: RateLimit;
   FILE_REPORT_RATE_LIMIT: RateLimit;
-  ENVIRONMENT: "development" | "preview" | "production";
+  ENVIRONMENT: DeployEnvironment;
   PUBLIC_SHORT_ORIGIN: string;
   TURNSTILE_SECRET_KEY?: string;
   GUEST_HASH_SECRET?: string;

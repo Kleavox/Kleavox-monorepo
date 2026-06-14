@@ -5,15 +5,15 @@ import {
   readApiResponse as readApi,
 } from "@kleavox/core";
 import { encrypt, decrypt } from "@kleavox/crypto";
-import { ErrorScreen } from "@kleavox/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  challengeUrl,
+  ErrorScreen,
   LINK_ORIGIN,
   PASS_ORIGIN,
   ROOT_ORIGIN,
+  challengeUrl,
   signInUrl,
-} from "./config";
+} from "@kleavox/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./files.css";
 
 interface Policy {
@@ -191,8 +191,6 @@ function SendView({
       let prepared = await prepareUpload(file);
       if (password) {
         setPhase("optimizing");
-        // Encrypt the raw file directly. Gzip decompression is messy client-side,
-        // so we skip compression entirely for end-to-end encrypted files.
         const buffer = new Uint8Array(await file.arrayBuffer());
         const encrypted = await encrypt(buffer, password);
         prepared = {

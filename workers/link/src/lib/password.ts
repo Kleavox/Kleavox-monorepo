@@ -1,4 +1,7 @@
-import { hashPassword as rustHashPassword, verifyPassword as rustVerifyPassword } from "@kleavox/crypto";
+import {
+  hashPassword as rustHashPassword,
+  verifyPassword as rustVerifyPassword,
+} from "@kleavox/crypto";
 
 export async function hashLinkPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));

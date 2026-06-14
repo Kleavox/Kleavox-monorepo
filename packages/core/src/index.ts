@@ -3,6 +3,8 @@ export { renderErrorPage, errorCodeCopy, escapeHtml } from "./error-page";
 export type { ErrorPageOptions } from "./error-page";
 export { errorMessage } from "./errors";
 
+export type DeployEnvironment = "development" | "preview" | "production";
+
 export const PRODUCT_NAMES = [
   "web",
   "pass",

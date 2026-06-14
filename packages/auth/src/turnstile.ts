@@ -1,5 +1,7 @@
+import type { DeployEnvironment } from "@kleavox/core";
+
 export interface TurnstileEnv {
-  ENVIRONMENT: "development" | "preview" | "production";
+  ENVIRONMENT: DeployEnvironment;
   TURNSTILE_SECRET_KEY?: string;
 }
 
