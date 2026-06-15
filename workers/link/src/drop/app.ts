@@ -197,6 +197,15 @@ app.post("/api/uploads", async (context) => {
       413,
     );
   }
+  if (!identity && body.data.storageEncoding === "aes-256-gcm") {
+    return context.json(
+      {
+        code: "ENCRYPTION_NOT_ALLOWED",
+        message: "Sign in to send end-to-end encrypted transfers.",
+      },
+      403,
+    );
+  }
 
   const guestSecret = runtimeSecret(
     context.env,

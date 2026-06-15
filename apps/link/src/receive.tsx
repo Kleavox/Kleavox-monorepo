@@ -88,22 +88,37 @@ export function ReceiveView({ token }: { token: string }) {
         const response = await fetch(`/api/public/${token}/download`);
         if (!response.ok) throw new Error("Download failed");
         const keyBytes = decodeBase64Url(key);
-        if (saver && response.body) {
+        if (!response.body) {
+          const sealed = new Uint8Array(await response.arrayBuffer());
+          saveBlob(
+            await bufferedDecrypt(
+              sealed,
+              keyBytes,
+              drop.partSizeBytes,
+              drop.contentType,
+            ),
+            drop.name,
+          );
+        } else if (saver) {
+          const sink = saver;
           await streamDecrypt(
             response.body,
             keyBytes,
             drop.partSizeBytes,
-            saver,
+            (chunk) => sink.write(chunk),
           );
+          await sink.close();
         } else {
-          const sealed = new Uint8Array(await response.arrayBuffer());
-          const blob = await bufferedDecrypt(
-            sealed,
+          const parts: BlobPart[] = [];
+          await streamDecrypt(
+            response.body,
             keyBytes,
             drop.partSizeBytes,
-            drop.contentType,
+            (chunk) => {
+              parts.push(new Blob([chunk]));
+            },
           );
-          saveBlob(blob, drop.name);
+          saveBlob(new Blob(parts, { type: drop.contentType }), drop.name);
         }
       } catch (reason) {
         setError(
@@ -334,7 +349,7 @@ async function streamDecrypt(
   body: ReadableStream<Uint8Array>,
   key: Uint8Array,
   partSize: number,
-  saver: FileSaver,
+  onChunk: (plain: Uint8Array<ArrayBuffer>) => Promise<void> | void,
 ): Promise<void> {
   const decryptor = await createStreamDecryptor(key);
   const reader = body.getReader();
@@ -344,13 +359,12 @@ async function streamDecrypt(
       const { value, done } = await reader.read();
       if (value) buffer = concatBytes(buffer, value);
       while (buffer.length > partSize) {
-        await saver.write(decryptor.push(buffer.subarray(0, partSize), false));
+        await onChunk(decryptor.push(buffer.subarray(0, partSize), false));
         buffer = buffer.subarray(partSize);
       }
       if (done) break;
     }
-    await saver.write(decryptor.push(buffer, true));
-    await saver.close();
+    await onChunk(decryptor.push(buffer, true));
   } finally {
     decryptor.free();
   }

@@ -43,7 +43,6 @@ export function SendView({
   const [dragging, setDragging] = useState(false);
   const [retentionSeconds, setRetentionSeconds] = useState(3600);
   const [maxDownloads, setMaxDownloads] = useState(3);
-  const [encryptEnabled, setEncryptEnabled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<
     "idle" | "optimizing" | "preparing" | "uploading" | "finishing"
@@ -113,7 +112,7 @@ export function SendView({
       let storageEncoding: "gzip" | "aes-256-gcm" | undefined;
       let savedBytes = 0;
 
-      if (encryptEnabled) {
+      if (session.authenticated) {
         dropKey = generateDropKey();
         keyBytes = decodeBase64Url(dropKey);
         chunkPlaintext = session.policy.partSizeBytes - STREAM_CHUNK_OVERHEAD;
@@ -221,7 +220,6 @@ export function SendView({
         encrypted: Boolean(dropKey),
       });
       setFile(undefined);
-      setEncryptEnabled(false);
       if (inputRef.current) inputRef.current.value = "";
       if (session.authenticated) {
         if (embedded) await onChanged?.();
@@ -416,17 +414,6 @@ export function SendView({
                 }
               />
             </label>
-            <label className="drop-encrypt">
-              <span>
-                End-to-end encrypt <i>optional</i>
-              </span>
-              <input
-                type="checkbox"
-                checked={encryptEnabled}
-                disabled={busy}
-                onChange={(event) => setEncryptEnabled(event.target.checked)}
-              />
-            </label>
           </div>
 
           {busy && (
@@ -463,7 +450,11 @@ export function SendView({
                 ? `${formatBytes(policy.maxFileBytes)} max`
                 : "Checking limit"}
             </span>
-            <span>Encrypted in transit</span>
+            <span>
+              {session?.authenticated
+                ? "End-to-end encrypted"
+                : "Encrypted in transit"}
+            </span>
             <span>Automatic deletion</span>
           </div>
         </div>
