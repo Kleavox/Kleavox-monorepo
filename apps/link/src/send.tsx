@@ -4,7 +4,11 @@ import {
   displayHandle,
   readApiResponse as readApi,
 } from "@kleavox/core";
-import { encrypt } from "@kleavox/crypto";
+import {
+  STREAM_CHUNK_OVERHEAD,
+  createStreamEncryptor,
+  decodeBase64Url,
+} from "@kleavox/crypto";
 import { LINK_ORIGIN, challengeUrl, signInUrl } from "@kleavox/ui";
 import { useEffect, useRef, useState } from "react";
 
@@ -102,23 +106,27 @@ export function SendView({
     let dropKey: string | undefined;
 
     try {
-      let prepared: PreparedUpload;
+      let prepared: PreparedUpload | null = null;
+      let keyBytes: Uint8Array | undefined;
+      let chunkPlaintext = 0;
+      let storedSizeBytes: number;
+      let storageEncoding: "gzip" | "aes-256-gcm" | undefined;
+      let savedBytes = 0;
+
       if (encryptEnabled) {
         dropKey = generateDropKey();
-        const buffer = new Uint8Array(await file.arrayBuffer());
-        const encrypted = await encrypt(buffer, dropKey);
-        prepared = {
-          body: new Blob([encrypted as any], {
-            type: "application/octet-stream",
-          }),
-          originalSizeBytes: file.size,
-          storedSizeBytes: encrypted.byteLength,
-          storageEncoding: "aes-256-gcm",
-          savedBytes: 0,
-        };
+        keyBytes = decodeBase64Url(dropKey);
+        chunkPlaintext = session.policy.partSizeBytes - STREAM_CHUNK_OVERHEAD;
+        const chunkCount = Math.max(1, Math.ceil(file.size / chunkPlaintext));
+        storedSizeBytes = file.size + STREAM_CHUNK_OVERHEAD * chunkCount;
+        storageEncoding = "aes-256-gcm";
       } else {
         prepared = await prepareUpload(file);
+        storedSizeBytes = prepared.storedSizeBytes;
+        storageEncoding = prepared.storageEncoding;
+        savedBytes = prepared.savedBytes;
       }
+
       setPhase("preparing");
       const response = await fetch("/api/uploads", {
         method: "POST",
@@ -126,9 +134,9 @@ export function SendView({
         body: JSON.stringify({
           name: file.name,
           contentType: file.type || "application/octet-stream",
-          sizeBytes: prepared.originalSizeBytes,
-          storedSizeBytes: prepared.storedSizeBytes,
-          storageEncoding: prepared.storageEncoding,
+          sizeBytes: file.size,
+          storedSizeBytes,
+          storageEncoding,
           retentionSeconds,
           maxDownloads,
         }),
@@ -136,31 +144,51 @@ export function SendView({
       start = await readApi<UploadStart>(response);
       setPhase("uploading");
 
-      let completedBytes = 0;
-      for (let partNumber = 1; partNumber <= start.partCount; partNumber += 1) {
-        const beginning = (partNumber - 1) * start.partSizeBytes;
-        const end = Math.min(
-          beginning + start.partSizeBytes,
-          prepared.storedSizeBytes,
-        );
-        const part = prepared.body.slice(beginning, end);
-        await uploadPart(
-          start.uploadId,
-          partNumber,
-          part,
-          start.manageToken,
-          (loaded) => {
-            setProgress(
-              Math.min(
-                99,
-                Math.round(
-                  ((completedBytes + loaded) / prepared.storedSizeBytes) * 100,
-                ),
-              ),
+      const encryptor = keyBytes ? await createStreamEncryptor(keyBytes) : null;
+      try {
+        let completedBytes = 0;
+        for (
+          let partNumber = 1;
+          partNumber <= start.partCount;
+          partNumber += 1
+        ) {
+          let part: Blob;
+          if (encryptor) {
+            const from = (partNumber - 1) * chunkPlaintext;
+            const to = Math.min(from + chunkPlaintext, file.size);
+            const plain = new Uint8Array(
+              await file.slice(from, to).arrayBuffer(),
             );
-          },
-        );
-        completedBytes += part.size;
+            const sealed = encryptor.push(
+              plain,
+              partNumber === start.partCount,
+            );
+            part = new Blob([sealed as BlobPart]);
+          } else {
+            const from = (partNumber - 1) * start.partSizeBytes;
+            const to = Math.min(from + start.partSizeBytes, storedSizeBytes);
+            part = prepared!.body.slice(from, to);
+          }
+          await uploadPart(
+            start.uploadId,
+            partNumber,
+            part,
+            start.manageToken,
+            (loaded) => {
+              setProgress(
+                Math.min(
+                  99,
+                  Math.round(
+                    ((completedBytes + loaded) / storedSizeBytes) * 100,
+                  ),
+                ),
+              );
+            },
+          );
+          completedBytes += part.size;
+        }
+      } finally {
+        encryptor?.free();
       }
 
       setPhase("finishing");
@@ -189,7 +217,7 @@ export function SendView({
         ...completed,
         shareUrl,
         manageToken: start.manageToken,
-        savedBytes: prepared.savedBytes,
+        savedBytes,
         encrypted: Boolean(dropKey),
       });
       setFile(undefined);

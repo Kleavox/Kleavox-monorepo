@@ -5,6 +5,7 @@ interface Policy {
   retentionOptions: number[];
   maxDownloads: number;
   defaultDownloads: number;
+  partSizeBytes: number;
 }
 
 export interface SessionResponse {
@@ -69,4 +70,5 @@ export interface PublicDrop {
   remainingDownloads: number | null;
   expiresAt: string;
   createdAt: string;
+  partSizeBytes: number;
 }

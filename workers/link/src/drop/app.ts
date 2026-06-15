@@ -1042,6 +1042,7 @@ function publicDrop(drop: DropRow) {
         : Math.max(drop.max_downloads - drop.download_count, 0),
     expiresAt: drop.expires_at,
     createdAt: drop.created_at,
+    partSizeBytes: PART_SIZE_BYTES,
   };
 }
 
@@ -1053,6 +1054,7 @@ function publicPolicy(policy: typeof GUEST_POLICY) {
     retentionOptions: policy.retentionOptions,
     maxDownloads: policy.maxDownloads,
     defaultDownloads: policy.defaultDownloads,
+    partSizeBytes: PART_SIZE_BYTES,
   };
 }
 

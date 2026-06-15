@@ -3,13 +3,26 @@ import { WASM_BASE64 } from "./wasm-base64";
 
 export * from "./tokens";
 
+interface StreamCipherClass {
+  new (key: Uint8Array): StreamCipher;
+}
+
+export interface StreamCipher {
+  push(chunk: Uint8Array, isLast: boolean): Uint8Array<ArrayBuffer>;
+  free(): void;
+}
+
 interface CryptoModule {
   default: (wasm?: WebAssembly.Module | BufferSource) => Promise<unknown>;
   hash_password: (password: string, salt: string) => string;
   verify_password: (password: string, hash: string) => boolean;
   encrypt_data: (data: Uint8Array, password: string) => Uint8Array;
   decrypt_data: (data: Uint8Array, password: string) => Uint8Array;
+  StreamEncryptor: StreamCipherClass;
+  StreamDecryptor: StreamCipherClass;
 }
+
+export const STREAM_CHUNK_OVERHEAD = 16;
 
 let modulePromise: Promise<CryptoModule> | undefined;
 
@@ -79,18 +92,16 @@ export async function verifyPassword(
   return crypto.verify_password(password, hash);
 }
 
-export async function encrypt(
-  data: Uint8Array,
-  password: string,
-): Promise<Uint8Array> {
+export async function createStreamEncryptor(
+  key: Uint8Array,
+): Promise<StreamCipher> {
   const crypto = await loadCrypto();
-  return crypto.encrypt_data(data, password);
+  return new crypto.StreamEncryptor(key);
 }
 
-export async function decrypt(
-  data: Uint8Array,
-  password: string,
-): Promise<Uint8Array> {
+export async function createStreamDecryptor(
+  key: Uint8Array,
+): Promise<StreamCipher> {
   const crypto = await loadCrypto();
-  return crypto.decrypt_data(data, password);
+  return new crypto.StreamDecryptor(key);
 }

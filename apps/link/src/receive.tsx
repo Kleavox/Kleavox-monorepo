@@ -1,5 +1,5 @@
 import { ApiError, readApiResponse as readApi } from "@kleavox/core";
-import { decrypt } from "@kleavox/crypto";
+import { createStreamDecryptor, decodeBase64Url } from "@kleavox/crypto";
 import { ErrorScreen, LINK_ORIGIN } from "@kleavox/ui";
 import { useEffect, useState } from "react";
 
@@ -77,21 +77,34 @@ export function ReceiveView({ token }: { token: string }) {
         setError("The decryption key is missing from this link.");
         return;
       }
+      let saver: FileSaver | null;
+      try {
+        saver = await chooseFileSaver(drop.name);
+      } catch {
+        return;
+      }
       setUnlocking(true);
       try {
         const response = await fetch(`/api/public/${token}/download`);
         if (!response.ok) throw new Error("Download failed");
-        const encryptedBuffer = new Uint8Array(await response.arrayBuffer());
-        const decryptedBuffer = await decrypt(encryptedBuffer, key);
-        const blob = new Blob([decryptedBuffer as any], {
-          type: drop.contentType,
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = drop.name;
-        a.click();
-        URL.revokeObjectURL(url);
+        const keyBytes = decodeBase64Url(key);
+        if (saver && response.body) {
+          await streamDecrypt(
+            response.body,
+            keyBytes,
+            drop.partSizeBytes,
+            saver,
+          );
+        } else {
+          const sealed = new Uint8Array(await response.arrayBuffer());
+          const blob = await bufferedDecrypt(
+            sealed,
+            keyBytes,
+            drop.partSizeBytes,
+            drop.contentType,
+          );
+          saveBlob(blob, drop.name);
+        }
       } catch (reason) {
         setError(
           reason instanceof Error ? reason.message : "Decryption failed.",
@@ -280,4 +293,100 @@ export function ReceiveView({ token }: { token: string }) {
       <Footer />
     </main>
   );
+}
+
+interface FileSaver {
+  write(chunk: Uint8Array<ArrayBuffer>): Promise<void>;
+  close(): Promise<void>;
+}
+
+interface SaveFilePicker {
+  showSaveFilePicker?: (options: { suggestedName: string }) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: BufferSource) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+}
+
+async function chooseFileSaver(name: string): Promise<FileSaver | null> {
+  const picker = window as unknown as SaveFilePicker;
+  if (!picker.showSaveFilePicker) return null;
+  const handle = await picker.showSaveFilePicker({ suggestedName: name });
+  const writable = await handle.createWritable();
+  return {
+    write: (chunk) => writable.write(chunk),
+    close: () => writable.close(),
+  };
+}
+
+function concatBytes(
+  left: Uint8Array,
+  right: Uint8Array,
+): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(left.length + right.length);
+  out.set(left, 0);
+  out.set(right, left.length);
+  return out;
+}
+
+async function streamDecrypt(
+  body: ReadableStream<Uint8Array>,
+  key: Uint8Array,
+  partSize: number,
+  saver: FileSaver,
+): Promise<void> {
+  const decryptor = await createStreamDecryptor(key);
+  const reader = body.getReader();
+  let buffer = new Uint8Array(0);
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (value) buffer = concatBytes(buffer, value);
+      while (buffer.length > partSize) {
+        await saver.write(decryptor.push(buffer.subarray(0, partSize), false));
+        buffer = buffer.subarray(partSize);
+      }
+      if (done) break;
+    }
+    await saver.write(decryptor.push(buffer, true));
+    await saver.close();
+  } finally {
+    decryptor.free();
+  }
+}
+
+async function bufferedDecrypt(
+  sealed: Uint8Array,
+  key: Uint8Array,
+  partSize: number,
+  contentType: string,
+): Promise<Blob> {
+  const decryptor = await createStreamDecryptor(key);
+  const chunkCount = Math.max(1, Math.ceil(sealed.length / partSize));
+  const parts: BlobPart[] = [];
+  try {
+    for (let index = 0; index < chunkCount; index += 1) {
+      const from = index * partSize;
+      const to = Math.min(from + partSize, sealed.length);
+      parts.push(
+        decryptor.push(
+          sealed.subarray(from, to),
+          index === chunkCount - 1,
+        ) as BlobPart,
+      );
+    }
+  } finally {
+    decryptor.free();
+  }
+  return new Blob(parts, { type: contentType });
+}
+
+function saveBlob(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
