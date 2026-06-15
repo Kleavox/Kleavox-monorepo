@@ -129,6 +129,9 @@ importers:
       '@kleavox/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@kleavox/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@kleavox/ui':
         specifier: workspace:*
         version: link:../../packages/ui

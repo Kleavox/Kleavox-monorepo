@@ -2,6 +2,7 @@ import {
   decodeBase64Url,
   encodeBase64Url,
   hashPassword as rustHashPassword,
+  sha256Base64Url,
   timingSafeEqual,
   verifyPassword as rustVerifyPassword,
 } from "@kleavox/crypto";
@@ -9,6 +10,18 @@ import {
 export { randomToken, sha256Base64Url as hashToken } from "@kleavox/crypto";
 
 const encoder = new TextEncoder();
+
+export async function hashAuthVerifier(verifier: string): Promise<string> {
+  return sha256Base64Url(verifier);
+}
+
+export async function verifyAuthVerifier(
+  verifier: string,
+  storedHash: string,
+): Promise<boolean> {
+  const candidate = await sha256Base64Url(verifier);
+  return timingSafeEqual(encoder.encode(candidate), encoder.encode(storedHash));
+}
 const PASSWORD_SALT_BYTES = 16;
 
 export async function hashPassword(password: string): Promise<string> {

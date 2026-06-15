@@ -13,6 +13,7 @@
   "dependencies": {
     "@marsidev/react-turnstile": "catalog:",
     "@kleavox/core": "workspace:*",
+    "@kleavox/crypto": "workspace:*",
     "@kleavox/ui": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"

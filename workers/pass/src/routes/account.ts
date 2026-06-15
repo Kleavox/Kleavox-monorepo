@@ -2,7 +2,7 @@ import { readCookie, VERIFICATION_COOKIE } from "@kleavox/auth";
 import { INTERNAL_URLS } from "@kleavox/config";
 
 import { clearSessionCookie } from "../lib/cookies";
-import { hashPassword, hashToken } from "../lib/crypto";
+import { hashAuthVerifier, hashPassword, hashToken } from "../lib/crypto";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail";
 import { rateLimit } from "../lib/rate-limit";
 import {
@@ -100,7 +100,10 @@ export function registerAccountRoutes(app: PassApp): void {
 
     const userId = existing?.id ?? crypto.randomUUID();
     const identityId = existing?.identity_id ?? crypto.randomUUID();
-    const passwordHash = await hashPassword(body.data.password);
+    const credential = body.data.keys;
+    const passwordHash = credential
+      ? null
+      : await hashPassword(body.data.password!);
     const verification = await createVerificationToken(
       "EMAIL",
       EMAIL_VERIFICATION_TTL_MS,
@@ -144,6 +147,29 @@ export function registerAccountRoutes(app: PassApp): void {
            id, user_id, provider, provider_subject, password_hash
          ) VALUES (?, ?, 'password', ?, ?)`,
         ).bind(identityId, userId, body.data.email, passwordHash),
+      );
+    }
+
+    if (credential) {
+      statements.push(
+        context.env.DB.prepare(
+          `INSERT INTO account_keys
+             (user_id, kdf_salt, auth_verifier_hash, account_public_key,
+              wrapped_private_key)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(user_id) DO UPDATE SET
+             kdf_salt = excluded.kdf_salt,
+             auth_verifier_hash = excluded.auth_verifier_hash,
+             account_public_key = excluded.account_public_key,
+             wrapped_private_key = excluded.wrapped_private_key,
+             updated_at = datetime('now')`,
+        ).bind(
+          userId,
+          credential.salt,
+          await hashAuthVerifier(credential.authVerifier),
+          credential.accountPublicKey,
+          credential.wrappedPrivateKey,
+        ),
       );
     }
 
@@ -714,6 +740,9 @@ export function registerAccountRoutes(app: PassApp): void {
        SET password_hash = ?, updated_at = datetime('now')
        WHERE user_id = ? AND provider = 'password'`,
       ).bind(passwordHash, token.user_id),
+      context.env.DB.prepare(`DELETE FROM account_keys WHERE user_id = ?`).bind(
+        token.user_id,
+      ),
       context.env.DB.prepare(
         `UPDATE users
        SET auth_version = ?, updated_at = datetime('now')

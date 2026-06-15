@@ -7,7 +7,7 @@ export function encodeBase64Url(value: Uint8Array): string {
     .replace(/=+$/u, "");
 }
 
-export function decodeBase64Url(value: string): Uint8Array {
+export function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
   const binary = atob(
     normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="),

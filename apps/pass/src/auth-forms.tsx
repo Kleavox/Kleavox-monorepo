@@ -1,5 +1,6 @@
 import { ApiError, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
+import { createAccountCredential, deriveAuthVerifier } from "@kleavox/crypto";
 import { type FormEvent, useState } from "react";
 
 import { useChallenge } from "./challenge";
@@ -27,10 +28,20 @@ export function Login({
     event.preventDefault();
     setState({ status: "loading" });
     try {
-      const response = await api<{ authenticated: true; user: Identity }>(
-        "/api/login",
-        { email, password },
+      const { salt } = await api<{ salt: string | null }>(
+        "/api/login/prelogin",
+        { email },
       );
+      const response = salt
+        ? await api<{ authenticated: true; user: Identity }>("/api/login", {
+            email,
+            authVerifier: await deriveAuthVerifier(password, salt),
+          })
+        : await api<{ authenticated: true; user: Identity }>("/api/login", {
+            email,
+            password,
+            keys: await createAccountCredential(password),
+          });
       onAuthenticated(response.user);
     } catch (cause) {
       setState({ status: "error", message: errorMessage(cause) });
@@ -131,7 +142,7 @@ export function Register({
       const response = await api<{ message: string }>("/api/register", {
         username: name,
         email,
-        password,
+        keys: await createAccountCredential(password),
       });
       setState({ status: "success", message: response.message });
     } catch (cause) {

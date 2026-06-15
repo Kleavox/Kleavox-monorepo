@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { Env } from "../env";
 import { writeAuditEvent } from "../lib/audit";
-import { hashToken, randomToken } from "../lib/crypto";
+import { hashAuthVerifier, hashToken, randomToken } from "../lib/crypto";
 import type { OAuthProfile, OAuthProvider } from "../lib/oauth";
 import { getSession, readSessionToken } from "../lib/session";
 
@@ -23,6 +23,20 @@ interface UserRow {
   disabled_at: string | null;
   identity_id: string | null;
   password_hash: string | null;
+}
+
+interface AccountKeysRow {
+  kdf_salt: string;
+  auth_verifier_hash: string;
+  account_public_key: string;
+  wrapped_private_key: string;
+}
+
+export interface AccountKeyCredential {
+  salt: string;
+  authVerifier: string;
+  accountPublicKey: string;
+  wrappedPrivateKey: string;
 }
 
 export interface VerificationRecord {
@@ -65,16 +79,55 @@ const usernameSchema = z
   )
   .refine((value) => !isReservedSlug(value), "This username is reserved.");
 
-export const registerSchema = z.object({
-  email: emailSchema,
-  username: usernameSchema,
-  password: passwordSchema,
+const accountKeysSchema = z.object({
+  salt: z.string().min(16).max(128),
+  authVerifier: z.string().min(40).max(128),
+  accountPublicKey: z.string().min(40).max(512),
+  wrappedPrivateKey: z.string().min(40).max(512),
 });
 
-export const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1).max(128),
-});
+export const registerSchema = z
+  .object({
+    email: emailSchema,
+    username: usernameSchema,
+    password: passwordSchema.optional(),
+    keys: accountKeysSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (Boolean(value.password) === Boolean(value.keys)) {
+      context.addIssue({
+        code: "custom",
+        message: "Provide either a password or a key credential.",
+        path: ["keys"],
+      });
+    }
+  });
+
+export const preloginSchema = z.object({ email: emailSchema });
+
+export const loginSchema = z
+  .object({
+    email: emailSchema,
+    password: z.string().min(1).max(128).optional(),
+    authVerifier: z.string().min(40).max(128).optional(),
+    keys: accountKeysSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (Boolean(value.password) === Boolean(value.authVerifier)) {
+      context.addIssue({
+        code: "custom",
+        message: "Provide either a password or a verifier.",
+        path: ["authVerifier"],
+      });
+    }
+    if (value.keys && !value.password) {
+      context.addIssue({
+        code: "custom",
+        message: "Migration keys require the password.",
+        path: ["keys"],
+      });
+    }
+  });
 
 export const emailActionSchema = z.object({
   email: emailSchema,
@@ -199,6 +252,46 @@ export async function findUserByEmail(
   )
     .bind(email)
     .first<UserRow>();
+}
+
+export async function findAccountKeys(
+  env: Env,
+  userId: string,
+): Promise<AccountKeysRow | null> {
+  return env.DB.prepare(
+    `SELECT kdf_salt, auth_verifier_hash, account_public_key,
+            wrapped_private_key
+     FROM account_keys WHERE user_id = ?`,
+  )
+    .bind(userId)
+    .first<AccountKeysRow>();
+}
+
+export async function storeAccountKeys(
+  env: Env,
+  userId: string,
+  keys: AccountKeyCredential,
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO account_keys
+       (user_id, kdf_salt, auth_verifier_hash, account_public_key,
+        wrapped_private_key)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       kdf_salt = excluded.kdf_salt,
+       auth_verifier_hash = excluded.auth_verifier_hash,
+       account_public_key = excluded.account_public_key,
+       wrapped_private_key = excluded.wrapped_private_key,
+       updated_at = datetime('now')`,
+  )
+    .bind(
+      userId,
+      keys.salt,
+      await hashAuthVerifier(keys.authVerifier),
+      keys.accountPublicKey,
+      keys.wrappedPrivateKey,
+    )
+    .run();
 }
 
 type OAuthResolution =

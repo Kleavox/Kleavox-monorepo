@@ -39,6 +39,15 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool, JsValue> {
 }
 
 #[wasm_bindgen]
+pub fn derive_key(password: &str, salt: &[u8]) -> Result<Vec<u8>, JsValue> {
+    let mut out = [0u8; 32];
+    Argon2::default()
+        .hash_password_into(password.as_bytes(), salt, &mut out)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    Ok(out.to_vec())
+}
+
+#[wasm_bindgen]
 pub fn encrypt_data(data: &[u8], password: &str) -> Result<Vec<u8>, JsValue> {
     let mut salt = [0u8; 16];
     OsRng.fill_bytes(&mut salt);
@@ -180,6 +189,18 @@ mod tests {
         assert_ne!(first, second);
         assert_eq!(decrypt_data(&first, key).expect("decrypt first").as_slice(), &payload[..]);
         assert_eq!(decrypt_data(&second, key).expect("decrypt second").as_slice(), &payload[..]);
+    }
+
+    #[test]
+    fn derive_key_is_deterministic_and_salt_dependent() {
+        let first = derive_key("correct horse", b"saltsaltsalt1234").unwrap();
+        let again = derive_key("correct horse", b"saltsaltsalt1234").unwrap();
+        let other = derive_key("correct horse", b"different-salt!!").unwrap();
+        let wrong = derive_key("wrong horse", b"saltsaltsalt1234").unwrap();
+        assert_eq!(first.len(), 32);
+        assert_eq!(first, again);
+        assert_ne!(first, other);
+        assert_ne!(first, wrong);
     }
 
     #[test]
