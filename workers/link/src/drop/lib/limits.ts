@@ -3,10 +3,10 @@ import type { Identity } from "@kleavox/core";
 const MEBIBYTE = 1024 * 1024;
 const GIBIBYTE = 1024 * MEBIBYTE;
 export const PART_SIZE_BYTES = 10 * MEBIBYTE;
-export const UPLOAD_TTL_SECONDS = 30 * 60;
-export const GLOBAL_ACTIVE_STORAGE_BYTES = 8 * GIBIBYTE;
-const USER_ACTIVE_STORAGE_BYTES = GIBIBYTE;
-const GUEST_ACTIVE_STORAGE_BYTES = 100 * MEBIBYTE;
+export const UPLOAD_TTL_SECONDS = 120 * 60;
+export const GLOBAL_ACTIVE_STORAGE_BYTES = 200 * GIBIBYTE;
+const USER_ACTIVE_STORAGE_BYTES = 20 * GIBIBYTE;
+const GUEST_ACTIVE_STORAGE_BYTES = 200 * MEBIBYTE;
 
 export interface DropPolicy {
   kind: "guest" | "user";
@@ -19,7 +19,7 @@ export interface DropPolicy {
 
 export const GUEST_POLICY: DropPolicy = {
   kind: "guest",
-  maxFileBytes: 50 * MEBIBYTE,
+  maxFileBytes: 100 * MEBIBYTE,
   maxActiveBytes: GUEST_ACTIVE_STORAGE_BYTES,
   retentionOptions: [60 * 60],
   maxDownloads: 5,
@@ -28,7 +28,7 @@ export const GUEST_POLICY: DropPolicy = {
 
 export const USER_POLICY: DropPolicy = {
   kind: "user",
-  maxFileBytes: 250 * MEBIBYTE,
+  maxFileBytes: 2 * GIBIBYTE,
   maxActiveBytes: USER_ACTIVE_STORAGE_BYTES,
   retentionOptions: [60 * 60, 6 * 60 * 60, 24 * 60 * 60],
   maxDownloads: 100,

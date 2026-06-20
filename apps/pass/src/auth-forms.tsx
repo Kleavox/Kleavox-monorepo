@@ -1,5 +1,6 @@
 import { ApiError, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
+import { createAccountCredential, deriveLoginKeys } from "@kleavox/crypto";
 import { type FormEvent, useState } from "react";
 
 import { useChallenge } from "./challenge";
@@ -27,9 +28,17 @@ export function Login({
     event.preventDefault();
     setState({ status: "loading" });
     try {
+      const { salt } = await api<{ salt: string | null }>(
+        "/api/login/prelogin",
+        { email },
+      );
+      if (!salt) {
+        throw new Error("Email or password is incorrect.");
+      }
+      const { authVerifier } = await deriveLoginKeys(password, salt);
       const response = await api<{ authenticated: true; user: Identity }>(
         "/api/login",
-        { email, password },
+        { email, authVerifier },
       );
       onAuthenticated(response.user);
     } catch (cause) {
@@ -131,7 +140,7 @@ export function Register({
       const response = await api<{ message: string }>("/api/register", {
         username: name,
         email,
-        password,
+        keys: await createAccountCredential(password),
       });
       setState({ status: "success", message: response.message });
     } catch (cause) {

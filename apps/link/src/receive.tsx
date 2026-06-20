@@ -1,6 +1,12 @@
 import { ApiError, readApiResponse as readApi } from "@kleavox/core";
-import { decrypt } from "@kleavox/crypto";
-import { ErrorScreen, LINK_ORIGIN } from "@kleavox/ui";
+import {
+  createStreamDecryptor,
+  decodeBase64Url,
+  deriveLoginKeys,
+  unsealWithPrivateKey,
+  unwrapPrivateKey,
+} from "@kleavox/crypto";
+import { ErrorScreen, LINK_ORIGIN, signInUrl } from "@kleavox/ui";
 import { useEffect, useState } from "react";
 
 import { dropKeyFromHash } from "./e2e";
@@ -15,6 +21,7 @@ import type { PublicDrop } from "./files-types";
 
 export function ReceiveView({ token }: { token: string }) {
   const [drop, setDrop] = useState<PublicDrop>();
+  const [session, setSession] = useState<{ authenticated: boolean }>();
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
@@ -35,8 +42,12 @@ export function ReceiveView({ token }: { token: string }) {
   async function loadDrop() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/public/${token}`);
-      setDrop(await readApi<PublicDrop>(response));
+      const [dropResponse, sessionResponse] = await Promise.all([
+        fetch(`/api/public/${token}`),
+        fetch("/api/drop/session"),
+      ]);
+      setSession((await sessionResponse.json()) as { authenticated: boolean });
+      setDrop(await readApi<PublicDrop>(dropResponse));
     } catch (reason) {
       setLoadFailure({
         code: reason instanceof ApiError ? reason.code : undefined,
@@ -72,26 +83,72 @@ export function ReceiveView({ token }: { token: string }) {
     }
 
     if (drop.storageEncoding === "aes-256-gcm") {
-      const key = dropKeyFromHash(window.location.hash);
-      if (!key) {
-        setError("The decryption key is missing from this link.");
-        return;
+      let keyBytes: Uint8Array<ArrayBuffer>;
+      let saver: FileSaver | null = null;
+      if (drop.shared) {
+        if (!session?.authenticated) {
+          setError("Sign in to open this private transfer.");
+          return;
+        }
+        try {
+          keyBytes = await resolveSealedKey(token, password);
+        } catch (reason) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "The decryption key is unavailable.",
+          );
+          return;
+        }
+      } else {
+        const fragmentKey = dropKeyFromHash(window.location.hash);
+        if (!fragmentKey) {
+          setError("The decryption key is missing from this link.");
+          return;
+        }
+        keyBytes = decodeBase64Url(fragmentKey);
+        try {
+          saver = await chooseFileSaver(drop.name);
+        } catch {
+          return;
+        }
       }
       setUnlocking(true);
       try {
         const response = await fetch(`/api/public/${token}/download`);
         if (!response.ok) throw new Error("Download failed");
-        const encryptedBuffer = new Uint8Array(await response.arrayBuffer());
-        const decryptedBuffer = await decrypt(encryptedBuffer, key);
-        const blob = new Blob([decryptedBuffer as any], {
-          type: drop.contentType,
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = drop.name;
-        a.click();
-        URL.revokeObjectURL(url);
+        if (!response.body) {
+          const sealed = new Uint8Array(await response.arrayBuffer());
+          saveBlob(
+            await bufferedDecrypt(
+              sealed,
+              keyBytes,
+              drop.partSizeBytes,
+              drop.contentType,
+            ),
+            drop.name,
+          );
+        } else if (saver) {
+          const sink = saver;
+          await streamDecrypt(
+            response.body,
+            keyBytes,
+            drop.partSizeBytes,
+            (chunk) => sink.write(chunk),
+          );
+          await sink.close();
+        } else {
+          const parts: BlobPart[] = [];
+          await streamDecrypt(
+            response.body,
+            keyBytes,
+            drop.partSizeBytes,
+            (chunk) => {
+              parts.push(new Blob([chunk]));
+            },
+          );
+          saveBlob(new Blob(parts, { type: drop.contentType }), drop.name);
+        }
       } catch (reason) {
         setError(
           reason instanceof Error ? reason.message : "Decryption failed.",
@@ -216,11 +273,37 @@ export function ReceiveView({ token }: { token: string }) {
                 </label>
               )}
 
+              {drop.shared &&
+                (session?.authenticated ? (
+                  <label className="drop-unlock">
+                    <span>Your account password</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      placeholder="Unlock with your password"
+                      onChange={(event) => setPassword(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") void download();
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <p className="drop-message">
+                    <a href={signInUrl(LINK_ORIGIN)}>Sign in</a> to open this
+                    private transfer.
+                  </p>
+                ))}
+
               {error && <p className="drop-message is-error">{error}</p>}
               <button
                 className="drop-primary"
                 type="button"
-                disabled={unlocking || (drop.protected && !password)}
+                disabled={
+                  unlocking ||
+                  (drop.protected && !password) ||
+                  (drop.shared && (!session?.authenticated || !password))
+                }
                 onClick={() => void download()}
               >
                 {unlocking ? "Checking access" : "Download file"}
@@ -280,4 +363,131 @@ export function ReceiveView({ token }: { token: string }) {
       <Footer />
     </main>
   );
+}
+
+async function resolveSealedKey(
+  token: string,
+  password: string,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const accountKey = (await (await fetch("/api/drop/account-key")).json()) as {
+    salt: string | null;
+    wrappedPrivateKey: string | null;
+  };
+  if (!accountKey.salt || !accountKey.wrappedPrivateKey) {
+    throw new Error("Your account has no encryption key set up.");
+  }
+  const { masterKey } = await deriveLoginKeys(password, accountKey.salt);
+  let privateKey: CryptoKey;
+  try {
+    privateKey = await unwrapPrivateKey(
+      accountKey.wrappedPrivateKey,
+      masterKey,
+    );
+  } catch {
+    throw new Error("Incorrect account password.");
+  }
+  const response = await fetch(`/api/public/${token}/sealed-key`);
+  if (response.status === 404) {
+    throw new Error("This transfer was not shared with your account.");
+  }
+  if (!response.ok) {
+    throw new Error("Could not load the transfer key.");
+  }
+  const { sealedKey } = (await response.json()) as { sealedKey: string };
+  return unsealWithPrivateKey(sealedKey, privateKey);
+}
+
+interface FileSaver {
+  write(chunk: Uint8Array<ArrayBuffer>): Promise<void>;
+  close(): Promise<void>;
+}
+
+interface SaveFilePicker {
+  showSaveFilePicker?: (options: { suggestedName: string }) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: BufferSource) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+}
+
+async function chooseFileSaver(name: string): Promise<FileSaver | null> {
+  const picker = window as unknown as SaveFilePicker;
+  if (!picker.showSaveFilePicker) return null;
+  const handle = await picker.showSaveFilePicker({ suggestedName: name });
+  const writable = await handle.createWritable();
+  return {
+    write: (chunk) => writable.write(chunk),
+    close: () => writable.close(),
+  };
+}
+
+function concatBytes(
+  left: Uint8Array,
+  right: Uint8Array,
+): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(left.length + right.length);
+  out.set(left, 0);
+  out.set(right, left.length);
+  return out;
+}
+
+async function streamDecrypt(
+  body: ReadableStream<Uint8Array>,
+  key: Uint8Array,
+  partSize: number,
+  onChunk: (plain: Uint8Array<ArrayBuffer>) => Promise<void> | void,
+): Promise<void> {
+  const decryptor = await createStreamDecryptor(key);
+  const reader = body.getReader();
+  let buffer = new Uint8Array(0);
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (value) buffer = concatBytes(buffer, value);
+      while (buffer.length > partSize) {
+        await onChunk(decryptor.push(buffer.subarray(0, partSize), false));
+        buffer = buffer.subarray(partSize);
+      }
+      if (done) break;
+    }
+    await onChunk(decryptor.push(buffer, true));
+  } finally {
+    decryptor.free();
+  }
+}
+
+async function bufferedDecrypt(
+  sealed: Uint8Array,
+  key: Uint8Array,
+  partSize: number,
+  contentType: string,
+): Promise<Blob> {
+  const decryptor = await createStreamDecryptor(key);
+  const chunkCount = Math.max(1, Math.ceil(sealed.length / partSize));
+  const parts: BlobPart[] = [];
+  try {
+    for (let index = 0; index < chunkCount; index += 1) {
+      const from = index * partSize;
+      const to = Math.min(from + partSize, sealed.length);
+      parts.push(
+        decryptor.push(
+          sealed.subarray(from, to),
+          index === chunkCount - 1,
+        ) as BlobPart,
+      );
+    }
+  } finally {
+    decryptor.free();
+  }
+  return new Blob(parts, { type: contentType });
+}
+
+function saveBlob(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

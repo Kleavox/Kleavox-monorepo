@@ -104,6 +104,62 @@ export function registerInternalRoutes(app: PassApp): void {
     return context.json({ email: user.email, username: user.username });
   });
 
+  app.get("/internal/public-key", async (context) => {
+    if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
+      return context.body(null, 404);
+    }
+
+    const username = context.req.query("username");
+    if (!username) {
+      return context.json(
+        { code: "INVALID_INPUT", message: "Missing username." },
+        400,
+      );
+    }
+
+    const row = await context.env.DB.prepare(
+      `SELECT u.id AS user_id, ak.account_public_key
+       FROM users u
+       JOIN account_keys ak ON ak.user_id = u.id
+       WHERE u.username = ?
+         AND u.disabled_at IS NULL
+         AND u.email_verified_at IS NOT NULL`,
+    )
+      .bind(username)
+      .first<{ user_id: string; account_public_key: string }>();
+
+    return context.json({
+      userId: row?.user_id ?? null,
+      publicKey: row?.account_public_key ?? null,
+    });
+  });
+
+  app.get("/internal/account-key", async (context) => {
+    if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
+      return context.body(null, 404);
+    }
+
+    const userId = context.req.query("userId");
+    if (!userId) {
+      return context.json(
+        { code: "INVALID_INPUT", message: "Missing userId." },
+        400,
+      );
+    }
+
+    const row = await context.env.DB.prepare(
+      `SELECT kdf_salt, wrapped_private_key
+       FROM account_keys WHERE user_id = ?`,
+    )
+      .bind(userId)
+      .first<{ kdf_salt: string; wrapped_private_key: string }>();
+
+    return context.json({
+      salt: row?.kdf_salt ?? null,
+      wrappedPrivateKey: row?.wrapped_private_key ?? null,
+    });
+  });
+
   app.get("/internal/admins", async (context) => {
     if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PASS) {
       return context.body(null, 404);

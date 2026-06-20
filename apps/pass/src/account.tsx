@@ -1,5 +1,6 @@
 import { ApiError, apiFetch, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
+import { createAccountCredential } from "@kleavox/crypto";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { api, deviceLabel, redirectToFreshChallenge } from "./helpers";
@@ -115,7 +116,9 @@ export function Account({
     }
     setState({ status: "loading" });
     try {
-      await api("/api/account/password", { password: passwordInput });
+      await api("/api/account/password", {
+        keys: await createAccountCredential(passwordInput),
+      });
       setProviders((current) =>
         current && !current.includes("password")
           ? [...current, "password"]

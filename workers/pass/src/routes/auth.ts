@@ -10,7 +10,7 @@ import {
   makeVerificationCookie,
   VERIFICATION_TTL_SECONDS,
 } from "../lib/cookies";
-import { hashToken, randomToken, verifyPassword } from "../lib/crypto";
+import { hashToken, randomToken, verifyAuthVerifier } from "../lib/crypto";
 import { safeReturnTo } from "../lib/oauth";
 import { rateLimit } from "../lib/rate-limit";
 import {
@@ -29,10 +29,11 @@ import {
   checkVerification,
   clientIp,
   currentSession,
-  DUMMY_PASSWORD_HASH,
+  findAccountKeys,
   findUserByEmail,
   firstIssue,
   loginSchema,
+  preloginSchema,
   rateLimitError,
   safeAudit,
   sessionClient,
@@ -42,6 +43,25 @@ import {
 } from "./shared";
 
 export function registerAuthRoutes(app: PassApp): void {
+  app.post("/api/login/prelogin", async (context) => {
+    const body = preloginSchema.safeParse(await context.req.json());
+    if (!body.success) {
+      return apiError(context, 400, "invalid_input", firstIssue(body.error));
+    }
+    const limit = await rateLimit(
+      context.env,
+      "prelogin-ip",
+      clientIp(context.req.raw),
+      30,
+      900,
+    );
+    if (!limit.allowed) return rateLimitError(context, limit.retryAfter);
+
+    const user = await findUserByEmail(context.env, body.data.email);
+    const keys = user?.id ? await findAccountKeys(context.env, user.id) : null;
+    return context.json({ salt: keys?.kdf_salt ?? null });
+  });
+
   app.post("/api/login", async (context) => {
     const body = loginSchema.safeParse(await context.req.json());
     if (!body.success) {
@@ -65,13 +85,14 @@ export function registerAuthRoutes(app: PassApp): void {
     }
 
     const user = await findUserByEmail(context.env, body.data.email);
-    const passwordHash = user?.password_hash ?? DUMMY_PASSWORD_HASH;
-    const passwordValid = await verifyPassword(
-      passwordHash,
-      body.data.password,
-    );
-
-    if (!user || !user.identity_id || !passwordValid || user.disabled_at) {
+    const keys = user?.id ? await findAccountKeys(context.env, user.id) : null;
+    const verifierValid = keys
+      ? await verifyAuthVerifier(
+          body.data.authVerifier,
+          keys.auth_verifier_hash,
+        )
+      : false;
+    if (!user || !keys || !verifierValid || user.disabled_at) {
       await safeAudit(context.env, {
         userId: user?.id,
         type: "login_failed",
@@ -112,7 +133,6 @@ export function registerAuthRoutes(app: PassApp): void {
       type: "login_succeeded",
       request: context.req.raw,
     });
-
     context.header(
       "Set-Cookie",
       makeSessionCookie(context.req.raw, context.env, created.token),
