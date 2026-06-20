@@ -2,7 +2,7 @@ import { readCookie, VERIFICATION_COOKIE } from "@kleavox/auth";
 import { INTERNAL_URLS } from "@kleavox/config";
 
 import { clearSessionCookie } from "../lib/cookies";
-import { hashAuthVerifier, hashPassword, hashToken } from "../lib/crypto";
+import { hashAuthVerifier, hashToken } from "../lib/crypto";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail";
 import { rateLimit } from "../lib/rate-limit";
 import {
@@ -22,6 +22,7 @@ import {
   currentSession,
   emailActionSchema,
   EMAIL_VERIFICATION_TTL_MS,
+  findAccountKeys,
   findUserByEmail,
   firstIssue,
   genericEmailResponse,
@@ -30,6 +31,7 @@ import {
   registerSchema,
   resetPasswordSchema,
   safeAudit,
+  storeAccountKeys,
   tokenActionSchema,
   usernameTakenBy,
   type PassApp,
@@ -101,9 +103,7 @@ export function registerAccountRoutes(app: PassApp): void {
     const userId = existing?.id ?? crypto.randomUUID();
     const identityId = existing?.identity_id ?? crypto.randomUUID();
     const credential = body.data.keys;
-    const passwordHash = credential
-      ? null
-      : await hashPassword(body.data.password!);
+    const passwordHash = null;
     const verification = await createVerificationToken(
       "EMAIL",
       EMAIL_VERIFICATION_TTL_MS,
@@ -365,10 +365,15 @@ export function registerAccountRoutes(app: PassApp): void {
       .bind(session.identity.id)
       .all<{ provider: string }>();
 
-    return context.json({
-      user: session.identity,
-      providers: identities.results.map((row) => row.provider),
-    });
+    const providers = identities.results.map((row) => row.provider);
+    if (
+      !providers.includes("password") &&
+      (await findAccountKeys(context.env, session.identity.id))
+    ) {
+      providers.push("password");
+    }
+
+    return context.json({ user: session.identity, providers });
   });
 
   app.patch("/api/account", async (context) => {
@@ -462,29 +467,11 @@ export function registerAccountRoutes(app: PassApp): void {
       ).bind(body.data.username, session.identity.id),
     ];
 
-    if (body.data.password) {
-      const hasPassword = await context.env.DB.prepare(
-        `SELECT id FROM identities WHERE user_id = ? AND provider = 'password'`,
-      )
-        .bind(session.identity.id)
-        .first<{ id: string }>();
-      if (!hasPassword) {
-        statements.push(
-          context.env.DB.prepare(
-            `INSERT INTO identities (
-             id, user_id, provider, provider_subject, password_hash
-           ) VALUES (?, ?, 'password', ?, ?)`,
-          ).bind(
-            crypto.randomUUID(),
-            session.identity.id,
-            session.identity.email,
-            await hashPassword(body.data.password),
-          ),
-        );
-      }
-    }
-
     await context.env.DB.batch(statements);
+
+    if (body.data.keys) {
+      await storeAccountKeys(context.env, session.identity.id, body.data.keys);
+    }
 
     const identity = { ...session.identity, username: body.data.username };
     await putIdentityOverride(context.env, identity);
@@ -593,33 +580,17 @@ export function registerAccountRoutes(app: PassApp): void {
       return apiError(context, 400, "invalid_input", firstIssue(body.error));
     }
 
-    const existing = await context.env.DB.prepare(
-      `SELECT id FROM identities WHERE user_id = ? AND provider = 'password'`,
-    )
-      .bind(session.identity.id)
-      .first<{ id: string }>();
+    const existing = await findAccountKeys(context.env, session.identity.id);
     if (existing) {
       return apiError(
         context,
         409,
         "password_exists",
-        "This account already has a password. Use the reset flow to change it.",
+        "This account already has an encryption passphrase. Use the reset flow to change it.",
       );
     }
 
-    const passwordHash = await hashPassword(body.data.password);
-    await context.env.DB.prepare(
-      `INSERT INTO identities (
-       id, user_id, provider, provider_subject, password_hash
-     ) VALUES (?, ?, 'password', ?, ?)`,
-    )
-      .bind(
-        crypto.randomUUID(),
-        session.identity.id,
-        session.identity.email,
-        passwordHash,
-      )
-      .run();
+    await storeAccountKeys(context.env, session.identity.id, body.data.keys);
 
     await safeAudit(context.env, {
       userId: session.identity.id,
@@ -732,17 +703,9 @@ export function registerAccountRoutes(app: PassApp): void {
       );
     }
 
-    const passwordHash = await hashPassword(body.data.password);
     const nextAuthVersion = token.auth_version + 1;
+    await storeAccountKeys(context.env, token.user_id, body.data.keys);
     await context.env.DB.batch([
-      context.env.DB.prepare(
-        `UPDATE identities
-       SET password_hash = ?, updated_at = datetime('now')
-       WHERE user_id = ? AND provider = 'password'`,
-      ).bind(passwordHash, token.user_id),
-      context.env.DB.prepare(`DELETE FROM account_keys WHERE user_id = ?`).bind(
-        token.user_id,
-      ),
       context.env.DB.prepare(
         `UPDATE users
        SET auth_version = ?, updated_at = datetime('now')

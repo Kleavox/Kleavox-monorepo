@@ -1,5 +1,6 @@
 import { errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
+import { createAccountCredential } from "@kleavox/crypto";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { ErrorScreen } from "@kleavox/ui";
@@ -61,7 +62,10 @@ export function ResetPassword() {
     }
     setState({ status: "loading" });
     try {
-      await api("/api/password/reset", { token, password });
+      await api("/api/password/reset", {
+        token,
+        keys: await createAccountCredential(password),
+      });
       setState({
         status: "success",
         message: "Password updated. All previous sessions were revoked.",
@@ -130,7 +134,9 @@ export function Welcome({
     try {
       const result = await api<{ ok: true; user: Identity }>(
         "/api/account/setup",
-        withPassword ? { username, password } : { username },
+        withPassword
+          ? { username, keys: await createAccountCredential(password) }
+          : { username },
       );
       onCompleted(result.user);
     } catch (cause) {

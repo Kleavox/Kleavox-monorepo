@@ -8,6 +8,7 @@ import {
   STREAM_CHUNK_OVERHEAD,
   createStreamEncryptor,
   decodeBase64Url,
+  sealToPublicKey,
 } from "@kleavox/crypto";
 import { LINK_ORIGIN, challengeUrl, signInUrl } from "@kleavox/ui";
 import { useEffect, useRef, useState } from "react";
@@ -28,6 +29,32 @@ import type {
   UploadStart,
 } from "./files-types";
 import { dropKeyStorageKey, encryptedShareUrl, generateDropKey } from "./e2e";
+
+async function sealForRecipients(
+  fileKey: Uint8Array<ArrayBuffer>,
+  usernames: string[],
+): Promise<{ userId: string; sealedKey: string }[]> {
+  return Promise.all(
+    usernames.map(async (username) => {
+      const response = await fetch(
+        `/api/drop/recipient-key?username=${encodeURIComponent(username)}`,
+      );
+      const data = (await response.json()) as {
+        userId: string | null;
+        publicKey: string | null;
+      };
+      if (!data.userId || !data.publicKey) {
+        throw new Error(
+          `Can't share with @${username} — no encryption-ready account.`,
+        );
+      }
+      return {
+        userId: data.userId,
+        sealedKey: await sealToPublicKey(fileKey, data.publicKey),
+      };
+    }),
+  );
+}
 
 export function SendView({
   embedded,
@@ -50,6 +77,7 @@ export function SendView({
   const [error, setError] = useState<string>();
   const [result, setResult] = useState<UploadResult>();
   const [copied, setCopied] = useState(false);
+  const [recipients, setRecipients] = useState("");
 
   useEffect(() => {
     void loadSession();
@@ -104,7 +132,13 @@ export function SendView({
     let start: UploadStart | undefined;
     let dropKey: string | undefined;
 
+    const recipientNames = recipients
+      .split(/[\s,]+/u)
+      .map((name) => name.trim().replace(/^@/u, ""))
+      .filter(Boolean);
+
     try {
+      let recipientPayload: { userId: string; sealedKey: string }[] | undefined;
       let prepared: PreparedUpload | null = null;
       let keyBytes: Uint8Array | undefined;
       let chunkPlaintext = 0;
@@ -113,8 +147,15 @@ export function SendView({
       let savedBytes = 0;
 
       if (session.authenticated) {
-        dropKey = generateDropKey();
-        keyBytes = decodeBase64Url(dropKey);
+        let fkBytes: Uint8Array<ArrayBuffer>;
+        if (recipientNames.length > 0) {
+          fkBytes = crypto.getRandomValues(new Uint8Array(32));
+          recipientPayload = await sealForRecipients(fkBytes, recipientNames);
+        } else {
+          dropKey = generateDropKey();
+          fkBytes = decodeBase64Url(dropKey);
+        }
+        keyBytes = fkBytes;
         chunkPlaintext = session.policy.partSizeBytes - STREAM_CHUNK_OVERHEAD;
         const chunkCount = Math.max(1, Math.ceil(file.size / chunkPlaintext));
         storedSizeBytes = file.size + STREAM_CHUNK_OVERHEAD * chunkCount;
@@ -138,6 +179,7 @@ export function SendView({
           storageEncoding,
           retentionSeconds,
           maxDownloads,
+          recipients: recipientPayload,
         }),
       });
       start = await readApi<UploadStart>(response);
@@ -217,9 +259,10 @@ export function SendView({
         shareUrl,
         manageToken: start.manageToken,
         savedBytes,
-        encrypted: Boolean(dropKey),
+        encrypted: Boolean(keyBytes),
       });
       setFile(undefined);
+      setRecipients("");
       if (inputRef.current) inputRef.current.value = "";
       if (session.authenticated) {
         if (embedded) await onChanged?.();
@@ -414,6 +457,20 @@ export function SendView({
                 }
               />
             </label>
+            {session?.authenticated && (
+              <label className="drop-recipients">
+                <span>
+                  Send privately to <i>optional, @usernames</i>
+                </span>
+                <input
+                  type="text"
+                  placeholder="@alice, @bob"
+                  value={recipients}
+                  disabled={busy}
+                  onChange={(event) => setRecipients(event.target.value)}
+                />
+              </label>
+            )}
           </div>
 
           {busy && (

@@ -1,29 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   hashAuthVerifier,
-  hashPassword,
   hashToken,
   randomToken,
   verifyAuthVerifier,
-  verifyPassword,
 } from "./crypto";
-
-describe("password hashing", () => {
-  it("verifies the original password and rejects another password", async () => {
-    const encoded = await hashPassword("correct horse battery staple");
-
-    await expect(
-      verifyPassword(encoded, "correct horse battery staple"),
-    ).resolves.toBe(true);
-    await expect(verifyPassword(encoded, "incorrect password")).resolves.toBe(
-      false,
-    );
-  });
-
-  it("rejects malformed hashes", async () => {
-    await expect(verifyPassword("not-a-hash", "password")).resolves.toBe(false);
-  });
-});
 
 describe("auth verifier", () => {
   it("accepts the matching verifier and rejects others", async () => {

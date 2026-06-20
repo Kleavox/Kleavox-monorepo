@@ -1,6 +1,12 @@
 import { ApiError, readApiResponse as readApi } from "@kleavox/core";
-import { createStreamDecryptor, decodeBase64Url } from "@kleavox/crypto";
-import { ErrorScreen, LINK_ORIGIN } from "@kleavox/ui";
+import {
+  createStreamDecryptor,
+  decodeBase64Url,
+  deriveLoginKeys,
+  unsealWithPrivateKey,
+  unwrapPrivateKey,
+} from "@kleavox/crypto";
+import { ErrorScreen, LINK_ORIGIN, signInUrl } from "@kleavox/ui";
 import { useEffect, useState } from "react";
 
 import { dropKeyFromHash } from "./e2e";
@@ -15,6 +21,7 @@ import type { PublicDrop } from "./files-types";
 
 export function ReceiveView({ token }: { token: string }) {
   const [drop, setDrop] = useState<PublicDrop>();
+  const [session, setSession] = useState<{ authenticated: boolean }>();
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
@@ -35,8 +42,12 @@ export function ReceiveView({ token }: { token: string }) {
   async function loadDrop() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/public/${token}`);
-      setDrop(await readApi<PublicDrop>(response));
+      const [dropResponse, sessionResponse] = await Promise.all([
+        fetch(`/api/public/${token}`),
+        fetch("/api/drop/session"),
+      ]);
+      setSession((await sessionResponse.json()) as { authenticated: boolean });
+      setDrop(await readApi<PublicDrop>(dropResponse));
     } catch (reason) {
       setLoadFailure({
         code: reason instanceof ApiError ? reason.code : undefined,
@@ -72,22 +83,40 @@ export function ReceiveView({ token }: { token: string }) {
     }
 
     if (drop.storageEncoding === "aes-256-gcm") {
-      const key = dropKeyFromHash(window.location.hash);
-      if (!key) {
-        setError("The decryption key is missing from this link.");
-        return;
-      }
-      let saver: FileSaver | null;
-      try {
-        saver = await chooseFileSaver(drop.name);
-      } catch {
-        return;
+      let keyBytes: Uint8Array<ArrayBuffer>;
+      let saver: FileSaver | null = null;
+      if (drop.shared) {
+        if (!session?.authenticated) {
+          setError("Sign in to open this private transfer.");
+          return;
+        }
+        try {
+          keyBytes = await resolveSealedKey(token, password);
+        } catch (reason) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "The decryption key is unavailable.",
+          );
+          return;
+        }
+      } else {
+        const fragmentKey = dropKeyFromHash(window.location.hash);
+        if (!fragmentKey) {
+          setError("The decryption key is missing from this link.");
+          return;
+        }
+        keyBytes = decodeBase64Url(fragmentKey);
+        try {
+          saver = await chooseFileSaver(drop.name);
+        } catch {
+          return;
+        }
       }
       setUnlocking(true);
       try {
         const response = await fetch(`/api/public/${token}/download`);
         if (!response.ok) throw new Error("Download failed");
-        const keyBytes = decodeBase64Url(key);
         if (!response.body) {
           const sealed = new Uint8Array(await response.arrayBuffer());
           saveBlob(
@@ -244,11 +273,37 @@ export function ReceiveView({ token }: { token: string }) {
                 </label>
               )}
 
+              {drop.shared &&
+                (session?.authenticated ? (
+                  <label className="drop-unlock">
+                    <span>Your account password</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      placeholder="Unlock with your password"
+                      onChange={(event) => setPassword(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") void download();
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <p className="drop-message">
+                    <a href={signInUrl(LINK_ORIGIN)}>Sign in</a> to open this
+                    private transfer.
+                  </p>
+                ))}
+
               {error && <p className="drop-message is-error">{error}</p>}
               <button
                 className="drop-primary"
                 type="button"
-                disabled={unlocking || (drop.protected && !password)}
+                disabled={
+                  unlocking ||
+                  (drop.protected && !password) ||
+                  (drop.shared && (!session?.authenticated || !password))
+                }
                 onClick={() => void download()}
               >
                 {unlocking ? "Checking access" : "Download file"}
@@ -308,6 +363,38 @@ export function ReceiveView({ token }: { token: string }) {
       <Footer />
     </main>
   );
+}
+
+async function resolveSealedKey(
+  token: string,
+  password: string,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const accountKey = (await (await fetch("/api/drop/account-key")).json()) as {
+    salt: string | null;
+    wrappedPrivateKey: string | null;
+  };
+  if (!accountKey.salt || !accountKey.wrappedPrivateKey) {
+    throw new Error("Your account has no encryption key set up.");
+  }
+  const { masterKey } = await deriveLoginKeys(password, accountKey.salt);
+  let privateKey: CryptoKey;
+  try {
+    privateKey = await unwrapPrivateKey(
+      accountKey.wrappedPrivateKey,
+      masterKey,
+    );
+  } catch {
+    throw new Error("Incorrect account password.");
+  }
+  const response = await fetch(`/api/public/${token}/sealed-key`);
+  if (response.status === 404) {
+    throw new Error("This transfer was not shared with your account.");
+  }
+  if (!response.ok) {
+    throw new Error("Could not load the transfer key.");
+  }
+  const { sealedKey } = (await response.json()) as { sealedKey: string };
+  return unsealWithPrivateKey(sealedKey, privateKey);
 }
 
 interface FileSaver {

@@ -3,17 +3,13 @@
 use aes_gcm::{
     aead::generic_array::GenericArray,
     aead::stream::{DecryptorBE32, EncryptorBE32},
-    aead::{Aead, KeyInit},
-    Aes256Gcm, Nonce,
+    aead::KeyInit,
+    Aes256Gcm,
 };
 use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use hmac::Hmac;
-use pbkdf2::pbkdf2;
-use rand::{rngs::OsRng, RngCore};
-use sha2::Sha256;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -45,53 +41,6 @@ pub fn derive_key(password: &str, salt: &[u8]) -> Result<Vec<u8>, JsValue> {
         .hash_password_into(password.as_bytes(), salt, &mut out)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     Ok(out.to_vec())
-}
-
-#[wasm_bindgen]
-pub fn encrypt_data(data: &[u8], password: &str) -> Result<Vec<u8>, JsValue> {
-    let mut salt = [0u8; 16];
-    OsRng.fill_bytes(&mut salt);
-
-    let mut key = [0u8; 32];
-    let _ = pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, 100_000, &mut key);
-
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-    let mut nonce_bytes = [0u8; 12];
-    OsRng.fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
-
-    let ciphertext = cipher
-        .encrypt(nonce, data)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-    let mut result = Vec::with_capacity(salt.len() + nonce_bytes.len() + ciphertext.len());
-    result.extend_from_slice(&salt);
-    result.extend_from_slice(&nonce_bytes);
-    result.extend_from_slice(&ciphertext);
-    Ok(result)
-}
-
-#[wasm_bindgen]
-pub fn decrypt_data(data: &[u8], password: &str) -> Result<Vec<u8>, JsValue> {
-    if data.len() < 28 {
-        return Err(JsValue::from_str("Invalid encrypted data length"));
-    }
-
-    let salt = &data[0..16];
-    let nonce_bytes = &data[16..28];
-    let ciphertext = &data[28..];
-
-    let mut key = [0u8; 32];
-    let _ = pbkdf2::<Hmac<Sha256>>(password.as_bytes(), salt, 100_000, &mut key);
-
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| JsValue::from_str(&e.to_string()))?;
-    let nonce = Nonce::from_slice(nonce_bytes);
-
-    let decrypted = cipher
-        .decrypt(nonce, ciphertext)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    Ok(decrypted)
 }
 
 fn stream_cipher(key: &[u8]) -> Result<Aes256Gcm, JsValue> {
@@ -168,28 +117,6 @@ impl StreamDecryptor {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn encrypt_then_decrypt_recovers_the_payload() {
-        let payload = b"kleavox drop end-to-end payload";
-        let key = "high-entropy-url-safe-key-from-the-fragment";
-        let sealed = encrypt_data(payload, key).expect("encryption succeeds");
-        assert_ne!(sealed.as_slice(), &payload[..]);
-        assert!(sealed.len() > payload.len() + 28);
-        let opened = decrypt_data(&sealed, key).expect("decryption succeeds");
-        assert_eq!(opened.as_slice(), &payload[..]);
-    }
-
-    #[test]
-    fn each_encryption_uses_a_fresh_salt_and_nonce() {
-        let payload = b"same plaintext";
-        let key = "same-key";
-        let first = encrypt_data(payload, key).expect("first encryption");
-        let second = encrypt_data(payload, key).expect("second encryption");
-        assert_ne!(first, second);
-        assert_eq!(decrypt_data(&first, key).expect("decrypt first").as_slice(), &payload[..]);
-        assert_eq!(decrypt_data(&second, key).expect("decrypt second").as_slice(), &payload[..]);
-    }
 
     #[test]
     fn derive_key_is_deterministic_and_salt_dependent() {

@@ -1,6 +1,6 @@
 import { ApiError, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
-import { createAccountCredential, deriveAuthVerifier } from "@kleavox/crypto";
+import { createAccountCredential, deriveLoginKeys } from "@kleavox/crypto";
 import { type FormEvent, useState } from "react";
 
 import { useChallenge } from "./challenge";
@@ -32,16 +32,14 @@ export function Login({
         "/api/login/prelogin",
         { email },
       );
-      const response = salt
-        ? await api<{ authenticated: true; user: Identity }>("/api/login", {
-            email,
-            authVerifier: await deriveAuthVerifier(password, salt),
-          })
-        : await api<{ authenticated: true; user: Identity }>("/api/login", {
-            email,
-            password,
-            keys: await createAccountCredential(password),
-          });
+      if (!salt) {
+        throw new Error("Email or password is incorrect.");
+      }
+      const { authVerifier } = await deriveLoginKeys(password, salt);
+      const response = await api<{ authenticated: true; user: Identity }>(
+        "/api/login",
+        { email, authVerifier },
+      );
       onAuthenticated(response.user);
     } catch (cause) {
       setState({ status: "error", message: errorMessage(cause) });

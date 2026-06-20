@@ -18,8 +18,6 @@ interface CryptoModule {
   hash_password: (password: string, salt: string) => string;
   verify_password: (password: string, hash: string) => boolean;
   derive_key: (password: string, salt: Uint8Array) => Uint8Array<ArrayBuffer>;
-  encrypt_data: (data: Uint8Array, password: string) => Uint8Array;
-  decrypt_data: (data: Uint8Array, password: string) => Uint8Array;
   StreamEncryptor: StreamCipherClass;
   StreamDecryptor: StreamCipherClass;
 }
@@ -176,7 +174,7 @@ async function wrapPrivateKey(
   return encodeBase64Url(out);
 }
 
-async function unwrapPrivateKey(
+export async function unwrapPrivateKey(
   wrapped: string,
   masterKey: CryptoKey,
 ): Promise<CryptoKey> {
@@ -224,15 +222,99 @@ export async function createAccountCredential(
   };
 }
 
-export async function deriveAuthVerifier(
+const HKDF_SEAL_INFO = new TextEncoder().encode("kleavox/seal/v1");
+const SEAL_EPHEMERAL_BYTES = 65;
+const SEAL_IV_BYTES = 12;
+
+async function importEcdhPublic(
+  raw: Uint8Array<ArrayBuffer>,
+): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    raw,
+    { name: "ECDH", namedCurve: "P-256" },
+    false,
+    [],
+  );
+}
+
+async function deriveSealKey(
+  privateKey: CryptoKey,
+  publicKey: CryptoKey,
+): Promise<CryptoKey> {
+  const shared = await crypto.subtle.deriveBits(
+    { name: "ECDH", public: publicKey },
+    privateKey,
+    256,
+  );
+  const base = await crypto.subtle.importKey("raw", shared, "HKDF", false, [
+    "deriveKey",
+  ]);
+  return crypto.subtle.deriveKey(
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: new Uint8Array(0),
+      info: HKDF_SEAL_INFO,
+    },
+    base,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+export async function sealToPublicKey(
+  data: Uint8Array<ArrayBuffer>,
+  recipientPublicKey: string,
+): Promise<string> {
+  const recipient = await importEcdhPublic(decodeBase64Url(recipientPublicKey));
+  const ephemeral = await crypto.subtle.generateKey(
+    { name: "ECDH", namedCurve: "P-256" },
+    true,
+    ["deriveBits"],
+  );
+  const key = await deriveSealKey(ephemeral.privateKey, recipient);
+  const iv = crypto.getRandomValues(new Uint8Array(SEAL_IV_BYTES));
+  const ciphertext = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data),
+  );
+  const ephemeralRaw = new Uint8Array(
+    await crypto.subtle.exportKey("raw", ephemeral.publicKey),
+  );
+  const out = new Uint8Array(
+    ephemeralRaw.length + iv.length + ciphertext.length,
+  );
+  out.set(ephemeralRaw, 0);
+  out.set(iv, ephemeralRaw.length);
+  out.set(ciphertext, ephemeralRaw.length + iv.length);
+  return encodeBase64Url(out);
+}
+
+export async function unsealWithPrivateKey(
+  sealed: string,
+  privateKey: CryptoKey,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const bytes = decodeBase64Url(sealed);
+  const ephemeral = await importEcdhPublic(
+    bytes.subarray(0, SEAL_EPHEMERAL_BYTES),
+  );
+  const iv = bytes.subarray(
+    SEAL_EPHEMERAL_BYTES,
+    SEAL_EPHEMERAL_BYTES + SEAL_IV_BYTES,
+  );
+  const ciphertext = bytes.subarray(SEAL_EPHEMERAL_BYTES + SEAL_IV_BYTES);
+  const key = await deriveSealKey(privateKey, ephemeral);
+  return new Uint8Array(
+    await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext),
+  );
+}
+
+export async function deriveLoginKeys(
   password: string,
   salt: string,
-): Promise<string> {
-  const { authVerifier } = await deriveMasterAndVerifier(
-    password,
-    decodeBase64Url(salt),
-  );
-  return authVerifier;
+): Promise<{ authVerifier: string; masterKey: CryptoKey }> {
+  return deriveMasterAndVerifier(password, decodeBase64Url(salt));
 }
 
 export async function unlockAccount(

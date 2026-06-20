@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   createAccountCredential,
   decodeBase64Url,
-  deriveAuthVerifier,
+  deriveLoginKeys,
+  encodeBase64Url,
+  sealToPublicKey,
   unlockAccount,
+  unsealWithPrivateKey,
 } from "@kleavox/crypto";
 
 describe("zero-knowledge account credential", () => {
@@ -38,15 +41,38 @@ describe("zero-knowledge account credential", () => {
     expect(shared.byteLength).toBe(32);
   });
 
-  it("deriveAuthVerifier reproduces the credential verifier for the same salt", async () => {
+  it("deriveLoginKeys reproduces the credential verifier for the same salt", async () => {
     const password = "login password";
     const credential = await createAccountCredential(password);
-    await expect(deriveAuthVerifier(password, credential.salt)).resolves.toBe(
-      credential.authVerifier,
+    const keys = await deriveLoginKeys(password, credential.salt);
+    expect(keys.authVerifier).toBe(credential.authVerifier);
+    const other = await deriveLoginKeys("other password", credential.salt);
+    expect(other.authVerifier).not.toBe(credential.authVerifier);
+  });
+
+  it("seals a key to a public key that only the matching private key opens", async () => {
+    const recipient = await crypto.subtle.generateKey(
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"],
+    );
+    const recipientPublicKey = encodeBase64Url(
+      new Uint8Array(await crypto.subtle.exportKey("raw", recipient.publicKey)),
+    );
+    const fileKey = crypto.getRandomValues(new Uint8Array(32));
+
+    const sealed = await sealToPublicKey(fileKey, recipientPublicKey);
+    const opened = await unsealWithPrivateKey(sealed, recipient.privateKey);
+    expect(Array.from(opened)).toEqual(Array.from(fileKey));
+
+    const intruder = await crypto.subtle.generateKey(
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"],
     );
     await expect(
-      deriveAuthVerifier("other password", credential.salt),
-    ).resolves.not.toBe(credential.authVerifier);
+      unsealWithPrivateKey(sealed, intruder.privateKey),
+    ).rejects.toBeDefined();
   });
 
   it("a wrong password cannot reproduce the verifier or unwrap the key", async () => {

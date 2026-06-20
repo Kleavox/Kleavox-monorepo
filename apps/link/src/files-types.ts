@@ -71,4 +71,5 @@ export interface PublicDrop {
   expiresAt: string;
   createdAt: string;
   partSizeBytes: number;
+  shared: boolean;
 }

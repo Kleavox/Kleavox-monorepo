@@ -4,6 +4,7 @@ import {
   verifyChallenge,
   verifySession,
 } from "@kleavox/auth";
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import type { SessionIdentity } from "@kleavox/core";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
@@ -150,6 +151,9 @@ export async function purgeDropUser(env: Env, userId: string): Promise<void> {
     env.DB.prepare(`DELETE FROM upload_sessions WHERE owner_user_id = ?`).bind(
       userId,
     ),
+    env.DB.prepare(
+      `DELETE FROM drop_recipients WHERE recipient_user_id = ?`,
+    ).bind(userId),
     env.DB.prepare(`DELETE FROM drops WHERE owner_user_id = ?`).bind(userId),
   ]);
 }
@@ -179,6 +183,52 @@ app.get("/api/drop/session", async (context) => {
     user: session.identity,
     policy: publicPolicy(USER_POLICY),
   });
+});
+
+app.get("/api/drop/recipient-key", async (context) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  if (!session) {
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Sign in to share." },
+      401,
+    );
+  }
+  const username = context.req.query("username");
+  if (!username) {
+    return context.json(
+      { code: "INVALID_INPUT", message: "Missing username." },
+      400,
+    );
+  }
+  const response = await context.env.PASS.fetch(
+    `http://${INTERNAL_HOSTS.PASS}/internal/public-key?username=${encodeURIComponent(username)}`,
+  );
+  if (!response.ok) return context.json({ userId: null, publicKey: null });
+  return context.json(
+    await response.json<{ userId: string | null; publicKey: string | null }>(),
+  );
+});
+
+app.get("/api/drop/account-key", async (context) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  if (!session) {
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Sign in to open this transfer." },
+      401,
+    );
+  }
+  const response = await context.env.PASS.fetch(
+    `http://${INTERNAL_HOSTS.PASS}/internal/account-key?userId=${encodeURIComponent(session.identity.id)}`,
+  );
+  if (!response.ok) {
+    return context.json({ salt: null, wrappedPrivateKey: null });
+  }
+  return context.json(
+    await response.json<{
+      salt: string | null;
+      wrappedPrivateKey: string | null;
+    }>(),
+  );
 });
 
 app.post("/api/uploads", async (context) => {
@@ -376,6 +426,19 @@ app.post("/api/uploads", async (context) => {
         message: "Active storage quota is currently full.",
       },
       507,
+    );
+  }
+
+  if (body.data.recipients?.length) {
+    await context.env.DB.batch(
+      body.data.recipients.map((recipient) =>
+        context.env.DB.prepare(
+          `INSERT INTO drop_recipients (drop_id, recipient_user_id, sealed_key)
+           VALUES (?, ?, ?)
+           ON CONFLICT(drop_id, recipient_user_id)
+             DO UPDATE SET sealed_key = excluded.sealed_key`,
+        ).bind(uploadId, recipient.userId, recipient.sealedKey),
+      ),
     );
   }
 
@@ -652,7 +715,38 @@ app.get("/api/public/:token", async (context) => {
       410,
     );
   }
-  return context.json(publicDrop(drop));
+  const shared =
+    (await context.env.DB.prepare(
+      `SELECT 1 FROM drop_recipients WHERE drop_id = ? LIMIT 1`,
+    )
+      .bind(drop.id)
+      .first()) !== null;
+  return context.json(publicDrop(drop, shared));
+});
+
+app.get("/api/public/:token/sealed-key", async (context) => {
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  if (!session) {
+    return context.json(
+      { code: "UNAUTHORIZED", message: "Sign in to open this transfer." },
+      401,
+    );
+  }
+  const drop = await findPublicDrop(context.env.DB, context.req.param("token"));
+  if (!drop || drop.status !== "ACTIVE") return context.body(null, 404);
+  const row = await context.env.DB.prepare(
+    `SELECT sealed_key FROM drop_recipients
+     WHERE drop_id = ? AND recipient_user_id = ?`,
+  )
+    .bind(drop.id, session.identity.id)
+    .first<{ sealed_key: string }>();
+  if (!row) {
+    return context.json(
+      { code: "NOT_FOUND", message: "This transfer was not shared with you." },
+      404,
+    );
+  }
+  return context.json({ sealedKey: row.sealed_key });
 });
 
 app.post("/api/public/:token/unlock", async (context) => {
@@ -986,6 +1080,9 @@ export async function deleteDrop(
     )
       .bind(drop.id)
       .run();
+    await env.DB.prepare(`DELETE FROM drop_recipients WHERE drop_id = ?`)
+      .bind(drop.id)
+      .run();
   } catch (error) {
     console.error("Unable to delete R2 object", error);
     throw error;
@@ -1034,7 +1131,7 @@ async function findPublicDrop(
     .first<DropRow>();
 }
 
-function publicDrop(drop: DropRow) {
+function publicDrop(drop: DropRow, shared: boolean) {
   return {
     name: drop.original_name,
     contentType: drop.content_type,
@@ -1052,6 +1149,7 @@ function publicDrop(drop: DropRow) {
     expiresAt: drop.expires_at,
     createdAt: drop.created_at,
     partSizeBytes: PART_SIZE_BYTES,
+    shared,
   };
 }
 

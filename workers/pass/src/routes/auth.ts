@@ -10,12 +10,7 @@ import {
   makeVerificationCookie,
   VERIFICATION_TTL_SECONDS,
 } from "../lib/cookies";
-import {
-  hashToken,
-  randomToken,
-  verifyAuthVerifier,
-  verifyPassword,
-} from "../lib/crypto";
+import { hashToken, randomToken, verifyAuthVerifier } from "../lib/crypto";
 import { safeReturnTo } from "../lib/oauth";
 import { rateLimit } from "../lib/rate-limit";
 import {
@@ -34,7 +29,6 @@ import {
   checkVerification,
   clientIp,
   currentSession,
-  DUMMY_PASSWORD_HASH,
   findAccountKeys,
   findUserByEmail,
   firstIssue,
@@ -43,7 +37,6 @@ import {
   rateLimitError,
   safeAudit,
   sessionClient,
-  storeAccountKeys,
   toIdentity,
   type PassApp,
   type VerificationRecord,
@@ -92,77 +85,14 @@ export function registerAuthRoutes(app: PassApp): void {
     }
 
     const user = await findUserByEmail(context.env, body.data.email);
-
-    if (body.data.authVerifier) {
-      const keys = user?.id
-        ? await findAccountKeys(context.env, user.id)
-        : null;
-      const verifierValid = keys
-        ? await verifyAuthVerifier(
-            body.data.authVerifier,
-            keys.auth_verifier_hash,
-          )
-        : false;
-      if (!user || !keys || !verifierValid || user.disabled_at) {
-        await safeAudit(context.env, {
-          userId: user?.id,
-          type: "login_failed",
-          request: context.req.raw,
-        });
-        return apiError(
-          context,
-          401,
-          "invalid_credentials",
-          "Email or password is incorrect.",
-        );
-      }
-      if (!user.email_verified_at) {
-        return apiError(
-          context,
-          403,
-          "email_unverified",
-          "Verify your email before signing in.",
-        );
-      }
-
-      const identity = toIdentity(user);
-      const created = await createSession(
-        context.env,
-        identity,
-        user.auth_version,
-        sessionClient(context.req.raw),
-      );
-      await context.env.DB.prepare(
-        `UPDATE users
-       SET last_login_at = datetime('now'), updated_at = datetime('now')
-       WHERE id = ?`,
-      )
-        .bind(user.id)
-        .run();
-      await safeAudit(context.env, {
-        userId: user.id,
-        type: "login_succeeded",
-        request: context.req.raw,
-      });
-      context.header(
-        "Set-Cookie",
-        makeSessionCookie(context.req.raw, context.env, created.token),
-      );
-      return context.json({
-        authenticated: true,
-        user: identity,
-        accountPublicKey: keys.account_public_key,
-        wrappedPrivateKey: keys.wrapped_private_key,
-      });
-    }
-
-    const passwordHash = user?.password_hash ?? DUMMY_PASSWORD_HASH;
-    const passwordValid = await verifyPassword(
-      passwordHash,
-      body.data.password!,
-    );
-
-    if (!user || !user.identity_id || !passwordValid || user.disabled_at) {
+    const keys = user?.id ? await findAccountKeys(context.env, user.id) : null;
+    const verifierValid = keys
+      ? await verifyAuthVerifier(
+          body.data.authVerifier,
+          keys.auth_verifier_hash,
+        )
+      : false;
+    if (!user || !keys || !verifierValid || user.disabled_at) {
       await safeAudit(context.env, {
         userId: user?.id,
         type: "login_failed",
@@ -184,10 +114,6 @@ export function registerAuthRoutes(app: PassApp): void {
       );
     }
 
-    if (body.data.keys && !(await findAccountKeys(context.env, user.id))) {
-      await storeAccountKeys(context.env, user.id, body.data.keys);
-    }
-
     const identity = toIdentity(user);
     const created = await createSession(
       context.env,
@@ -207,7 +133,6 @@ export function registerAuthRoutes(app: PassApp): void {
       type: "login_succeeded",
       request: context.req.raw,
     });
-
     context.header(
       "Set-Cookie",
       makeSessionCookie(context.req.raw, context.env, created.token),

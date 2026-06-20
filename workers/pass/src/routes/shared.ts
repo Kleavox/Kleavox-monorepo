@@ -55,8 +55,6 @@ export interface TokenRow {
   auth_version: number;
 }
 
-export const DUMMY_PASSWORD_HASH =
-  "pbkdf2-sha256$600000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 export const EMAIL_VERIFICATION_TTL_MS = 30 * 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
 export const OAUTH_LINK_TTL_SECONDS = 15 * 60;
@@ -67,7 +65,6 @@ const emailSchema = z
   .email()
   .max(254)
   .transform(normalizeEmail);
-const passwordSchema = z.string().min(12).max(128);
 const tokenSchema = z.string().min(32).max(256);
 const usernameSchema = z
   .string()
@@ -86,48 +83,18 @@ const accountKeysSchema = z.object({
   wrappedPrivateKey: z.string().min(40).max(512),
 });
 
-export const registerSchema = z
-  .object({
-    email: emailSchema,
-    username: usernameSchema,
-    password: passwordSchema.optional(),
-    keys: accountKeysSchema.optional(),
-  })
-  .superRefine((value, context) => {
-    if (Boolean(value.password) === Boolean(value.keys)) {
-      context.addIssue({
-        code: "custom",
-        message: "Provide either a password or a key credential.",
-        path: ["keys"],
-      });
-    }
-  });
+export const registerSchema = z.object({
+  email: emailSchema,
+  username: usernameSchema,
+  keys: accountKeysSchema,
+});
 
 export const preloginSchema = z.object({ email: emailSchema });
 
-export const loginSchema = z
-  .object({
-    email: emailSchema,
-    password: z.string().min(1).max(128).optional(),
-    authVerifier: z.string().min(40).max(128).optional(),
-    keys: accountKeysSchema.optional(),
-  })
-  .superRefine((value, context) => {
-    if (Boolean(value.password) === Boolean(value.authVerifier)) {
-      context.addIssue({
-        code: "custom",
-        message: "Provide either a password or a verifier.",
-        path: ["authVerifier"],
-      });
-    }
-    if (value.keys && !value.password) {
-      context.addIssue({
-        code: "custom",
-        message: "Migration keys require the password.",
-        path: ["keys"],
-      });
-    }
-  });
+export const loginSchema = z.object({
+  email: emailSchema,
+  authVerifier: z.string().min(40).max(128),
+});
 
 export const emailActionSchema = z.object({
   email: emailSchema,
@@ -139,7 +106,7 @@ export const tokenActionSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: tokenSchema,
-  password: passwordSchema,
+  keys: accountKeysSchema,
 });
 
 export const challengeSchema = z.object({
@@ -154,7 +121,7 @@ export const accountUpdateSchema = z.object({
 
 export const accountSetupSchema = z.object({
   username: usernameSchema,
-  password: passwordSchema.optional(),
+  keys: accountKeysSchema.optional(),
 });
 
 export const oauthLinkSchema = z.object({
@@ -162,7 +129,7 @@ export const oauthLinkSchema = z.object({
 });
 
 export const accountPasswordSchema = z.object({
-  password: passwordSchema,
+  keys: accountKeysSchema,
 });
 
 export const accountDeleteSchema = z.object({

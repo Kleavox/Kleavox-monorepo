@@ -24,6 +24,30 @@ function markEmailVerified(address: string): void {
   );
 }
 
+async function registerAndSignIn(
+  page: import("@playwright/test").Page,
+  username: string,
+  address: string,
+  secret: string,
+): Promise<void> {
+  await page.goto(`${PASS}/`);
+  await page.getByRole("button", { name: "Create an account" }).click();
+  await page.locator('input[name="username"]').fill(username);
+  await page.locator('input[name="email"]').fill(address);
+  await page.locator('input[name="password"]').fill(secret);
+  await page.locator('input[name="confirm-password"]').fill(secret);
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await expect(page.getByText("Check your email")).toBeVisible();
+  markEmailVerified(address);
+  await page.goto(`${PASS}/`);
+  await page.locator('input[name="email"]').fill(address);
+  await page.locator('input[name="password"]').fill(secret);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: username })).toBeVisible();
+}
+
 test("web home loads through the gateway", async ({ page }) => {
   await page.goto(`${GATEWAY}/`);
   await expect(page.locator(".wm")).toContainText("Kleav");
@@ -78,6 +102,61 @@ test("auth journey: register, sign in, account page, link header", async ({
 
   await page.goto(`${LINK}/`);
   await expect(page.locator(".link-account-trigger")).toHaveText("e2e_user");
+});
+
+test("a private transfer reaches another account end-to-end", async ({
+  browser,
+}) => {
+  const stamp = Date.now().toString(36);
+  const secret = `shared transfer secret ${stamp}`;
+
+  const bobName = `bob_${stamp}`;
+  const bobCtx = await browser.newContext();
+  const bobPage = await bobCtx.newPage();
+  await registerAndSignIn(
+    bobPage,
+    bobName,
+    `bob-${stamp}@example.com`,
+    "bob-account-pass",
+  );
+
+  const aliceCtx = await browser.newContext();
+  const alicePage = await aliceCtx.newPage();
+  await registerAndSignIn(
+    alicePage,
+    `alice_${stamp}`,
+    `alice-${stamp}@example.com`,
+    "alice-account-pass",
+  );
+
+  await alicePage.goto(`${LINK}/`);
+  await alicePage.locator('input[type="file"]').setInputFiles({
+    name: "secret.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from(secret),
+  });
+  await alicePage.getByPlaceholder("@alice, @bob").fill(`@${bobName}`);
+  await alicePage.getByRole("button", { name: "Create transfer" }).click();
+  const shareUrl = await alicePage
+    .locator('input[aria-label="Share URL"]')
+    .inputValue();
+  const token = shareUrl.split("/").pop() ?? "";
+  expect(token).toMatch(/^f_/u);
+
+  await bobPage.goto(`${LINK}/${token}`);
+  await bobPage
+    .getByPlaceholder("Unlock with your password")
+    .fill("bob-account-pass");
+  const downloadPromise = bobPage.waitForEvent("download");
+  await bobPage.getByRole("button", { name: "Download file" }).click();
+  const download = await downloadPromise;
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk as Buffer);
+  expect(Buffer.concat(chunks).toString()).toBe(secret);
+
+  await bobCtx.close();
+  await aliceCtx.close();
 });
 
 test("guest short-link creation routes through the security challenge", async ({

@@ -12,9 +12,6 @@ argon2 = "0.5"
 rand = { version = "0.8", features = ["getrandom"] }
 getrandom = { version = "0.2", features = ["js"] }
 aes-gcm = { version = "0.10", features = ["stream"] }
-pbkdf2 = "0.12"
-hmac = "0.12"
-sha2 = "0.10"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
