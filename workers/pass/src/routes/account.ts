@@ -633,7 +633,10 @@ export function registerAccountRoutes(app: PassApp): void {
     }
 
     const user = await findUserByEmail(context.env, body.data.email);
-    if (user?.email_verified_at && user.identity_id) {
+    const canReset =
+      user?.email_verified_at &&
+      (user.identity_id || (await findAccountKeys(context.env, user.id)));
+    if (user && canReset) {
       const reset = await createVerificationToken(
         "PASSWORD_RESET",
         PASSWORD_RESET_TTL_MS,
