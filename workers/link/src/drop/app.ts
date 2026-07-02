@@ -691,7 +691,10 @@ app.get("/api/drops", requireSession, async (context) => {
             COALESCE(source_size_bytes, size_bytes) AS source_size_bytes,
             storage_encoding, encryption, max_downloads, download_count,
             expires_at, status, created_at, completed_at,
-            password_hash IS NOT NULL AS protected
+            password_hash IS NOT NULL AS protected,
+            EXISTS(
+              SELECT 1 FROM drop_recipients dr WHERE dr.drop_id = drops.id
+            ) AS shared
      FROM drops WHERE owner_user_id = ?
        AND public_token IS NOT NULL
      ORDER BY created_at DESC LIMIT 100`,

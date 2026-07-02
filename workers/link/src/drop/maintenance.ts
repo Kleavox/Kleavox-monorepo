@@ -71,6 +71,14 @@ export async function runDropMaintenance(env: Env): Promise<void> {
        AND datetime(COALESCE(deleted_at, created_at)) < datetime('now', '-30 days')`,
   ).run();
   await env.DB.prepare(
+    `DELETE FROM drop_recipients
+     WHERE drop_id NOT IN (SELECT id FROM drops)
+       AND drop_id NOT IN (
+         SELECT id FROM upload_sessions
+         WHERE status IN ('OPENING', 'OPEN', 'COMPLETING')
+       )`,
+  ).run();
+  await env.DB.prepare(
     `DELETE FROM abuse_reports
      WHERE status != 'OPEN'
        AND datetime(resolved_at) < datetime('now', '-180 days')`,

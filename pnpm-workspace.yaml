@@ -4,6 +4,11 @@ packages:
   - "packages/*"
   - "tooling/*"
 
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - workerd
+
 catalog:
   "@marsidev/react-turnstile": "^1.5.2"
   "@types/react": "^19.2.7"
