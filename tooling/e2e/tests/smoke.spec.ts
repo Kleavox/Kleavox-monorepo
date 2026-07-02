@@ -143,7 +143,7 @@ test("a private transfer reaches another account end-to-end", async ({
   const token = shareUrl.split("/").pop() ?? "";
   expect(token).toMatch(/^f_/u);
 
-  await bobPage.goto(`${LINK}/${token}`);
+  await bobPage.goto(`${GATEWAY}/${token}`);
   await bobPage
     .getByPlaceholder("Unlock with your password")
     .fill("bob-account-pass");

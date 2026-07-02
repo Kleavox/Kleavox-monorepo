@@ -75,6 +75,12 @@ app.all("/api/public/*", (context) => {
   return context.env.LINK.fetch(new Request(url, context.req.raw));
 });
 
+app.all("/api/drop/*", (context) => {
+  const url = new URL(context.req.url);
+  url.hostname = INTERNAL_HOSTS.LINK;
+  return context.env.LINK.fetch(new Request(url, context.req.raw));
+});
+
 app.all("/link-assets/*", (context) => {
   const url = new URL(context.req.url);
   url.hostname = INTERNAL_HOSTS.LINK;

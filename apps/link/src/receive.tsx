@@ -44,9 +44,17 @@ export function ReceiveView({ token }: { token: string }) {
     try {
       const [dropResponse, sessionResponse] = await Promise.all([
         fetch(`/api/public/${token}`),
-        fetch("/api/drop/session"),
+        fetch("/api/drop/session").catch(() => null),
       ]);
-      setSession((await sessionResponse.json()) as { authenticated: boolean });
+      let authenticated = false;
+      if (sessionResponse?.ok) {
+        try {
+          authenticated = (
+            (await sessionResponse.json()) as { authenticated: boolean }
+          ).authenticated;
+        } catch {}
+      }
+      setSession({ authenticated });
       setDrop(await readApi<PublicDrop>(dropResponse));
     } catch (reason) {
       setLoadFailure({
@@ -290,8 +298,8 @@ export function ReceiveView({ token }: { token: string }) {
                   </label>
                 ) : (
                   <p className="drop-message">
-                    <a href={signInUrl(LINK_ORIGIN)}>Sign in</a> to open this
-                    private transfer.
+                    <a href={signInUrl()}>Sign in</a> to open this private
+                    transfer.
                   </p>
                 ))}
 

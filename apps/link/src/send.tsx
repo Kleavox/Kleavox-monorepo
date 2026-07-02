@@ -134,7 +134,7 @@ export function SendView({
 
     const recipientNames = recipients
       .split(/[\s,]+/u)
-      .map((name) => name.trim().replace(/^@/u, ""))
+      .map((name) => name.trim().replace(/^@/u, "").toLowerCase())
       .filter(Boolean);
 
     try {
@@ -295,7 +295,7 @@ export function SendView({
 
   async function copyAccountDrop(drop: AccountDrop) {
     const base = publicShareUrl(drop.public_token);
-    if (drop.encryption !== "aes-256-gcm") {
+    if (drop.encryption !== "aes-256-gcm" || drop.shared) {
       await copyShareUrl(base);
       return;
     }
