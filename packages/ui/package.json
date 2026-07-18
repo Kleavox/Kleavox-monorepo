@@ -16,7 +16,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@kleavox/core": "workspace:*"
+    "@kleavox/core": "workspace:*",
+    "@kleavox/topology": "workspace:*"
   },
   "peerDependencies": {
     "react": "catalog:"

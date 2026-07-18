@@ -6,6 +6,11 @@ import {
 } from "@kleavox/auth";
 import { INTERNAL_HOSTS } from "@kleavox/config";
 import type { SessionIdentity } from "@kleavox/core";
+import {
+  accountDropsResponseSchema,
+  dropSessionResponseSchema,
+  publicDropSchema,
+} from "@kleavox/link-protocol";
 import { Hono } from "hono";
 import type { Context, MiddlewareHandler } from "hono";
 
@@ -15,7 +20,6 @@ import {
   createDownloadGrant,
   hashPassword,
   randomToken,
-  readBearerToken,
   sha256,
   verifyDownloadGrant,
   verifyPassword,
@@ -26,7 +30,6 @@ import {
   sanitizeFileName,
 } from "./lib/files";
 import {
-  expectedPartSize,
   GLOBAL_ACTIVE_STORAGE_BYTES,
   GUEST_POLICY,
   normalizeDownloadLimit,
@@ -37,6 +40,7 @@ import {
   USER_POLICY,
 } from "./lib/limits";
 import { createFileSlug } from "./lib/slug";
+import { createDropLifecycle, manageToken } from "./lifecycle";
 import {
   createUploadSchema,
   reportSchema,
@@ -50,31 +54,7 @@ interface Variables {
 
 type DropContext = Context<{ Bindings: Env; Variables: Variables }>;
 
-export interface UploadRow {
-  id: string;
-  owner_user_id: string | null;
-  guest_actor_hash: string | null;
-  manage_token_hash: string;
-  public_token: string;
-  public_token_hash: string;
-  object_key: string;
-  r2_upload_id: string | null;
-  original_name: string;
-  content_type: string;
-  size_bytes: number;
-  source_size_bytes: number | null;
-  storage_encoding: string | null;
-  part_size_bytes: number;
-  part_count: number;
-  password_hash: string | null;
-  max_downloads: number | null;
-  expires_at: string;
-  upload_expires_at: string;
-  status: string;
-  created_at: string;
-}
-
-export interface DropRow {
+interface DropRow {
   id: string;
   owner_user_id: string | null;
   guest_actor_hash: string | null;
@@ -97,10 +77,23 @@ export interface DropRow {
   completed_at: string | null;
 }
 
-interface PartRow {
-  part_number: number;
-  etag: string;
+interface AccountDropRow {
+  id: string;
+  public_token: string;
+  original_name: string;
+  content_type: string;
   size_bytes: number;
+  source_size_bytes: number;
+  storage_encoding: "gzip" | null;
+  encryption: "aes-256-gcm" | null;
+  max_downloads: number | null;
+  download_count: number;
+  expires_at: string;
+  status: "ACTIVE" | "EXHAUSTED" | "DELETING" | "DELETED" | "FAILED";
+  created_at: string;
+  completed_at: string | null;
+  protected: number;
+  shared: number;
 }
 
 const ACTIVE_DROP_STATUSES = "('ACTIVE', 'EXHAUSTED', 'DELETING')";
@@ -108,55 +101,6 @@ const ACTIVE_UPLOAD_STATUSES = "('OPENING', 'OPEN', 'COMPLETING')";
 const UNLOCK_COOKIE = "kleavox_drop_grant";
 
 export const app = new Hono<{ Bindings: Env; Variables: Variables }>();
-
-export async function purgeDropUser(env: Env, userId: string): Promise<void> {
-  for (let round = 0; round < 20; round += 1) {
-    const uploads = await env.DB.prepare(
-      `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
-              public_token, public_token_hash, object_key, r2_upload_id,
-              original_name, content_type, size_bytes, source_size_bytes,
-              storage_encoding, part_size_bytes, part_count, password_hash,
-              max_downloads, expires_at, upload_expires_at, status, created_at
-       FROM upload_sessions
-       WHERE owner_user_id = ? AND status IN ('OPENING', 'OPEN', 'COMPLETING')
-       LIMIT 50`,
-    )
-      .bind(userId)
-      .all<UploadRow>();
-    if (uploads.results.length === 0) break;
-    for (const upload of uploads.results) {
-      await abortUpload(env, upload);
-    }
-  }
-
-  for (let round = 0; round < 20; round += 1) {
-    const drops = await env.DB.prepare(
-      `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
-              public_token, public_token_hash, object_key, original_name,
-              content_type, size_bytes, password_hash, max_downloads,
-              download_count, expires_at, status, created_at, completed_at
-       FROM drops
-       WHERE owner_user_id = ? AND status IN ('ACTIVE', 'EXHAUSTED', 'DELETING')
-       LIMIT 50`,
-    )
-      .bind(userId)
-      .all<DropRow>();
-    if (drops.results.length === 0) break;
-    for (const drop of drops.results) {
-      await deleteDrop(env, drop, "account_deleted");
-    }
-  }
-
-  await env.DB.batch([
-    env.DB.prepare(`DELETE FROM upload_sessions WHERE owner_user_id = ?`).bind(
-      userId,
-    ),
-    env.DB.prepare(
-      `DELETE FROM drop_recipients WHERE recipient_user_id = ?`,
-    ).bind(userId),
-    env.DB.prepare(`DELETE FROM drops WHERE owner_user_id = ?`).bind(userId),
-  ]);
-}
 
 app.get("/api/limits", (context) =>
   context.json({
@@ -173,16 +117,20 @@ app.get("/api/limits", (context) =>
 app.get("/api/drop/session", async (context) => {
   const session = await verifySession(context.req.raw, context.env.PASS);
   if (!session) {
-    return context.json({
-      authenticated: false,
-      policy: publicPolicy(GUEST_POLICY),
-    });
+    return context.json(
+      dropSessionResponseSchema.parse({
+        authenticated: false,
+        policy: publicPolicy(GUEST_POLICY),
+      }),
+    );
   }
-  return context.json({
-    authenticated: true,
-    user: session.identity,
-    policy: publicPolicy(USER_POLICY),
-  });
+  return context.json(
+    dropSessionResponseSchema.parse({
+      authenticated: true,
+      user: session.identity,
+      policy: publicPolicy(USER_POLICY),
+    }),
+  );
 });
 
 app.get("/api/drop/recipient-key", async (context) => {
@@ -490,182 +438,100 @@ app.post("/api/uploads", async (context) => {
 });
 
 app.put("/api/uploads/:id/parts/:partNumber", async (context) => {
-  const upload = await findUpload(context.env.DB, context.req.param("id"));
-  if (!upload || !(await canManageUpload(context.req.raw, upload))) {
+  const result = await createDropLifecycle(context.env).storeUploadPart({
+    uploadId: context.req.param("id"),
+    manageToken: manageToken(context.req.raw),
+    partNumber: Number(context.req.param("partNumber")),
+    contentLength: Number(context.req.header("content-length")),
+    body: context.req.raw.body,
+  });
+  if (result.status === "stored") {
+    return context.json({
+      partNumber: result.partNumber,
+      etag: result.etag,
+    });
+  }
+  if (result.status === "not_found") {
     return context.json(
       { code: "NOT_FOUND", message: "Upload session not found." },
       404,
     );
   }
-  if (
-    upload.status !== "OPEN" ||
-    Date.parse(upload.upload_expires_at) <= Date.now() ||
-    !upload.r2_upload_id
-  ) {
+  if (result.status === "closed") {
     return context.json(
       { code: "UPLOAD_CLOSED", message: "Upload session is closed." },
       410,
     );
   }
-
-  const partNumber = Number(context.req.param("partNumber"));
-  const expectedBytes = expectedPartSize(
-    upload.size_bytes,
-    partNumber,
-    upload.part_count,
-  );
-  const contentLength = Number(context.req.header("content-length"));
-  if (
-    !expectedBytes ||
-    !Number.isSafeInteger(contentLength) ||
-    contentLength !== expectedBytes ||
-    !context.req.raw.body
-  ) {
+  if (result.status === "invalid") {
     return context.json(
       { code: "INVALID_PART", message: "Part size or number is invalid." },
       400,
     );
   }
-
-  try {
-    const multipart = context.env.FILES.resumeMultipartUpload(
-      upload.object_key,
-      upload.r2_upload_id,
-    );
-    const part = await multipart.uploadPart(partNumber, context.req.raw.body);
-    await context.env.DB.prepare(
-      `INSERT INTO upload_parts (upload_id, part_number, etag, size_bytes)
-       VALUES (?, ?, ?, ?)
-       ON CONFLICT(upload_id, part_number) DO UPDATE SET
-         etag = excluded.etag,
-         size_bytes = excluded.size_bytes,
-         created_at = datetime('now')`,
-    )
-      .bind(upload.id, partNumber, part.etag, contentLength)
-      .run();
-    return context.json({ partNumber, etag: part.etag });
-  } catch (error) {
-    console.error("Unable to upload R2 part", error);
-    return context.json(
-      { code: "PART_FAILED", message: "This part could not be stored." },
-      502,
-    );
-  }
+  return context.json(
+    { code: "PART_FAILED", message: "This part could not be stored." },
+    502,
+  );
 });
 
 app.post("/api/uploads/:id/complete", async (context) => {
-  const upload = await findUpload(context.env.DB, context.req.param("id"));
-  if (!upload || !(await canManageUpload(context.req.raw, upload))) {
+  const result = await createDropLifecycle(context.env).completeUpload(
+    context.req.param("id"),
+    manageToken(context.req.raw),
+  );
+  if (result.status === "not_found") {
     return context.json(
       { code: "NOT_FOUND", message: "Upload session not found." },
       404,
     );
   }
-  if (
-    !["OPEN", "COMPLETING"].includes(upload.status) ||
-    Date.parse(upload.upload_expires_at) <= Date.now() ||
-    !upload.r2_upload_id
-  ) {
+  if (result.status === "closed") {
     return context.json(
       { code: "UPLOAD_CLOSED", message: "Upload session is closed." },
       410,
     );
   }
-
-  const partsResult = await context.env.DB.prepare(
-    `SELECT part_number, etag, size_bytes
-     FROM upload_parts WHERE upload_id = ? ORDER BY part_number`,
-  )
-    .bind(upload.id)
-    .all<PartRow>();
-  const parts = partsResult.results;
-  const validParts =
-    parts.length === upload.part_count &&
-    parts.every(
-      (part, index) =>
-        part.part_number === index + 1 &&
-        part.size_bytes ===
-          expectedPartSize(
-            upload.size_bytes,
-            part.part_number,
-            upload.part_count,
-          ),
-    );
-  if (!validParts) {
+  if (result.status === "incomplete") {
     return context.json(
       { code: "UPLOAD_INCOMPLETE", message: "Not every part has arrived." },
       409,
     );
   }
-
-  if (upload.status === "OPEN") {
-    const claimed = await context.env.DB.prepare(
-      `UPDATE upload_sessions
-       SET status = 'COMPLETING', updated_at = datetime('now')
-       WHERE id = ? AND status = 'OPEN'`,
-    )
-      .bind(upload.id)
-      .run();
-    if ((claimed.meta.changes ?? 0) !== 1) {
-      return context.json(
-        { code: "UPLOAD_BUSY", message: "Upload is already completing." },
-        409,
-      );
-    }
-
-    try {
-      const multipart = context.env.FILES.resumeMultipartUpload(
-        upload.object_key,
-        upload.r2_upload_id,
-      );
-      await multipart.complete(
-        parts.map((part) => ({
-          partNumber: part.part_number,
-          etag: part.etag,
-        })),
-      );
-    } catch (error) {
-      const object = await context.env.FILES.head(upload.object_key);
-      if (!object) {
-        await context.env.DB.prepare(
-          `UPDATE upload_sessions
-           SET status = 'OPEN', updated_at = datetime('now')
-           WHERE id = ? AND status = 'COMPLETING'`,
-        )
-          .bind(upload.id)
-          .run();
-        console.error("Unable to complete R2 multipart upload", error);
-        return context.json(
-          {
-            code: "COMPLETE_FAILED",
-            message: "Upload could not be completed.",
-          },
-          502,
-        );
-      }
-    }
-  } else if (!(await context.env.FILES.head(upload.object_key))) {
+  if (result.status === "busy") {
+    return context.json(
+      { code: "UPLOAD_BUSY", message: "Upload is already completing." },
+      409,
+    );
+  }
+  if (result.status === "pending") {
     return context.json(
       { code: "COMPLETE_PENDING", message: "Upload completion is pending." },
       409,
     );
   }
-
-  await finalizeUploadRecord(context.env, upload.id);
+  if (result.status === "failed") {
+    return context.json(
+      { code: "COMPLETE_FAILED", message: "Upload could not be completed." },
+      502,
+    );
+  }
   return context.json({
-    dropId: upload.id,
-    publicToken: upload.public_token,
-    shareUrl: `${context.env.PUBLIC_SHORT_ORIGIN}/${upload.public_token}`,
-    expiresAt: upload.expires_at,
+    dropId: result.dropId,
+    publicToken: result.publicToken,
+    shareUrl: `${context.env.PUBLIC_SHORT_ORIGIN}/${result.publicToken}`,
+    expiresAt: result.expiresAt,
   });
 });
 
 app.delete("/api/uploads/:id", async (context) => {
-  const upload = await findUpload(context.env.DB, context.req.param("id"));
-  if (!upload || !(await canManageUpload(context.req.raw, upload))) {
+  const deleted = await createDropLifecycle(context.env).abortUpload(
+    context.req.param("id"),
+    manageToken(context.req.raw),
+  );
+  if (!deleted) {
     return context.body(null, 404);
   }
-  await abortUpload(context.env, upload);
   return context.body(null, 204);
 });
 
@@ -700,8 +566,12 @@ app.get("/api/drops", requireSession, async (context) => {
      ORDER BY created_at DESC LIMIT 100`,
   )
     .bind(ownerId)
-    .all();
-  return context.json({ drops: drops.results });
+    .all<AccountDropRow>();
+  return context.json(
+    accountDropsResponseSchema.parse({
+      drops: drops.results.map(accountDrop),
+    }),
+  );
 });
 
 app.get("/api/public/:token", async (context) => {
@@ -913,19 +783,16 @@ app.get("/api/public/:token/download", async (context) => {
 });
 
 app.delete("/api/public/:token", async (context) => {
-  const drop = await findPublicDrop(context.env.DB, context.req.param("token"));
-  if (!drop) return context.body(null, 404);
-
   const session = await verifySession(context.req.raw, context.env.PASS);
-  const bearer = readBearerToken(context.req.raw);
-  const bearerHash = bearer ? await sha256(bearer) : null;
-  const allowed =
-    session?.identity.role === "ADMIN" ||
-    (session && session.identity.id === drop.owner_user_id) ||
-    (bearerHash && bearerHash === drop.manage_token_hash);
-  if (!allowed) return context.body(null, 404);
-
-  await deleteDrop(context.env, drop, "OWNER_REQUEST");
+  const deleted = await createDropLifecycle(context.env).deletePublicDrop(
+    context.req.param("token"),
+    {
+      userId: session?.identity.id ?? null,
+      isAdmin: session?.identity.role === "ADMIN",
+      manageToken: manageToken(context.req.raw),
+    },
+  );
+  if (!deleted) return context.body(null, 404);
   return context.body(null, 204);
 });
 
@@ -1006,117 +873,6 @@ app.patch("/api/admin/file-reports/:id", requireSession, async (context) => {
   return context.json({ updated: true });
 });
 
-export async function finalizeUploadRecord(
-  env: Env,
-  uploadId: string,
-): Promise<void> {
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT OR IGNORE INTO drops (
-         id, owner_user_id, guest_actor_hash, public_token, public_token_hash,
-         manage_token_hash, object_key, original_name, content_type, size_bytes,
-         source_size_bytes, storage_encoding, encryption, password_hash,
-         max_downloads, expires_at, status, created_at, completed_at
-       )
-       SELECT id, owner_user_id, guest_actor_hash, public_token,
-              public_token_hash, manage_token_hash, object_key, original_name,
-              content_type, size_bytes, source_size_bytes, storage_encoding,
-              encryption, password_hash, max_downloads, expires_at, 'ACTIVE',
-              created_at,
-              datetime('now')
-       FROM upload_sessions
-       WHERE id = ? AND status = 'COMPLETING'`,
-    ).bind(uploadId),
-    env.DB.prepare(
-      `UPDATE upload_sessions
-       SET status = 'COMPLETED', updated_at = datetime('now')
-       WHERE id = ? AND status = 'COMPLETING'`,
-    ).bind(uploadId),
-  ]);
-}
-
-export async function abortUpload(env: Env, upload: UploadRow): Promise<void> {
-  const claimed = await env.DB.prepare(
-    `UPDATE upload_sessions
-     SET status = 'ABORTING', updated_at = datetime('now')
-     WHERE id = ? AND status IN ('OPENING', 'OPEN', 'COMPLETING')`,
-  )
-    .bind(upload.id)
-    .run();
-  if ((claimed.meta.changes ?? 0) !== 1) return;
-
-  if (upload.r2_upload_id) {
-    try {
-      await env.FILES.resumeMultipartUpload(
-        upload.object_key,
-        upload.r2_upload_id,
-      ).abort();
-    } catch (error) {
-      console.error("Unable to abort multipart upload", error);
-    }
-  }
-  await env.DB.prepare(
-    `UPDATE upload_sessions
-     SET status = 'ABORTED', updated_at = datetime('now') WHERE id = ?`,
-  )
-    .bind(upload.id)
-    .run();
-}
-
-export async function deleteDrop(
-  env: Env,
-  drop: DropRow,
-  reason: string,
-): Promise<void> {
-  await env.DB.prepare(
-    `UPDATE drops SET status = 'DELETING', delete_reason = ?
-     WHERE id = ? AND status IN ('ACTIVE', 'EXHAUSTED', 'DELETING')`,
-  )
-    .bind(reason, drop.id)
-    .run();
-  try {
-    await env.FILES.delete(drop.object_key);
-    await env.DB.prepare(
-      `UPDATE drops
-       SET status = 'DELETED', deleted_at = datetime('now')
-       WHERE id = ?`,
-    )
-      .bind(drop.id)
-      .run();
-    await env.DB.prepare(`DELETE FROM drop_recipients WHERE drop_id = ?`)
-      .bind(drop.id)
-      .run();
-  } catch (error) {
-    console.error("Unable to delete R2 object", error);
-    throw error;
-  }
-}
-
-async function findUpload(
-  database: D1Database,
-  id: string,
-): Promise<UploadRow | null> {
-  return database
-    .prepare(
-      `SELECT id, owner_user_id, guest_actor_hash, manage_token_hash,
-              public_token, public_token_hash, object_key, r2_upload_id,
-              original_name, content_type, size_bytes, source_size_bytes,
-              storage_encoding, part_size_bytes, part_count, password_hash,
-              max_downloads, expires_at, upload_expires_at, status, created_at
-       FROM upload_sessions WHERE id = ?`,
-    )
-    .bind(id)
-    .first<UploadRow>();
-}
-
-async function canManageUpload(
-  request: Request,
-  upload: UploadRow,
-): Promise<boolean> {
-  const token = readBearerToken(request);
-  return Boolean(token && (await sha256(token)) === upload.manage_token_hash);
-}
-
 async function findPublicDrop(
   database: D1Database,
   token: string,
@@ -1135,7 +891,7 @@ async function findPublicDrop(
 }
 
 function publicDrop(drop: DropRow, shared: boolean) {
-  return {
+  return publicDropSchema.parse({
     name: drop.original_name,
     contentType: drop.content_type,
     sizeBytes: drop.source_size_bytes ?? drop.size_bytes,
@@ -1153,6 +909,27 @@ function publicDrop(drop: DropRow, shared: boolean) {
     createdAt: drop.created_at,
     partSizeBytes: PART_SIZE_BYTES,
     shared,
+  });
+}
+
+function accountDrop(drop: AccountDropRow) {
+  return {
+    id: drop.id,
+    publicToken: drop.public_token,
+    name: drop.original_name,
+    contentType: drop.content_type,
+    sizeBytes: drop.source_size_bytes,
+    storedSizeBytes: drop.size_bytes,
+    storageEncoding: drop.storage_encoding,
+    encryption: drop.encryption,
+    maxDownloads: drop.max_downloads,
+    downloadCount: drop.download_count,
+    expiresAt: drop.expires_at,
+    status: drop.status,
+    createdAt: drop.created_at,
+    completedAt: drop.completed_at,
+    protected: Boolean(drop.protected),
+    shared: Boolean(drop.shared),
   };
 }
 

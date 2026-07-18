@@ -8,7 +8,6 @@
   "vars": {
     "ENVIRONMENT": "development",
     "PUBLIC_SHORT_ORIGIN": "http://127.0.0.1:8786",
-    "PUBLIC_APP_ORIGIN": "http://127.0.0.1:8788",
   },
   "assets": {
     "directory": "../../apps/link/dist",

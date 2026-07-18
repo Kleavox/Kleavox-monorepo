@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { COMPATIBILITY_DATE } from "@kleavox/topology";
 import { describe, expect, it } from "vitest";
 
 import { productionConfigs, productionSecrets } from "./config";
@@ -12,11 +16,20 @@ const env = {
   PULSE_D1_ID: "33333333-3333-3333-3333-333333333333",
   DROP_BUCKET_NAME: "product-files",
   AUTH_FROM_EMAIL: "Product <no-reply@product.test>",
-  AGENT_DOWNLOAD_BASE:
-    "https://github.com/example/project/releases/latest/download",
 };
 
 describe("production deployment config", () => {
+  it("keeps static Wrangler configs on the shared compatibility date", () => {
+    const root = fileURLToPath(new URL("../../../", import.meta.url));
+    for (const worker of ["pass", "link", "pulse", "gateway"]) {
+      const source = readFileSync(
+        path.join(root, "workers", worker, "wrangler.jsonc"),
+        "utf8",
+      );
+      expect(source).toContain(`"compatibility_date": "${COMPATIBILITY_DATE}"`);
+    }
+  });
+
   it("renders route-free staging configs", () => {
     const configs = productionConfigs(env, "none");
     expect(configs["pass"]?.routes).toBeUndefined();

@@ -39,7 +39,6 @@ jobs:
       PULSE_D1_ID: ${{ secrets.PULSE_D1_ID }}
       DROP_BUCKET_NAME: ${{ vars.DROP_BUCKET_NAME }}
       AUTH_FROM_EMAIL: ${{ vars.AUTH_FROM_EMAIL }}
-      AGENT_DOWNLOAD_BASE: https://github.com/${{ github.repository }}/releases/latest/download
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
       IP_HASH_SECRET: ${{ secrets.IP_HASH_SECRET }}

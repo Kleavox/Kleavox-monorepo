@@ -1,14 +1,26 @@
-import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   createAccountCredential,
   decodeBase64Url,
   deriveLoginKeys,
   encodeBase64Url,
+  initCrypto,
   sealToPublicKey,
   unlockAccount,
   unsealWithPrivateKey,
 } from "@kleavox/crypto";
+
+beforeAll(async () => {
+  const wasm = await readFile(
+    new URL(
+      "../../../packages/crypto/pkg/kleavox_crypto_bg.wasm",
+      import.meta.url,
+    ),
+  );
+  await initCrypto(new Uint8Array(wasm).slice().buffer);
+});
 
 describe("zero-knowledge account credential", () => {
   it("unlock reproduces the verifier and recovers a usable private key", async () => {

@@ -1,6 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["tsconfig.base.json", "tooling/typescript/*.json"],
+  "globalDependencies": [
+    "Cargo.lock",
+    "Cargo.toml",
+    "tsconfig.base.json",
+    "tooling/typescript/*.json"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -11,12 +16,12 @@
       "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "!src/wasm-base64.ts",
         "../../crates/crypto/src/**",
         "../../crates/crypto/Cargo.toml",
-        "../../crates/crypto/Cargo.lock"
+        "../../Cargo.toml",
+        "../../Cargo.lock"
       ],
-      "outputs": ["dist/**", "pkg/**", "src/wasm-base64.ts"]
+      "outputs": ["dist/**", "pkg/**"]
     },
     "@kleavox/compression#build": {
       "dependsOn": ["^build"],
@@ -24,9 +29,10 @@
         "$TURBO_DEFAULT$",
         "../../crates/compression/src/**",
         "../../crates/compression/Cargo.toml",
-        "../../crates/compression/Cargo.lock"
+        "../../Cargo.toml",
+        "../../Cargo.lock"
       ],
-      "outputs": ["dist/**", "pkg/**", "src/wasm-base64.ts"]
+      "outputs": ["dist/**", "pkg/**"]
     },
     "dev": {
       "cache": false,

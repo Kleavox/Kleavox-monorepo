@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"example.com/kleavox/agent/internal/reporter"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/reporter"
 )
 
 func TestHTTPCheck(t *testing.T) {
