@@ -83,7 +83,11 @@ export function createDropLifecycle(env: Env): DropLifecycle {
 }
 
 class CloudflareDropLifecycle implements DropLifecycle {
-  constructor(private readonly env: Env) {}
+  private readonly env: Env;
+
+  constructor(env: Env) {
+    this.env = env;
+  }
 
   async storeUploadPart(input: {
     uploadId: string;

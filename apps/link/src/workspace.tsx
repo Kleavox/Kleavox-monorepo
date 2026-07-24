@@ -1,4 +1,11 @@
-import { FormEvent, Suspense, lazy, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   apiFetch as request,
   displayHandle,

@@ -69,7 +69,7 @@ than route handlers or UI screens:
 
 ## Technology
 
-- TypeScript, React, Vite, Hono, and Cloudflare Workers
+- TypeScript 7 native compiler, React, Vite, Hono, and Cloudflare Workers
 - D1 for relational state, KV for sessions, and R2 for Drop objects
 - Rust compiled to WebAssembly for cryptography and compression
 - Go for the standalone Pulse Agent
@@ -77,8 +77,8 @@ than route handlers or UI screens:
 
 ## Requirements
 
-- Node.js 22.12 or newer
-- pnpm 10.24
+- Node.js 22.13 or newer
+- pnpm 11.17
 - Go 1.26
 - Rust stable with the `wasm32-unknown-unknown` target
 - `wasm-pack` 0.15
@@ -124,8 +124,8 @@ terminals. The canonical local ports and service names are maintained in
 | --------------------------------------- | ----------------------------------------------------------------------- |
 | `pnpm build`                            | Build all TypeScript applications, Workers, and packages                |
 | `pnpm test`                             | Run workspace unit tests                                                |
-| `pnpm typecheck`                        | Type-check every workspace                                              |
-| `pnpm lint`                             | Run workspace lint tasks                                                |
+| `pnpm typecheck`                        | Type-check runtime and tooling interfaces with TypeScript 7             |
+| `pnpm lint`                             | Verify formatting and unused files, exports, and dependencies           |
 | `pnpm format:check`                     | Verify repository formatting                                            |
 | `pnpm native:check`                     | Validate Rust and Go formatting, tests, builds, vet, and dead code      |
 | `pnpm check`                            | Run the complete static, unit, native, and build verification gate      |
@@ -170,3 +170,14 @@ tests the module, builds Linux AMD64 and ARM64 binaries, publishes checksums,
 and records build provenance.
 
 No production credential is required to build or test this repository.
+
+## TypeScript configuration
+
+Runtime-specific compiler presets live in `tooling/typescript` and are consumed
+through `@kleavox/typescript`. Browser, Worker, Node, and emitted library
+projects do not share ambient types accidentally. TypeScript 7 runs one checker
+per workspace process while Turborepo controls parallelism across workspaces.
+
+Libraries built by `tsc` are checked during their build. Separate `typecheck`
+tasks are reserved for Vite applications, Wrangler Workers, tests, and tooling
+whose normal build step does not perform full type analysis.

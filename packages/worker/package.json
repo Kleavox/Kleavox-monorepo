@@ -13,9 +13,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "lint": "tsc -p tsconfig.json --noEmit",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "tsc -p tsconfig.json --checkers 1"
   },
   "dependencies": {
     "@kleavox/auth": "workspace:*",
@@ -26,6 +24,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
+    "@kleavox/typescript": "workspace:*",
     "hono": "catalog:",
     "typescript": "catalog:"
   }

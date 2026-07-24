@@ -1,8 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "types": ["vite/client"]
-  },
+  "extends": "@kleavox/typescript/browser.json",
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

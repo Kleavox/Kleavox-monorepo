@@ -2,6 +2,9 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./base.json",
   "compilerOptions": {
-    "types": ["@cloudflare/workers-types"]
+    "declaration": true,
+    "declarationMap": true,
+    "noEmit": false,
+    "sourceMap": true
   }
 }

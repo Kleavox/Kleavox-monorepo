@@ -13,12 +13,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "tsc -p tsconfig.json --checkers 1",
+    "test": "tsc -p tsconfig.test.json --noEmit --checkers 1 && vitest run --exclude dist/**"
   },
   "devDependencies": {
+    "@kleavox/typescript": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -1,11 +1,7 @@
 #![deny(dead_code)]
 
-use aes_gcm::{
-    Aes256Gcm,
-    aead::KeyInit,
-    aead::generic_array::GenericArray,
-    aead::stream::{DecryptorBE32, EncryptorBE32},
-};
+use aead_stream::{DecryptorBE32, EncryptorBE32};
+use aes_gcm::{Aes256Gcm, aead::KeyInit};
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -47,7 +43,7 @@ fn stream_cipher(key: &[u8]) -> Result<Aes256Gcm, JsValue> {
     if key.len() != 32 {
         return Err(JsValue::from_str("key must be 32 bytes"));
     }
-    Ok(Aes256Gcm::new(GenericArray::from_slice(key)))
+    Aes256Gcm::new_from_slice(key).map_err(|_| JsValue::from_str("key must be 32 bytes"))
 }
 
 #[wasm_bindgen]
@@ -73,7 +69,7 @@ impl StreamEncryptor {
     pub fn new(key: &[u8]) -> Result<StreamEncryptor, JsValue> {
         let cipher = stream_cipher(key)?;
         Ok(StreamEncryptor {
-            inner: Some(EncryptorBE32::from_aead(cipher, &GenericArray::default())),
+            inner: Some(EncryptorBE32::from_aead(cipher, &Default::default())),
         })
     }
 
@@ -105,7 +101,7 @@ impl StreamDecryptor {
     pub fn new(key: &[u8]) -> Result<StreamDecryptor, JsValue> {
         let cipher = stream_cipher(key)?;
         Ok(StreamDecryptor {
-            inner: Some(DecryptorBE32::from_aead(cipher, &GenericArray::default())),
+            inner: Some(DecryptorBE32::from_aead(cipher, &Default::default())),
         })
     }
 

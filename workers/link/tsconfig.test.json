@@ -1,0 +1,7 @@
+{
+  "extends": "@kleavox/typescript/worker.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "node"]
+  },
+  "include": ["src/**/*.test.ts"]
+}

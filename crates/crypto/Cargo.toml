@@ -8,10 +8,9 @@ publish.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+aead-stream.workspace = true
 aes-gcm.workspace = true
 argon2.workspace = true
-getrandom.workspace = true
-rand.workspace = true
 wasm-bindgen.workspace = true
 
 [dev-dependencies]

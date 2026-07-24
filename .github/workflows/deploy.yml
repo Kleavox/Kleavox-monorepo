@@ -57,13 +57,13 @@ jobs:
       VITE_PULSE_ORIGIN: https://pulse.${{ vars.APP_ROOT_DOMAIN }}
       PUBLIC_ROOT_ORIGIN: https://${{ vars.APP_ROOT_DOMAIN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: 10.24.0
+          version: 11.17.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -72,7 +72,7 @@ jobs:
 
       - name: Cache wasm-pack binary
         id: cache-wasm-pack
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/bin/wasm-pack
           key: wasm-pack-0.15.0-${{ runner.os }}
@@ -81,14 +81,13 @@ jobs:
         if: steps.cache-wasm-pack.outputs.cache-hit != 'true'
 
       - name: Cache Rust build artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
             ~/.cache/.wasm-pack
-            crates/crypto/target
-            crates/compression/target
-          key: rust-${{ runner.os }}-${{ hashFiles('crates/**/Cargo.lock', 'crates/**/Cargo.toml') }}
+            target
+          key: rust-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml') }}
           restore-keys: |
             rust-${{ runner.os }}-
 

@@ -16,11 +16,7 @@ import type {
 } from "../files-types";
 
 export type TransferPhase =
-  | "idle"
-  | "optimizing"
-  | "preparing"
-  | "uploading"
-  | "finishing";
+  "idle" | "optimizing" | "preparing" | "uploading" | "finishing";
 
 export interface SendTransferInput {
   file: File;

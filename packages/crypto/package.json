@@ -16,12 +16,10 @@
     "pkg"
   ],
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir ../../packages/crypto/pkg --out-name kleavox_crypto --release ../../crates/crypto --locked && tsc -p tsconfig.json",
-    "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "cargo test --manifest-path ../../crates/crypto/Cargo.toml --locked",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "wasm-pack build --target web --out-dir ../../packages/crypto/pkg --out-name kleavox_crypto --release ../../crates/crypto --locked && tsc -p tsconfig.json --checkers 1"
   },
   "devDependencies": {
+    "@kleavox/typescript": "workspace:*",
     "typescript": "catalog:"
   }
 }

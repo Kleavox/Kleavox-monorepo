@@ -162,12 +162,14 @@ class FakeDatabase {
 }
 
 class FakeStatement {
+  private readonly database: FakeDatabase;
+  private readonly sql: string;
   private values: unknown[] = [];
 
-  constructor(
-    private readonly database: FakeDatabase,
-    private readonly sql: string,
-  ) {}
+  constructor(database: FakeDatabase, sql: string) {
+    this.database = database;
+    this.sql = sql;
+  }
 
   bind(...values: unknown[]): this {
     this.values = values;

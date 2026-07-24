@@ -1,4 +1,5 @@
 {
-  "extends": "../../tooling/typescript/worker.json",
-  "include": ["src/**/*.ts"]
+  "extends": "@kleavox/typescript/worker.json",
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }
