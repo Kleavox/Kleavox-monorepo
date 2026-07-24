@@ -465,6 +465,12 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  tooling/health:
+    dependencies:
+      '@kleavox/topology':
+        specifier: workspace:*
+        version: link:../../packages/topology
+
   tooling/typescript: {}
 
   tooling/vite-config:

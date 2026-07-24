@@ -23,7 +23,7 @@
     "native:check": "pnpm rust:fmt && pnpm rust:test && pnpm agent:test && pnpm agent:vet && pnpm agent:build && pnpm agent:deadcode",
     "deploy:render": "node tooling/deploy/dist/cli.js render",
     "e2e": "pnpm --filter @kleavox/topology build && pnpm --filter @kleavox/e2e e2e",
-    "health:check": "pnpm --filter @kleavox/topology build && node tooling/health/check.mjs",
+    "health:check": "pnpm --filter @kleavox/topology build && pnpm --filter @kleavox/health check",
     "admin:promote": "pnpm --filter @kleavox/topology build && node tooling/deploy/promote-admin.mjs",
     "check": "pnpm lint && turbo run typecheck test build && pnpm native:check",
     "format": "prettier --write .",
