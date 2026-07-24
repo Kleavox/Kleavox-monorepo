@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { apiFetch as api } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 

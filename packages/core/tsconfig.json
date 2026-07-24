@@ -1,13 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "@kleavox/typescript/library.json",
   "compilerOptions": {
-    "declaration": true,
-    "declarationMap": true,
-    "noEmit": false,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "outDir": "dist",
     "rootDir": "src",
-    "sourceMap": true,
     "types": []
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

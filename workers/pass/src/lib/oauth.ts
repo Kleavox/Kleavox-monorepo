@@ -137,6 +137,12 @@ export function safeReturnTo(value: string | null, env: Env): string {
     ) {
       return url.toString();
     }
+    if (
+      env.ENVIRONMENT !== "production" &&
+      host === new URL(env.PUBLIC_ORIGIN).hostname.toLowerCase()
+    ) {
+      return url.toString();
+    }
   } catch {
     return env.PUBLIC_ORIGIN;
   }

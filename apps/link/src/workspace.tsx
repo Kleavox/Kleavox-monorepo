@@ -1,4 +1,11 @@
-import { FormEvent, Suspense, lazy, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   apiFetch as request,
   displayHandle,
@@ -340,7 +347,7 @@ function LinkList({
         })),
         ...files.map((file) => ({
           kind: "file" as const,
-          createdAt: file.created_at,
+          createdAt: file.createdAt,
           value: file,
         })),
       ].sort(
@@ -426,16 +433,16 @@ function FileRow({
   onRefresh: () => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
-  const publicUrl = `${ROOT_ORIGIN}/${file.public_token}`;
+  const publicUrl = `${ROOT_ORIGIN}/${file.publicToken}`;
   const state =
-    file.status === "ACTIVE" && Date.parse(file.expires_at) <= Date.now()
+    file.status === "ACTIVE" && Date.parse(file.expiresAt) <= Date.now()
       ? "Expired"
       : file.status[0] + file.status.slice(1).toLowerCase();
 
   async function remove() {
     setBusy(true);
     try {
-      await request(`/api/public/${encodeURIComponent(file.public_token)}`, {
+      await request(`/api/public/${encodeURIComponent(file.publicToken)}`, {
         method: "DELETE",
       });
       await onRefresh();
@@ -448,17 +455,17 @@ function FileRow({
     <article className="link-row link-file-row" role="listitem">
       <div className="link-route">
         <a href={publicUrl} target="_blank" rel="noreferrer">
-          /{file.public_token}
+          /{file.publicToken}
         </a>
-        <p title={file.original_name}>{file.original_name}</p>
+        <p title={file.name}>{file.name}</p>
       </div>
       <div className="link-tags">
         <span data-state={state.toLowerCase()}>{state}</span>
         <span className="link-tag-file">File</span>
-        {Boolean(file.protected) && <span>Protected</span>}
+        {file.protected && <span>Protected</span>}
       </div>
       <div className="link-clicks">
-        <strong>{file.download_count.toLocaleString()}</strong>
+        <strong>{file.downloadCount.toLocaleString()}</strong>
         <span>downloads</span>
       </div>
       <div className="link-actions">

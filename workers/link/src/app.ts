@@ -20,7 +20,8 @@ import { linkUnavailablePage, protectedLinkPage } from "./lib/page";
 import { hashLinkPassword, verifyLinkPassword } from "./lib/password";
 import { clientContext, parseExpiration, parseTargetUrl } from "./lib/request";
 import { generateSlug, isValidSlug, normalizeSlug } from "./lib/slug";
-import { app as dropApp, purgeDropUser } from "./drop/app";
+import { app as dropApp } from "./drop/app";
+import { createDropLifecycle } from "./drop/lifecycle";
 
 interface Variables {
   session: SessionIdentity;
@@ -168,7 +169,7 @@ app.post("/internal/purge-user", async (context) => {
   await context.env.DB.prepare(`DELETE FROM links WHERE user_id = ?`)
     .bind(userId)
     .run();
-  await purgeDropUser(context.env, userId);
+  await createDropLifecycle(context.env).purgeAccount(userId);
   return context.json({ ok: true });
 });
 

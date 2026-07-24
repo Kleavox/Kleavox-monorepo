@@ -1,15 +1,15 @@
 import { readCookie, VERIFICATION_COOKIE } from "@kleavox/auth";
-import { INTERNAL_URLS } from "@kleavox/config";
 
+import {
+  findAccountKeys,
+  prepareAccountKeysUpsert,
+} from "../account/credentials";
+import { createAccountLifecycle } from "../account/lifecycle";
 import { clearSessionCookie } from "../lib/cookies";
-import { hashAuthVerifier, hashToken } from "../lib/crypto";
+import { hashToken } from "../lib/crypto";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail";
 import { rateLimit } from "../lib/rate-limit";
-import {
-  invalidateUserSessions,
-  purgeUserSessions,
-  putIdentityOverride,
-} from "../lib/session";
+import { putIdentityOverride } from "../lib/session";
 import {
   accountDeleteSchema,
   accountPasswordSchema,
@@ -22,7 +22,6 @@ import {
   currentSession,
   emailActionSchema,
   EMAIL_VERIFICATION_TTL_MS,
-  findAccountKeys,
   findUserByEmail,
   firstIssue,
   genericEmailResponse,
@@ -31,7 +30,6 @@ import {
   registerSchema,
   resetPasswordSchema,
   safeAudit,
-  storeAccountKeys,
   tokenActionSchema,
   usernameTakenBy,
   type PassApp,
@@ -152,24 +150,7 @@ export function registerAccountRoutes(app: PassApp): void {
 
     if (credential) {
       statements.push(
-        context.env.DB.prepare(
-          `INSERT INTO account_keys
-             (user_id, kdf_salt, auth_verifier_hash, account_public_key,
-              wrapped_private_key)
-           VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT(user_id) DO UPDATE SET
-             kdf_salt = excluded.kdf_salt,
-             auth_verifier_hash = excluded.auth_verifier_hash,
-             account_public_key = excluded.account_public_key,
-             wrapped_private_key = excluded.wrapped_private_key,
-             updated_at = datetime('now')`,
-        ).bind(
-          userId,
-          credential.salt,
-          await hashAuthVerifier(credential.authVerifier),
-          credential.accountPublicKey,
-          credential.wrappedPrivateKey,
-        ),
+        await prepareAccountKeysUpsert(context.env, userId, credential),
       );
     }
 
@@ -431,12 +412,13 @@ export function registerAccountRoutes(app: PassApp): void {
       return apiError(context, 400, "invalid_input", firstIssue(body.error));
     }
 
-    const current = await context.env.DB.prepare(
-      `SELECT username FROM users WHERE id = ?`,
-    )
-      .bind(session.identity.id)
-      .first<{ username: string | null }>();
-    if (current?.username) {
+    const result = await createAccountLifecycle(context.env).setup({
+      identity: session.identity,
+      username: body.data.username,
+      keys: body.data.keys,
+      request: context.req.raw,
+    });
+    if (result.kind === "already_set") {
       return apiError(
         context,
         409,
@@ -444,13 +426,7 @@ export function registerAccountRoutes(app: PassApp): void {
         "This account already has a username.",
       );
     }
-
-    const taken = await usernameTakenBy(
-      context.env,
-      body.data.username,
-      session.identity.id,
-    );
-    if (taken) {
+    if (result.kind === "username_taken") {
       return apiError(
         context,
         409,
@@ -458,30 +434,7 @@ export function registerAccountRoutes(app: PassApp): void {
         "This username is already in use.",
       );
     }
-
-    const statements: D1PreparedStatement[] = [
-      context.env.DB.prepare(
-        `UPDATE users
-       SET username = ?, updated_at = datetime('now')
-       WHERE id = ?`,
-      ).bind(body.data.username, session.identity.id),
-    ];
-
-    await context.env.DB.batch(statements);
-
-    if (body.data.keys) {
-      await storeAccountKeys(context.env, session.identity.id, body.data.keys);
-    }
-
-    const identity = { ...session.identity, username: body.data.username };
-    await putIdentityOverride(context.env, identity);
-    await safeAudit(context.env, {
-      userId: identity.id,
-      type: "account_setup",
-      request: context.req.raw,
-    });
-
-    return context.json({ ok: true, user: identity });
+    return context.json({ ok: true, user: result.identity });
   });
 
   app.delete("/api/account", async (context) => {
@@ -519,12 +472,11 @@ export function registerAccountRoutes(app: PassApp): void {
     }
 
     const userId = session.identity.id;
-    const purges = await Promise.all([
-      context.env.LINK.fetch(`${INTERNAL_URLS.LINK_PURGE}?id=${userId}`, {
-        method: "POST",
-      }),
-    ]).catch(() => null);
-    if (!purges || purges.some((response) => !response.ok)) {
+    const result = await createAccountLifecycle(context.env).delete({
+      userId,
+      request: context.req.raw,
+    });
+    if (result.kind === "purge_failed") {
       return apiError(
         context,
         502,
@@ -532,20 +484,6 @@ export function registerAccountRoutes(app: PassApp): void {
         "Account data could not be removed. Try again in a moment.",
       );
     }
-
-    await safeAudit(context.env, {
-      userId,
-      type: "account_deleted",
-      request: context.req.raw,
-    });
-    await context.env.DB.prepare(`DELETE FROM users WHERE id = ?`)
-      .bind(userId)
-      .run();
-    await purgeUserSessions(context.env, userId);
-    await Promise.all([
-      context.env.SESSIONS.delete(`identity:${userId}`),
-      context.env.SESSIONS.delete(`auth-version:${userId}`),
-    ]);
 
     context.header(
       "Set-Cookie",
@@ -580,8 +518,12 @@ export function registerAccountRoutes(app: PassApp): void {
       return apiError(context, 400, "invalid_input", firstIssue(body.error));
     }
 
-    const existing = await findAccountKeys(context.env, session.identity.id);
-    if (existing) {
+    const result = await createAccountLifecycle(context.env).setCredential({
+      userId: session.identity.id,
+      keys: body.data.keys,
+      request: context.req.raw,
+    });
+    if (result.kind === "exists") {
       return apiError(
         context,
         409,
@@ -589,14 +531,6 @@ export function registerAccountRoutes(app: PassApp): void {
         "This account already has an encryption passphrase. Use the reset flow to change it.",
       );
     }
-
-    await storeAccountKeys(context.env, session.identity.id, body.data.keys);
-
-    await safeAudit(context.env, {
-      userId: session.identity.id,
-      type: "password_set",
-      request: context.req.raw,
-    });
 
     return context.json({ ok: true });
   });
@@ -685,19 +619,12 @@ export function registerAccountRoutes(app: PassApp): void {
     if (!limit.allowed) return rateLimitError(context, limit.retryAfter);
 
     const tokenHash = await hashToken(body.data.token);
-    const token = await context.env.DB.prepare(
-      `SELECT vt.id, vt.user_id, vt.expires_at, u.email, u.username,
-            u.auth_version
-     FROM verification_tokens vt
-     JOIN users u ON u.id = vt.user_id
-     WHERE vt.token_hash = ? AND vt.purpose = 'PASSWORD_RESET'
-       AND vt.consumed_at IS NULL
-     LIMIT 1`,
-    )
-      .bind(tokenHash)
-      .first<TokenRow>();
-
-    if (!token || Date.parse(token.expires_at) <= Date.now()) {
+    const result = await createAccountLifecycle(context.env).resetCredential({
+      tokenHash,
+      keys: body.data.keys,
+      request: context.req.raw,
+    });
+    if (result.kind === "invalid_token") {
       return apiError(
         context,
         400,
@@ -705,32 +632,6 @@ export function registerAccountRoutes(app: PassApp): void {
         "Password reset link is invalid or expired.",
       );
     }
-
-    const nextAuthVersion = token.auth_version + 1;
-    await storeAccountKeys(context.env, token.user_id, body.data.keys);
-    await context.env.DB.batch([
-      context.env.DB.prepare(
-        `UPDATE users
-       SET auth_version = ?, updated_at = datetime('now')
-       WHERE id = ?`,
-      ).bind(nextAuthVersion, token.user_id),
-      context.env.DB.prepare(
-        `UPDATE verification_tokens
-       SET consumed_at = datetime('now')
-       WHERE id = ?`,
-      ).bind(token.id),
-      context.env.DB.prepare(
-        `DELETE FROM verification_tokens
-       WHERE user_id = ? AND purpose = 'PASSWORD_RESET' AND id != ?`,
-      ).bind(token.user_id, token.id),
-    ]);
-    await invalidateUserSessions(context.env, token.user_id, nextAuthVersion);
-    await purgeUserSessions(context.env, token.user_id);
-    await safeAudit(context.env, {
-      userId: token.user_id,
-      type: "password_reset_completed",
-      request: context.req.raw,
-    });
 
     context.header(
       "Set-Cookie",

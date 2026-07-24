@@ -1,21 +1,9 @@
-import { INTERNAL_URLS } from "@kleavox/config";
+import { agentConfigResponseSchema } from "@kleavox/pulse-protocol";
 
-import type { Env } from "../env";
-import {
-  nextFailureCount,
-  shouldOpenIncident,
-  shouldResolveIncident,
-  type CheckStatus,
-} from "../lib/checks";
+import { createIncidentLifecycle } from "../incident/lifecycle";
 import { randomToken, readBearerToken, sha256 } from "../lib/crypto";
-import { sendIncidentEmail } from "../lib/mail";
 import { heartbeatSchema, hostSchema, resultSchema } from "../schemas";
-import {
-  readJson,
-  type CheckRow,
-  type PulseApp,
-  type PulseContext,
-} from "./shared";
+import { readJson, type PulseApp, type PulseContext } from "./shared";
 
 interface AgentNode {
   id: string;
@@ -135,12 +123,26 @@ export function registerAgentRoutes(app: PulseApp): void {
      ORDER BY created_at`,
     )
       .bind(node.id)
-      .all();
-    return context.json({
-      nodeId: node.id,
-      intervalSeconds: node.interval_seconds,
-      checks: checks.results,
-    });
+      .all<{
+        id: string;
+        name: string;
+        kind: "HTTP" | "TCP" | "SERVICE";
+        target: string;
+        timeout_seconds: number;
+      }>();
+    return context.json(
+      agentConfigResponseSchema.parse({
+        nodeId: node.id,
+        intervalSeconds: node.interval_seconds,
+        checks: checks.results.map((check) => ({
+          id: check.id,
+          name: check.name,
+          kind: check.kind,
+          target: check.target,
+          timeoutSeconds: check.timeout_seconds,
+        })),
+      }),
+    );
   });
 
   app.post("/api/agent/results", async (context) => {
@@ -151,8 +153,9 @@ export function registerAgentRoutes(app: PulseApp): void {
       return context.json({ code: "INVALID_RESULTS" }, 400);
     }
 
+    const incidents = createIncidentLifecycle(context.env);
     for (const result of payload.data.results) {
-      await applyCheckResult(context.env, node.id, result);
+      await incidents.recordCheckResult(node.id, result);
     }
     return context.json({ ok: true });
   });
@@ -170,135 +173,4 @@ async function authenticateAgent(
   )
     .bind(await sha256(token))
     .first<AgentNode>();
-}
-
-async function applyCheckResult(
-  env: Env,
-  nodeId: string,
-  result: {
-    checkId: string;
-    status: CheckStatus;
-    latencyMs: number | null;
-    message: string | null;
-    checkedAt?: string;
-  },
-): Promise<void> {
-  const db = env.DB;
-  const check = await db
-    .prepare(
-      `SELECT id, node_id, name, kind, target, enabled, status,
-              timeout_seconds, latency_ms, last_checked_at,
-              consecutive_failures, last_message
-       FROM checks WHERE id = ? AND node_id = ? AND enabled = 1`,
-    )
-    .bind(result.checkId, nodeId)
-    .first<CheckRow>();
-  if (!check) return;
-
-  const failureCount = nextFailureCount(
-    check.consecutive_failures,
-    result.status,
-  );
-  const checkedAt = result.checkedAt ?? new Date().toISOString();
-  await db.batch([
-    db
-      .prepare(
-        `INSERT INTO check_results
-         (check_id, status, latency_ms, message, checked_at)
-         VALUES (?, ?, ?, ?, ?)`,
-      )
-      .bind(
-        check.id,
-        result.status,
-        result.latencyMs,
-        result.message,
-        checkedAt,
-      ),
-    db
-      .prepare(
-        `UPDATE checks
-         SET status = ?, latency_ms = ?, last_checked_at = ?,
-             consecutive_failures = ?, last_message = ?,
-             updated_at = datetime('now')
-         WHERE id = ?`,
-      )
-      .bind(
-        result.status,
-        result.latencyMs,
-        checkedAt,
-        failureCount,
-        result.message,
-        check.id,
-      ),
-  ]);
-
-  if (shouldOpenIncident(result.status, failureCount)) {
-    const summary = `${check.name} is down${result.message ? `: ${result.message}` : ""}`;
-    await db
-      .prepare(
-        `INSERT INTO incidents
-         (id, check_id, status, started_at, summary)
-         VALUES (?, ?, 'OPEN', ?, ?)`,
-      )
-      .bind(crypto.randomUUID(), check.id, checkedAt, summary)
-      .run();
-    await notifyIncident(env, nodeId, check.name, "opened", summary, checkedAt);
-  } else if (shouldResolveIncident(check.status, result.status)) {
-    const resolved = await db
-      .prepare(
-        `UPDATE incidents SET status = 'RESOLVED', resolved_at = ?
-         WHERE check_id = ? AND status = 'OPEN'`,
-      )
-      .bind(checkedAt, check.id)
-      .run();
-    if ((resolved.meta.changes ?? 0) > 0) {
-      await notifyIncident(
-        env,
-        nodeId,
-        check.name,
-        "resolved",
-        `${check.name} is responding again.`,
-        checkedAt,
-      );
-    }
-  }
-}
-
-async function notifyIncident(
-  env: Env,
-  nodeId: string,
-  checkName: string,
-  kind: "opened" | "resolved",
-  summary: string,
-  occurredAt: string,
-): Promise<void> {
-  try {
-    const node = await env.DB.prepare(
-      `SELECT name, owner_user_id FROM nodes WHERE id = ?`,
-    )
-      .bind(nodeId)
-      .first<{ name: string; owner_user_id: string }>();
-    if (!node) return;
-
-    const lookup = new URL(INTERNAL_URLS.IDENTITY_LOOKUP);
-    lookup.searchParams.set("id", node.owner_user_id);
-    const response = await env.PASS.fetch(lookup);
-    if (!response.ok) return;
-    const owner = await response.json<{
-      email: string;
-      username: string | null;
-    }>();
-
-    await sendIncidentEmail(env, {
-      to: owner.email,
-      recipientName: owner.username,
-      kind,
-      checkName,
-      nodeName: node.name,
-      summary,
-      occurredAt,
-    });
-  } catch (error) {
-    console.error("[pulse notify]", error);
-  }
 }

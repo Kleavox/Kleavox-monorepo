@@ -1,11 +1,15 @@
+import { publicOrigin } from "@kleavox/topology";
+
+const EXAMPLE_DOMAIN = "example.com";
+
 export const ROOT_ORIGIN =
-  import.meta.env.VITE_ROOT_ORIGIN ?? "https://example.com";
+  import.meta.env.VITE_ROOT_ORIGIN ?? publicOrigin(EXAMPLE_DOMAIN, "gateway");
 export const LINK_ORIGIN =
-  import.meta.env.VITE_LINK_ORIGIN ?? "https://link.example.com";
+  import.meta.env.VITE_LINK_ORIGIN ?? publicOrigin(EXAMPLE_DOMAIN, "link");
 export const PASS_ORIGIN =
-  import.meta.env.VITE_PASS_ORIGIN ?? "https://pass.example.com";
+  import.meta.env.VITE_PASS_ORIGIN ?? publicOrigin(EXAMPLE_DOMAIN, "pass");
 export const PULSE_ORIGIN =
-  import.meta.env.VITE_PULSE_ORIGIN ?? "https://pulse.example.com";
+  import.meta.env.VITE_PULSE_ORIGIN ?? publicOrigin(EXAMPLE_DOMAIN, "pulse");
 export const ROOT_HOST = new URL(ROOT_ORIGIN).host;
 
 export function signInUrl(returnTo = window.location.href): string {

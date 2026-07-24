@@ -1,5 +1,3 @@
-// @ts-ignore - Generated at build time
-import { WASM_BASE64 } from "./wasm-base64";
 import { decodeBase64Url, encodeBase64Url } from "./tokens";
 
 export * from "./tokens";
@@ -14,7 +12,9 @@ export interface StreamCipher {
 }
 
 interface CryptoModule {
-  default: (wasm?: WebAssembly.Module | BufferSource) => Promise<unknown>;
+  default: (input?: {
+    module_or_path: WebAssembly.Module | BufferSource;
+  }) => Promise<unknown>;
   hash_password: (password: string, salt: string) => string;
   verify_password: (password: string, hash: string) => boolean;
   derive_key: (password: string, salt: Uint8Array) => Uint8Array<ArrayBuffer>;
@@ -26,16 +26,6 @@ export const STREAM_CHUNK_OVERHEAD = 16;
 
 let modulePromise: Promise<CryptoModule> | undefined;
 
-function decodeBase64ToUint8Array(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-
 export async function initCrypto(
   wasm?: WebAssembly.Module | BufferSource,
 ): Promise<void> {
@@ -44,10 +34,8 @@ export async function initCrypto(
     return;
   }
 
-  // @ts-ignore
   modulePromise = import("../pkg/kleavox_crypto.js").then(async (module) => {
-    const input = wasm ?? decodeBase64ToUint8Array(WASM_BASE64);
-    await module.default({ module_or_path: input });
+    await module.default(wasm ? { module_or_path: wasm } : undefined);
     return module as unknown as CryptoModule;
   });
   try {

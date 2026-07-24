@@ -1,15 +1,8 @@
-import { prepareUpload, type PreparedUpload } from "@kleavox/compression";
 import {
   ApiError,
   displayHandle,
   readApiResponse as readApi,
 } from "@kleavox/core";
-import {
-  STREAM_CHUNK_OVERHEAD,
-  createStreamEncryptor,
-  decodeBase64Url,
-  sealToPublicKey,
-} from "@kleavox/crypto";
 import { LINK_ORIGIN, challengeUrl, signInUrl } from "@kleavox/ui";
 import { useEffect, useRef, useState } from "react";
 
@@ -20,41 +13,10 @@ import {
   formatDuration,
   formatPercentSaved,
   publicShareUrl,
-  uploadPart,
 } from "./files-format";
-import type {
-  AccountDrop,
-  SessionResponse,
-  UploadResult,
-  UploadStart,
-} from "./files-types";
-import { dropKeyStorageKey, encryptedShareUrl, generateDropKey } from "./e2e";
-
-async function sealForRecipients(
-  fileKey: Uint8Array<ArrayBuffer>,
-  usernames: string[],
-): Promise<{ userId: string; sealedKey: string }[]> {
-  return Promise.all(
-    usernames.map(async (username) => {
-      const response = await fetch(
-        `/api/drop/recipient-key?username=${encodeURIComponent(username)}`,
-      );
-      const data = (await response.json()) as {
-        userId: string | null;
-        publicKey: string | null;
-      };
-      if (!data.userId || !data.publicKey) {
-        throw new Error(
-          `Can't share with @${username} — no encryption-ready account.`,
-        );
-      }
-      return {
-        userId: data.userId,
-        sealedKey: await sealToPublicKey(fileKey, data.publicKey),
-      };
-    }),
-  );
-}
+import { dropKeyStorageKey, encryptedShareUrl } from "./e2e";
+import type { AccountDrop, SessionResponse, UploadResult } from "./files-types";
+import { sendTransfer, type TransferPhase } from "./transfer/send";
 
 export function SendView({
   embedded,
@@ -71,9 +33,7 @@ export function SendView({
   const [retentionSeconds, setRetentionSeconds] = useState(3600);
   const [maxDownloads, setMaxDownloads] = useState(3);
   const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState<
-    "idle" | "optimizing" | "preparing" | "uploading" | "finishing"
-  >("idle");
+  const [phase, setPhase] = useState<TransferPhase>("idle");
   const [error, setError] = useState<string>();
   const [result, setResult] = useState<UploadResult>();
   const [copied, setCopied] = useState(false);
@@ -128,139 +88,17 @@ export function SendView({
     setError(undefined);
     setResult(undefined);
     setProgress(0);
-    setPhase("optimizing");
-    let start: UploadStart | undefined;
-    let dropKey: string | undefined;
-
-    const recipientNames = recipients
-      .split(/[\s,]+/u)
-      .map((name) => name.trim().replace(/^@/u, "").toLowerCase())
-      .filter(Boolean);
-
     try {
-      let recipientPayload: { userId: string; sealedKey: string }[] | undefined;
-      let prepared: PreparedUpload | null = null;
-      let keyBytes: Uint8Array | undefined;
-      let chunkPlaintext = 0;
-      let storedSizeBytes: number;
-      let storageEncoding: "gzip" | "aes-256-gcm" | undefined;
-      let savedBytes = 0;
-
-      if (session.authenticated) {
-        let fkBytes: Uint8Array<ArrayBuffer>;
-        if (recipientNames.length > 0) {
-          fkBytes = crypto.getRandomValues(new Uint8Array(32));
-          recipientPayload = await sealForRecipients(fkBytes, recipientNames);
-        } else {
-          dropKey = generateDropKey();
-          fkBytes = decodeBase64Url(dropKey);
-        }
-        keyBytes = fkBytes;
-        chunkPlaintext = session.policy.partSizeBytes - STREAM_CHUNK_OVERHEAD;
-        const chunkCount = Math.max(1, Math.ceil(file.size / chunkPlaintext));
-        storedSizeBytes = file.size + STREAM_CHUNK_OVERHEAD * chunkCount;
-        storageEncoding = "aes-256-gcm";
-      } else {
-        prepared = await prepareUpload(file);
-        storedSizeBytes = prepared.storedSizeBytes;
-        storageEncoding = prepared.storageEncoding;
-        savedBytes = prepared.savedBytes;
-      }
-
-      setPhase("preparing");
-      const response = await fetch("/api/uploads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: file.name,
-          contentType: file.type || "application/octet-stream",
-          sizeBytes: file.size,
-          storedSizeBytes,
-          storageEncoding,
-          retentionSeconds,
-          maxDownloads,
-          recipients: recipientPayload,
-        }),
+      const completed = await sendTransfer({
+        file,
+        session,
+        retentionSeconds,
+        maxDownloads,
+        recipients,
+        onPhase: setPhase,
+        onProgress: setProgress,
       });
-      start = await readApi<UploadStart>(response);
-      setPhase("uploading");
-
-      const encryptor = keyBytes ? await createStreamEncryptor(keyBytes) : null;
-      try {
-        let completedBytes = 0;
-        for (
-          let partNumber = 1;
-          partNumber <= start.partCount;
-          partNumber += 1
-        ) {
-          let part: Blob;
-          if (encryptor) {
-            const from = (partNumber - 1) * chunkPlaintext;
-            const to = Math.min(from + chunkPlaintext, file.size);
-            const plain = new Uint8Array(
-              await file.slice(from, to).arrayBuffer(),
-            );
-            const sealed = encryptor.push(
-              plain,
-              partNumber === start.partCount,
-            );
-            part = new Blob([sealed as BlobPart]);
-          } else {
-            const from = (partNumber - 1) * start.partSizeBytes;
-            const to = Math.min(from + start.partSizeBytes, storedSizeBytes);
-            part = prepared!.body.slice(from, to);
-          }
-          await uploadPart(
-            start.uploadId,
-            partNumber,
-            part,
-            start.manageToken,
-            (loaded) => {
-              setProgress(
-                Math.min(
-                  99,
-                  Math.round(
-                    ((completedBytes + loaded) / storedSizeBytes) * 100,
-                  ),
-                ),
-              );
-            },
-          );
-          completedBytes += part.size;
-        }
-      } finally {
-        encryptor?.free();
-      }
-
-      setPhase("finishing");
-      const completeResponse = await fetch(
-        `/api/uploads/${start.uploadId}/complete`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${start.manageToken}` },
-        },
-      );
-      const completed = await readApi<{
-        publicToken: string;
-        shareUrl: string;
-        expiresAt: string;
-      }>(completeResponse);
-
-      const shareUrl = dropKey
-        ? encryptedShareUrl(completed.shareUrl, dropKey)
-        : completed.shareUrl;
-      if (dropKey) {
-        localStorage.setItem(dropKeyStorageKey(completed.publicToken), dropKey);
-      }
-
-      setProgress(100);
-      setResult({
-        ...completed,
-        shareUrl,
-        manageToken: start.manageToken,
-        savedBytes,
-        encrypted: Boolean(keyBytes),
-      });
+      setResult(completed);
       setFile(undefined);
       setRecipients("");
       if (inputRef.current) inputRef.current.value = "";
@@ -269,12 +107,6 @@ export function SendView({
         else await loadAccountDrops();
       }
     } catch (reason) {
-      if (start) {
-        void fetch(`/api/uploads/${start.uploadId}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${start.manageToken}` },
-        });
-      }
       if (reason instanceof ApiError && reason.code === "CHALLENGE_FAILED") {
         window.location.assign(challengeUrl("basic"));
         return;
@@ -294,12 +126,12 @@ export function SendView({
   }
 
   async function copyAccountDrop(drop: AccountDrop) {
-    const base = publicShareUrl(drop.public_token);
+    const base = publicShareUrl(drop.publicToken);
     if (drop.encryption !== "aes-256-gcm" || drop.shared) {
       await copyShareUrl(base);
       return;
     }
-    const key = localStorage.getItem(dropKeyStorageKey(drop.public_token));
+    const key = localStorage.getItem(dropKeyStorageKey(drop.publicToken));
     if (!key) {
       setError(
         "The encryption key for this transfer is not stored on this device.",
@@ -325,14 +157,14 @@ export function SendView({
   }
 
   async function deleteDrop(drop: AccountDrop) {
-    const response = await fetch(`/api/public/${drop.public_token}`, {
+    const response = await fetch(`/api/public/${drop.publicToken}`, {
       method: "DELETE",
     });
     if (!response.ok) {
       setError("That transfer could not be deleted.");
       return;
     }
-    localStorage.removeItem(dropKeyStorageKey(drop.public_token));
+    localStorage.removeItem(dropKeyStorageKey(drop.publicToken));
     setAccountDrops((items) => items.filter((item) => item.id !== drop.id));
   }
 
@@ -580,15 +412,14 @@ export function SendView({
                 {accountDrops.map((drop) => (
                   <article key={drop.id} className="drop-row">
                     <div className="drop-row-main">
-                      <p>{drop.original_name}</p>
+                      <p>{drop.name}</p>
                       <span>
-                        {formatBytes(drop.source_size_bytes)} /{" "}
-                        {drop.download_count} of{" "}
-                        {drop.max_downloads ?? "unlimited"} downloads
-                        {drop.storage_encoding === "gzip"
+                        {formatBytes(drop.sizeBytes)} / {drop.downloadCount} of{" "}
+                        {drop.maxDownloads ?? "unlimited"} downloads
+                        {drop.storageEncoding === "gzip"
                           ? ` / ${formatPercentSaved(
-                              drop.source_size_bytes,
-                              drop.size_bytes,
+                              drop.sizeBytes,
+                              drop.storedSizeBytes,
                             )} smaller`
                           : ""}
                       </span>
@@ -599,7 +430,7 @@ export function SendView({
                       >
                         {drop.status}
                       </span>
-                      <time>{formatDate(drop.expires_at)}</time>
+                      <time>{formatDate(drop.expiresAt)}</time>
                     </div>
                     <div className="drop-row-actions">
                       {drop.status === "ACTIVE" && (

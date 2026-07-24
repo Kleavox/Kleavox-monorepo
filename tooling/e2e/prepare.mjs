@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { localWorkerOrigin } from "@kleavox/topology";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -11,11 +12,11 @@ const repoRoot = path.resolve(
 
 const env = {
   ...process.env,
-  VITE_ROOT_ORIGIN: "http://127.0.0.1:8786",
-  VITE_PASS_ORIGIN: "http://127.0.0.1:8787",
-  VITE_LINK_ORIGIN: "http://127.0.0.1:8788",
-  VITE_PULSE_ORIGIN: "http://127.0.0.1:8790",
-  PUBLIC_ROOT_ORIGIN: "http://127.0.0.1:8786",
+  VITE_ROOT_ORIGIN: localWorkerOrigin("gateway"),
+  VITE_PASS_ORIGIN: localWorkerOrigin("pass"),
+  VITE_LINK_ORIGIN: localWorkerOrigin("link"),
+  VITE_PULSE_ORIGIN: localWorkerOrigin("pulse"),
+  PUBLIC_ROOT_ORIGIN: localWorkerOrigin("gateway"),
 };
 
 execSync(

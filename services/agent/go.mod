@@ -1,3 +1,3 @@
-module example.com/kleavox/agent
+module github.com/Kleavox/Kleavox-monorepo/services/agent
 
 go 1.26
