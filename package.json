@@ -28,7 +28,7 @@
     "check": "pnpm lint && turbo run typecheck test build && pnpm native:check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "knip": "knip"
+    "knip": "knip --no-config-hints"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

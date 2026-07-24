@@ -3,7 +3,22 @@
   "ignoreBinaries": ["go", "wasm-pack"],
   "workspaces": {
     "apps/web": {
-      "entry": ["index.html", "privacy.html", "terms.html", "src/legal.ts"]
+      "entry": [
+        "index.html",
+        "privacy.html",
+        "terms.html",
+        "src/legal.ts",
+        "src/main.ts",
+        "vite.config.ts"
+      ],
+      "vite": false
+    },
+    "packages/crypto": {
+      "ignoreUnresolved": ["../pkg/kleavox_crypto.js"]
+    },
+    "tooling/e2e": {
+      "entry": ["playwright.config.ts", "tests/**/*.ts"],
+      "playwright": false
     },
     "workers/gateway": {
       "ignoreDependencies": ["@kleavox/web-app"]
