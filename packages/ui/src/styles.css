@@ -1,23 +1,92 @@
+/*
+ * Kleavox design tokens. The system, its reasoning, and the measured contrast
+ * of every value here live in ../../../THEME.md at the kleavox.xyz root.
+ * Change a value there and here in the same commit, and keep the portfolio's
+ * Tailwind @theme block in step.
+ */
 :root {
   color-scheme: dark;
+
+  /* Substrate. Green-cast near-black: blue-black is every developer tool's
+     default, and the cast is FR4 in shadow, which is what these surfaces are
+     about. */
   --kvx-base: #070908;
   --kvx-surface: #0e1210;
   --kvx-surface-raised: #141a17;
+
+  /* Two border jobs, two tokens. --kvx-line is decorative and measures 1.3:1,
+     which is fine for a divider and illegal on a control boundary. Anything a
+     user can type into or press uses --kvx-line-control (3.6:1), the floor
+     WCAG 1.4.11 sets for non-text contrast. */
   --kvx-line: #222b26;
   --kvx-line-bright: #303d36;
+  --kvx-line-control: #5e7166;
+
   --kvx-ink: #eff5f0;
   --kvx-muted: #84938a;
-  --kvx-quiet: #4d5952;
+  /* Raised from #4d5952, which measured 2.4:1 and could not legally hold text. */
+  --kvx-quiet: #76857c;
 
+  /* The one Kleavox accent. Links, focus, primary actions, active nav. Not
+     cards, not badges, not borders, not backgrounds: an accent everywhere is
+     an accent nowhere. */
   --kvx-accent: #a3e635;
   --kvx-accent-glow: rgb(163 230 53 / 12%);
   --kvx-accent-text: #11190b;
 
+  /* Semantic status. pass and pulse are an identity service and a monitor;
+     they cannot express health with a single accent, and until now every state
+     looked equally important. --kvx-ok is a mint deliberately far from the
+     lime, so "healthy" never reads as "link". Never the sole carrier of
+     meaning: every status ships a word beside it. */
+  --kvx-ok: #5fd39a;
+  --kvx-warn: #e8b23a;
+  --kvx-danger: #ef6a5a;
+  --kvx-info: #7fb2d8;
+
+  /* deltaT hardware materials. Hardware content only, never Kleavox chrome:
+     the finish a board would physically carry at that point in its life. */
+  --dt-gold: #d9a441;
+  --dt-hasl: #b7c1c4;
+  --dt-copper: #c4744a;
+
   --kvx-font:
     "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial,
     sans-serif;
-  --kvx-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --kvx-mono: "Cascadia Code", "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+
+  /* Space. 4px base. Use these steps and no others: if two things sit s8
+     apart a reader should be able to tell they are unrelated without reading
+     them. */
+  --kvx-s1: 4px;
+  --kvx-s2: 8px;
+  --kvx-s3: 12px;
+  --kvx-s4: 16px;
+  --kvx-s5: 24px;
+  --kvx-s6: 32px;
+  --kvx-s7: 48px;
+  --kvx-s8: 72px;
+  --kvx-s9: 112px;
+
+  /* Radius. Three steps, and the difference between them carries hierarchy.
+     Nothing is a pill: when everything is fully rounded the radius stops
+     encoding anything. */
+  --kvx-r1: 4px;
+  --kvx-r2: 6px;
+  --kvx-r3: 12px;
+
+  /* Elevation is rare. A flat instrument panel is the correct default; if
+     everything floats, nothing does. */
+  --kvx-e1: 0 1px 2px rgb(0 0 0 / 40%);
+  --kvx-e2: 0 16px 48px rgb(0 0 0 / 45%);
+
+  /* Motion is punctuation, not atmosphere. Nothing animates forever. */
   --kvx-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --kvx-t1: 120ms;
+  --kvx-t2: 180ms;
+  --kvx-t3: 320ms;
+  --kvx-t4: 640ms;
+
   --kvx-shell: min(1280px, calc(100vw - 48px));
   --kvx-shell-wide: min(1500px, calc(100vw - 48px));
 
@@ -321,17 +390,20 @@ textarea:focus-visible {
   min-height: 48px;
   padding: 0.75rem 1rem;
   background: var(--kvx-base);
-  border: 1px solid var(--kvx-line);
-  border-radius: 6px;
+  /* A control boundary, not a divider: --kvx-line measures 1.3:1 here and
+     WCAG 1.4.11 asks for 3:1 on anything a user can operate. */
+  border: 1px solid var(--kvx-line-control);
+  border-radius: var(--kvx-r2);
   color: var(--kvx-ink);
   transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease;
+    border-color var(--kvx-t2) ease,
+    box-shadow var(--kvx-t2) ease;
 }
 
-.kvx-input:focus,
-.kvx-select:focus,
-.kvx-textarea:focus {
+/* :focus-visible, not :focus, so clicking with a pointer does not draw a ring. */
+.kvx-input:focus-visible,
+.kvx-select:focus-visible,
+.kvx-textarea:focus-visible {
   border-color: var(--kvx-accent);
   background: var(--kvx-surface);
   box-shadow: 0 0 0 3px var(--kvx-accent-glow);
@@ -429,7 +501,10 @@ textarea:focus-visible {
   letter-spacing: -0.05em;
   color: var(--kvx-ink);
   text-shadow: 0 0 26px rgb(61 219 224 / 16%);
-  animation: kvx-flicker 6s linear infinite;
+  /* An arrival gesture, not a permanent state. A perpetually flickering
+     error screen is hostile: the reader is already stuck, and the message
+     they need is the thing vibrating. */
+  animation: kvx-flicker 2s linear 1;
 }
 
 .kvx-error-code::before,
@@ -444,13 +519,85 @@ textarea:focus-visible {
 .kvx-error-code::before {
   color: #ff3b6b;
   transform: translateX(-2px);
-  animation: kvx-glitch-a 2.4s steps(2, end) infinite alternate-reverse;
+  /* Three quick passes, then the layer fades out so the code is left clean
+     and readable. kvx-glitch-a ends mid-clip, so it must not simply stop. */
+  animation:
+    kvx-glitch-a 0.6s steps(2, end) 3 alternate-reverse,
+    kvx-glitch-settle 200ms linear 1.8s both;
 }
 
 .kvx-error-code::after {
   color: #3ddbe0;
   transform: translateX(2px);
-  animation: kvx-glitch-b 3.1s steps(2, end) infinite alternate-reverse;
+  animation:
+    kvx-glitch-b 0.8s steps(2, end) 3 alternate-reverse,
+    kvx-glitch-settle 200ms linear 2.4s both;
+}
+
+@keyframes kvx-glitch-settle {
+  to {
+    opacity: 0;
+  }
+}
+
+/*
+ * The pad. An 8px square carrying state, named after the place a component
+ * meets the board. It is the one identity motif in this system and it decorates
+ * nothing: a pad without a word beside it is a defect, because colour is never
+ * the only carrier of meaning.
+ */
+.kvx-pad {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--kvx-r1);
+  background: var(--kvx-quiet);
+}
+
+.kvx-pad-ok { background: var(--kvx-ok); }
+.kvx-pad-warn { background: var(--kvx-warn); }
+.kvx-pad-danger { background: var(--kvx-danger); }
+.kvx-pad-info { background: var(--kvx-info); }
+.kvx-pad-active { background: var(--kvx-accent); }
+
+/* Hardware only. Never on Kleavox chrome. */
+.kvx-pad-fabricated { background: var(--dt-gold); }
+.kvx-pad-designed { background: var(--dt-hasl); }
+.kvx-pad-drawing { background: var(--dt-copper); }
+
+.kvx-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kvx-s2);
+  font-family: var(--kvx-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--kvx-muted);
+}
+
+/*
+ * The three states every data view owes its reader. An empty state is an
+ * invitation to act, not an apology, and an error says what happened and what
+ * to do next without apologising.
+ */
+.kvx-empty,
+.kvx-loading,
+.kvx-error-state {
+  display: grid;
+  gap: var(--kvx-s3);
+  place-items: center;
+  padding: var(--kvx-s7) var(--kvx-s5);
+  border: 1px solid var(--kvx-line);
+  border-radius: var(--kvx-r3);
+  background: var(--kvx-surface);
+  color: var(--kvx-muted);
+  text-align: center;
+}
+
+.kvx-error-state {
+  border-color: var(--kvx-danger);
+  color: var(--kvx-ink);
 }
 
 @keyframes kvx-glitch-a {
