@@ -56,7 +56,7 @@ function App() {
     return <ErrorScreen code="403" />;
   }
   if (state.status === "error") {
-    return <ErrorScreen code="503" />;
+    return <ErrorScreen code="503" message={state.message} />;
   }
 
   return (
@@ -88,11 +88,13 @@ function App() {
 function Header({ state }: { state: AppState }) {
   return (
     <AppHeader product="PULSE" rootOrigin={ROOT_ORIGIN}>
-      <a href={PASS_ORIGIN} className="kvx-nav">
-        {state.status === "ready"
-          ? displayHandle(state.identity.username, state.identity.email)
-          : "Account"}
-      </a>
+      <nav className="kvx-nav">
+        <a href={PASS_ORIGIN}>
+          {state.status === "ready"
+            ? displayHandle(state.identity.username, state.identity.email)
+            : "Account"}
+        </a>
+      </nav>
     </AppHeader>
   );
 }

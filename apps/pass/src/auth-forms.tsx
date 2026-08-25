@@ -148,7 +148,7 @@ export function Register({
         challenge.retry();
         setState({
           status: "error",
-          message: "The security check expired — submit again.",
+          message: "The security check expired. Submit again.",
         });
         return;
       }
@@ -234,7 +234,7 @@ export function ForgotPassword({
         challenge.retry();
         setState({
           status: "error",
-          message: "The security check expired — submit again.",
+          message: "The security check expired. Submit again.",
         });
         return;
       }

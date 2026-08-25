@@ -1,0 +1,6 @@
+:root {
+  --kvx-product-link: #48caf0;
+  --kvx-product-pass: #8b8ef8;
+  --kvx-product-port: var(--kvx-accent);
+  --kvx-product-pulse: #3ddbe0;
+}

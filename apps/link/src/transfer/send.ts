@@ -146,7 +146,7 @@ async function sealForRecipients(
       };
       if (!data.userId || !data.publicKey) {
         throw new Error(
-          `Can't share with @${username} — no encryption-ready account.`,
+          `Can't share with @${username}: no encryption-ready account.`,
         );
       }
       return {

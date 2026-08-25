@@ -1,6 +1,8 @@
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useId, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch as api } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
+import { useDialog } from "@kleavox/ui";
 
 import { nodeState, percentage, relativeTime } from "./format";
 import { AbuseReports } from "./reports";
@@ -13,7 +15,14 @@ import type {
   Overview,
   Project,
 } from "./types";
-import { InlineEmpty, Metric, Resource, SectionTitle } from "./ui";
+import {
+  ActionError,
+  InlineEmpty,
+  Metric,
+  Resource,
+  SectionTitle,
+  useAction,
+} from "./ui";
 
 const NO_CHECKS: CheckRecord[] = [];
 
@@ -85,7 +94,7 @@ export function Dashboard({
         />
         <Metric
           label="Open reports"
-          value={openReports === undefined ? "—" : String(openReports)}
+          value={openReports === undefined ? "…" : String(openReports)}
           danger={(openReports ?? 0) > 0}
         />
         <Metric
@@ -142,19 +151,22 @@ function CreateNode({
   const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { error, run } = useAction();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     try {
-      const result = await api<Enrollment>("/api/nodes", {
-        method: "POST",
-        body: JSON.stringify({ name, intervalSeconds: 60 }),
+      await run(async () => {
+        const result = await api<Enrollment>("/api/nodes", {
+          method: "POST",
+          body: JSON.stringify({ name, intervalSeconds: 60 }),
+        });
+        setName("");
+        setOpen(false);
+        onCreated(result);
+        await onRefresh();
       });
-      setName("");
-      setOpen(false);
-      onCreated(result);
-      await onRefresh();
     } finally {
       setBusy(false);
     }
@@ -188,6 +200,7 @@ function CreateNode({
           {busy ? "Creating..." : "Create token"}
         </button>
       </div>
+      <ActionError message={error} />
     </form>
   );
 }
@@ -207,13 +220,15 @@ function NodePanel({
 }) {
   const memory = percentage(node.memory_used_bytes, node.memory_total_bytes);
   const disk = percentage(node.disk_used_bytes, node.disk_total_bytes);
+  const { error, run } = useAction();
 
-  const renewEnrollment = async () => {
-    const result = await api<Enrollment>(`/api/nodes/${node.id}/enrollment`, {
-      method: "POST",
+  const renewEnrollment = () =>
+    run(async () => {
+      const result = await api<Enrollment>(`/api/nodes/${node.id}/enrollment`, {
+        method: "POST",
+      });
+      onEnrollment(result);
     });
-    onEnrollment(result);
-  };
 
   return (
     <article className="pulse-node">
@@ -269,10 +284,12 @@ function NodePanel({
                 {check.latency_ms === null ? "--" : `${check.latency_ms} ms`}
               </span>
               <button
-                onClick={async () => {
-                  await api(`/api/checks/${check.id}`, { method: "DELETE" });
-                  await onRefresh();
-                }}
+                onClick={() =>
+                  void run(async () => {
+                    await api(`/api/checks/${check.id}`, { method: "DELETE" });
+                    await onRefresh();
+                  })
+                }
               >
                 Remove
               </button>
@@ -289,6 +306,7 @@ function NodePanel({
           Generate a new enrollment token
         </button>
       )}
+      <ActionError message={error} />
     </article>
   );
 }
@@ -304,17 +322,26 @@ function CreateCheck({
   const [name, setName] = useState("");
   const [kind, setKind] = useState<"HTTP" | "TCP" | "SERVICE">("HTTP");
   const [target, setTarget] = useState("");
+  const { error, run } = useAction();
 
-  const submit = async (event: FormEvent) => {
+  const submit = (event: FormEvent) => {
     event.preventDefault();
-    await api("/api/checks", {
-      method: "POST",
-      body: JSON.stringify({ nodeId, name, kind, target, timeoutSeconds: 10 }),
+    return run(async () => {
+      await api("/api/checks", {
+        method: "POST",
+        body: JSON.stringify({
+          nodeId,
+          name,
+          kind,
+          target,
+          timeoutSeconds: 10,
+        }),
+      });
+      setName("");
+      setTarget("");
+      setOpen(false);
+      await onRefresh();
     });
-    setName("");
-    setTarget("");
-    setOpen(false);
-    await onRefresh();
   };
 
   if (!open) {
@@ -358,6 +385,7 @@ function CreateCheck({
       <button type="button" onClick={() => setOpen(false)}>
         Cancel
       </button>
+      <ActionError message={error} />
     </form>
   );
 }
@@ -403,19 +431,22 @@ function ProjectNotes({
 }) {
   const [projectName, setProjectName] = useState("");
   const [note, setNote] = useState("");
+  const { error, run } = useAction();
 
   return (
     <section className="pulse-projects">
       <SectionTitle eyebrow="Context" title="Projects and notes" />
       <form
-        onSubmit={async (event) => {
+        onSubmit={(event) => {
           event.preventDefault();
-          await api("/api/projects", {
-            method: "POST",
-            body: JSON.stringify({ name: projectName }),
+          return run(async () => {
+            await api("/api/projects", {
+              method: "POST",
+              body: JSON.stringify({ name: projectName }),
+            });
+            setProjectName("");
+            await onRefresh();
           });
-          setProjectName("");
-          await onRefresh();
         }}
       >
         <input
@@ -433,12 +464,15 @@ function ProjectNotes({
             <select
               value={project.status}
               aria-label={`${project.name} status`}
-              onChange={async (event) => {
-                await api(`/api/projects/${project.id}`, {
-                  method: "PATCH",
-                  body: JSON.stringify({ status: event.target.value }),
+              onChange={(event) => {
+                const status = event.target.value;
+                void run(async () => {
+                  await api(`/api/projects/${project.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ status }),
+                  });
+                  await onRefresh();
                 });
-                await onRefresh();
               }}
             >
               <option value="ACTIVE">Active</option>
@@ -448,10 +482,14 @@ function ProjectNotes({
             <strong>{project.name}</strong>
             <button
               aria-label={`Delete ${project.name}`}
-              onClick={async () => {
-                await api(`/api/projects/${project.id}`, { method: "DELETE" });
-                await onRefresh();
-              }}
+              onClick={() =>
+                void run(async () => {
+                  await api(`/api/projects/${project.id}`, {
+                    method: "DELETE",
+                  });
+                  await onRefresh();
+                })
+              }
             >
               Remove
             </button>
@@ -459,14 +497,16 @@ function ProjectNotes({
         ))}
       </div>
       <form
-        onSubmit={async (event) => {
+        onSubmit={(event) => {
           event.preventDefault();
-          await api("/api/notes", {
-            method: "POST",
-            body: JSON.stringify({ content: note, pinned: false }),
+          return run(async () => {
+            await api("/api/notes", {
+              method: "POST",
+              body: JSON.stringify({ content: note, pinned: false }),
+            });
+            setNote("");
+            await onRefresh();
           });
-          setNote("");
-          await onRefresh();
         }}
       >
         <input
@@ -484,21 +524,25 @@ function ProjectNotes({
             <p>{item.content}</p>
             <div>
               <button
-                onClick={async () => {
-                  await api(`/api/notes/${item.id}`, {
-                    method: "PATCH",
-                    body: JSON.stringify({ pinned: !item.pinned }),
-                  });
-                  await onRefresh();
-                }}
+                onClick={() =>
+                  void run(async () => {
+                    await api(`/api/notes/${item.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ pinned: !item.pinned }),
+                    });
+                    await onRefresh();
+                  })
+                }
               >
                 {item.pinned ? "Unpin" : "Pin"}
               </button>
               <button
-                onClick={async () => {
-                  await api(`/api/notes/${item.id}`, { method: "DELETE" });
-                  await onRefresh();
-                }}
+                onClick={() =>
+                  void run(async () => {
+                    await api(`/api/notes/${item.id}`, { method: "DELETE" });
+                    await onRefresh();
+                  })
+                }
               >
                 Remove
               </button>
@@ -506,6 +550,7 @@ function ProjectNotes({
           </article>
         ))}
       </div>
+      <ActionError message={error} />
     </section>
   );
 }
@@ -517,11 +562,20 @@ export function EnrollmentDialog({
   enrollment: Enrollment;
   onClose: () => void;
 }) {
-  return (
+  const titleId = useId();
+  const ref = useDialog<HTMLElement>(onClose);
+  return createPortal(
     <div className="pulse-dialog-backdrop" role="presentation">
-      <section className="pulse-dialog" role="dialog" aria-modal="true">
+      <section
+        ref={ref}
+        tabIndex={-1}
+        className="pulse-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <p className="pulse-kicker">One-time enrollment</p>
-        <h2>Connect this VPS.</h2>
+        <h2 id={titleId}>Connect this VPS.</h2>
         <p>The token expires in 30 minutes.</p>
         <pre>{enrollment.command}</pre>
         <div>
@@ -537,6 +591,7 @@ export function EnrollmentDialog({
           </button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

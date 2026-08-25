@@ -1,15 +1,6 @@
 :root {
   color-scheme: dark;
-  color: #edecf8;
-  background: #070810;
   font-family: var(--kvx-font);
-}
-
-body {
-  min-width: 320px;
-  background:
-    radial-gradient(circle, #1d2040 0.75px, transparent 0.75px), #070810;
-  background-size: 22px 22px;
 }
 
 button,
@@ -46,7 +37,7 @@ button {
 .pass-kicker,
 .pass-section-label {
   margin: 0 0 1.2rem;
-  color: #8b8ef8;
+  color: var(--kvx-accent);
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
   font-weight: 700;
@@ -70,8 +61,8 @@ button {
 
 .pass-panel {
   padding: 1px;
-  border-radius: 28px;
-  background: linear-gradient(145deg, #1d2040, #0d0f1e);
+  border-radius: var(--kvx-r3);
+  background: linear-gradient(145deg, var(--kvx-line), var(--kvx-surface));
   box-shadow: 0 32px 100px rgb(0 0 0 / 58%);
 }
 
@@ -81,8 +72,8 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-radius: 27px;
-  background: rgb(7 8 16 / 96%);
+  border-radius: calc(var(--kvx-r3) - 1px);
+  background: rgb(7 9 8 / 96%);
   backdrop-filter: blur(20px);
 }
 
@@ -152,10 +143,10 @@ button {
 .pass-field input {
   width: 100%;
   min-height: 3.15rem;
-  border: 1px solid var(--pass-line);
-  border-radius: 999px;
+  border: 1px solid var(--kvx-line-control);
+  border-radius: var(--kvx-r2);
   outline: none;
-  background: #0b0c1a;
+  background: var(--kvx-base);
   color: var(--pass-ink);
   padding: 0.8rem 1.15rem;
   transition:
@@ -165,13 +156,13 @@ button {
 }
 
 .pass-field input:hover {
-  border-color: var(--pass-line-bright);
+  border-color: var(--kvx-muted);
 }
 
 .pass-field input:focus {
-  border-color: #8b8ef8;
-  background: #0b0c1a;
-  box-shadow: 0 0 0 3px rgb(139 142 248 / 12%);
+  border-color: var(--kvx-accent);
+  background: var(--kvx-base);
+  box-shadow: 0 0 0 3px rgb(163 230 53 / 12%);
 }
 
 .pass-primary,
@@ -179,7 +170,7 @@ button {
 .pass-primary-link,
 .pass-oauth button {
   min-height: 3.15rem;
-  border-radius: 999px;
+  border-radius: var(--kvx-r2);
   padding: 0.8rem 1.2rem;
   display: inline-flex;
   align-items: center;
@@ -200,26 +191,27 @@ button {
 
 .pass-primary,
 .pass-primary-link {
-  border: 1px solid #8b8ef8;
-  background: #8b8ef8;
-  color: #0a0b20;
+  border: 1px solid var(--kvx-accent);
+  background: var(--kvx-accent);
+  color: var(--kvx-accent-text);
 }
 
 .pass-primary:hover,
 .pass-primary-link:hover {
-  background: #a8aafb;
+  background: var(--kvx-accent);
+  filter: brightness(1.15);
 }
 
 .pass-secondary,
 .pass-oauth button {
-  border: 1px solid var(--pass-line);
-  background: #0d0f1c;
+  border: 1px solid var(--kvx-line-control);
+  background: var(--kvx-surface);
   color: var(--pass-ink);
 }
 
 .pass-secondary:hover,
 .pass-oauth button:hover {
-  border-color: var(--pass-line-bright);
+  border-color: var(--kvx-muted);
   background: var(--pass-panel-soft);
 }
 
@@ -243,7 +235,7 @@ button {
 }
 
 .pass-oauth button span {
-  color: #8b8ef8;
+  color: var(--kvx-accent);
   font-size: 0.65rem;
 }
 
@@ -259,7 +251,7 @@ button {
   position: relative;
   top: -0.65rem;
   padding: 0 0.75rem;
-  background: #0d0f1e;
+  background: var(--kvx-surface);
   color: var(--pass-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.62rem;
@@ -267,9 +259,12 @@ button {
 
 .pass-text-action,
 .pass-switch button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   border: 0;
   background: none;
-  color: #8b8ef8;
+  color: var(--kvx-accent);
   padding: 0;
   font-size: 0.75rem;
   font-weight: 700;
@@ -300,7 +295,7 @@ button {
 .pass-status {
   margin: 0;
   border: 1px solid;
-  border-radius: 12px;
+  border-radius: var(--kvx-r3);
   padding: 0.75rem 0.9rem;
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
@@ -308,15 +303,15 @@ button {
 }
 
 .pass-status-error {
-  border-color: rgb(239 68 68 / 28%);
-  background: rgb(239 68 68 / 8%);
-  color: #f87171;
+  border-color: rgb(239 106 90 / 28%);
+  background: rgb(239 106 90 / 8%);
+  color: var(--kvx-danger);
 }
 
 .pass-status-success {
-  border-color: rgb(139 142 248 / 28%);
-  background: rgb(139 142 248 / 8%);
-  color: #8b8ef8;
+  border-color: rgb(163 230 53 / 28%);
+  background: rgb(163 230 53 / 8%);
+  color: var(--kvx-accent);
 }
 
 .pass-dev-note {
@@ -324,9 +319,9 @@ button {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: rgb(139 142 248 / 6%);
+  background: rgb(163 230 53 / 6%);
   border: 1px solid var(--pass-line);
-  border-radius: 8px;
+  border-radius: var(--kvx-r3);
   color: var(--pass-muted);
   font-family: var(--kvx-mono);
   font-size: 0.62rem;
@@ -391,7 +386,7 @@ button {
 
 .pass-providers span {
   border: 1px solid var(--pass-line-bright);
-  border-radius: 999px;
+  border-radius: var(--kvx-r1);
   padding: 0.25rem 0.65rem;
   font-family: var(--kvx-mono);
   font-size: 0.64rem;
@@ -408,7 +403,7 @@ button {
 
 .pass-danger-link,
 .pass-danger-action {
-  color: #fb7185;
+  color: var(--kvx-danger);
 }
 
 .pass-danger-note {
@@ -421,8 +416,8 @@ button {
 .pass-danger-action {
   min-height: 42px;
   padding: 0 1.4rem;
-  border: 1px solid #fb7185;
-  border-radius: 999px;
+  border: 1px solid var(--kvx-danger);
+  border-radius: var(--kvx-r2);
   background: transparent;
   font-weight: 800;
   white-space: nowrap;
@@ -468,7 +463,7 @@ button {
 
 .pass-device span {
   display: block;
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--pass-quiet);
   font-family: var(--kvx-mono);
   font-size: 0.64rem;
@@ -515,7 +510,7 @@ button {
 .pass-loading-lines span {
   display: block;
   height: 0.8rem;
-  border-radius: 999px;
+  border-radius: var(--kvx-r1);
   background: var(--pass-line);
   animation: pass-pulse 1.2s ease-in-out infinite alternate;
 }
@@ -572,19 +567,15 @@ button {
 }
 
 :root {
-  --pass-base: #070810;
-  --pass-panel: #0d0f1e;
-  --pass-panel-soft: #131728;
-  --pass-line: #1d2040;
-  --pass-line-bright: #2b2f58;
-  --pass-ink: #edecf8;
-  --pass-muted: #797ba8;
-  --pass-quiet: #4f517a;
-  --pass-accent: #8b8ef8;
-
-  --kvx-accent: var(--pass-accent);
-  --kvx-accent-glow: rgb(139 142 248 / 12%);
-  --kvx-accent-text: #0a0b20;
+  --pass-base: var(--kvx-base);
+  --pass-panel: var(--kvx-surface);
+  --pass-panel-soft: var(--kvx-surface-raised);
+  --pass-line: var(--kvx-line);
+  --pass-line-bright: var(--kvx-line-bright);
+  --pass-ink: var(--kvx-ink);
+  --pass-muted: var(--kvx-muted);
+  --pass-quiet: var(--kvx-quiet);
+  --pass-accent: var(--kvx-accent);
 
   color: var(--pass-ink);
   background: var(--pass-base);
@@ -594,13 +585,13 @@ body {
   background:
     radial-gradient(
       circle at 15% 16%,
-      rgb(139 142 248 / 10%),
+      rgb(163 230 53 / 10%),
       transparent 28rem
     ),
     linear-gradient(
       120deg,
       transparent 0 56%,
-      rgb(139 142 248 / 3%) 56% 56.1%,
+      rgb(163 230 53 / 3%) 56% 56.1%,
       transparent 56.1%
     ),
     var(--pass-base);
@@ -616,7 +607,7 @@ body {
 .pass-intro {
   position: relative;
   min-height: calc(100dvh - 48px);
-  padding: 28px 0;
+  padding: 32px 0;
   border-right: 1px solid var(--pass-line);
   overflow: hidden;
 }
@@ -624,7 +615,10 @@ body {
 .pass-wordmark {
   position: relative;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
   width: fit-content;
+  min-height: 44px;
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -683,17 +677,16 @@ body {
   aspect-ratio: 1;
   right: -28%;
   top: 50%;
-  border: 1px solid rgb(139 142 248 / 14%);
+  border: 1px solid rgb(163 230 53 / 14%);
   border-radius: 50%;
   transform: translateY(-50%);
-  animation: pass-orbit 22s linear infinite;
 }
 
 .pass-orbit::before,
 .pass-orbit::after {
   position: absolute;
   inset: 12%;
-  border: 1px solid rgb(139 142 248 / 9%);
+  border: 1px solid rgb(163 230 53 / 9%);
   border-radius: inherit;
   content: "";
 }
@@ -708,7 +701,7 @@ body {
   height: 9px;
   border-radius: 50%;
   background: var(--pass-accent);
-  box-shadow: 0 0 20px rgb(139 142 248 / 75%);
+  box-shadow: 0 0 20px rgb(163 230 53 / 75%);
 }
 
 .pass-orbit i:first-child {
@@ -731,8 +724,8 @@ body {
   width: min(100%, 460px);
   padding: 0;
   border: 1px solid var(--pass-line);
-  border-radius: 14px;
-  background: rgb(13 15 30 / 90%);
+  border-radius: var(--kvx-r3);
+  background: rgb(14 18 16 / 90%);
   box-shadow: 0 40px 120px rgb(0 0 0 / 45%);
   overflow: hidden;
 }
@@ -746,7 +739,6 @@ body {
   width: 2px;
   background: linear-gradient(transparent, var(--pass-accent), transparent);
   content: "";
-  animation: pass-scan 4.5s ease-in-out infinite;
 }
 
 .pass-panel-head,
@@ -755,8 +747,8 @@ body {
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  padding: 0 18px;
-  color: #5a5c8a;
+  padding: 0 16px;
+  color: var(--kvx-quiet);
   border-bottom: 1px solid var(--pass-line);
   font-family: var(--kvx-mono);
   font-size: 0.58rem;
@@ -776,7 +768,7 @@ body {
 .pass-panel-inner {
   padding: clamp(28px, 4vw, 54px);
   border-radius: 0;
-  background: linear-gradient(150deg, rgb(139 142 248 / 4%), transparent 35%);
+  background: linear-gradient(150deg, rgb(163 230 53 / 4%), transparent 35%);
   backdrop-filter: none;
 }
 
@@ -789,22 +781,22 @@ body {
 
 .pass-field input {
   min-height: 3.25rem;
-  border-color: var(--pass-line);
-  border-radius: 8px;
-  background: #0b0c1a;
+  border-color: var(--kvx-line-control);
+  border-radius: var(--kvx-r2);
+  background: var(--kvx-base);
 }
 
 .pass-field input:focus {
   border-color: var(--pass-accent);
-  background: #0b0c1a;
-  box-shadow: 0 0 0 4px rgb(139 142 248 / 7%);
+  background: var(--kvx-base);
+  box-shadow: 0 0 0 4px rgb(163 230 53 / 7%);
 }
 
 .pass-primary,
 .pass-secondary,
 .pass-primary-link,
 .pass-oauth button {
-  border-radius: 8px;
+  border-radius: var(--kvx-r2);
 }
 
 .pass-primary,
@@ -815,15 +807,16 @@ body {
 
 .pass-primary:hover,
 .pass-primary-link:hover {
-  background: #a8aafb;
-  box-shadow: 0 14px 34px rgb(139 142 248 / 18%);
+  background: var(--kvx-accent);
+  filter: brightness(1.15);
+  box-shadow: 0 14px 34px rgb(163 230 53 / 18%);
   transform: translateY(-2px);
 }
 
 .pass-secondary,
 .pass-oauth button {
-  border-color: var(--pass-line);
-  background: #0d0f1c;
+  border-color: var(--kvx-line-control);
+  background: var(--kvx-surface);
 }
 
 .pass-oauth button span,
@@ -851,24 +844,6 @@ body {
   }
 }
 
-@keyframes pass-orbit {
-  to {
-    transform: translateY(-50%) rotate(360deg);
-  }
-}
-
-@keyframes pass-scan {
-  0%,
-  100% {
-    opacity: 0.2;
-    transform: translateY(-55%);
-  }
-  50% {
-    opacity: 1;
-    transform: translateY(55%);
-  }
-}
-
 @media (max-width: 920px) {
   .pass-layout {
     grid-template-columns: 1fr;
@@ -878,7 +853,7 @@ body {
 
   .pass-intro {
     min-height: 620px;
-    padding: 20px 0 38px;
+    padding: 24px 0 38px;
     border-right: 0;
     border-bottom: 1px solid var(--pass-line);
   }
@@ -911,7 +886,7 @@ body {
 
   .pass-panel-inner {
     min-height: auto;
-    padding: 28px 20px;
+    padding: 32px 24px;
   }
 }
 

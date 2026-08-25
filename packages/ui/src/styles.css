@@ -13,6 +13,10 @@
   --kvx-base: #070908;
   --kvx-surface: #0e1210;
   --kvx-surface-raised: #141a17;
+  /* Atmosphere, not state: an indigo-cast near-black that gives a page's
+     closing edge a different temperature from the substrate, so a document is
+     not one single value of black from top to bottom. */
+  --kvx-deep: #0c0b16;
 
   /* Two border jobs, two tokens. --kvx-line is decorative and measures 1.3:1,
      which is fine for a divider and illegal on a control boundary. Anything a
@@ -43,6 +47,10 @@
   --kvx-warn: #e8b23a;
   --kvx-danger: #ef6a5a;
   --kvx-info: #7fb2d8;
+  /* Mechanical: the printed and machined parts that are not electrical at all.
+     Violet because nothing else on a board is violet, so it can never be
+     mistaken for a state. */
+  --kvx-mech: #a78bfa;
 
   /* deltaT hardware materials. Hardware content only, never Kleavox chrome:
      the finish a board would physically carry at that point in its life. */
@@ -53,7 +61,8 @@
   --kvx-font:
     "Aptos", "Segoe UI Variable", "Inter", "Helvetica Neue", Helvetica, Arial,
     sans-serif;
-  --kvx-mono: "Cascadia Code", "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+  --kvx-mono:
+    "Cascadia Code", "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
 
   /* Space. 4px base. Use these steps and no others: if two things sit s8
      apart a reader should be able to tell they are unrelated without reading
@@ -148,6 +157,15 @@ textarea {
   color: inherit;
 }
 
+/* A placeholder left to the browser lands on #757575, which is both outside
+   this palette and short of 4.5:1 on every ground here. opacity is reset
+   because Firefox dims placeholders by default, which would undo the token. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--kvx-quiet);
+  opacity: 1;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -197,6 +215,9 @@ textarea:focus-visible {
 }
 
 .kvx-brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--kvx-mono);
   font-size: 0.78rem;
   font-weight: 800;
@@ -214,6 +235,9 @@ textarea:focus-visible {
 }
 
 .kvx-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--kvx-muted);
   font-family: var(--kvx-mono);
   font-size: 0.68rem;
@@ -265,6 +289,9 @@ textarea:focus-visible {
 }
 
 .kvx-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--kvx-muted);
   font-family: var(--kvx-mono);
   font-size: 0.65rem;
@@ -424,7 +451,6 @@ textarea:focus-visible {
 }
 
 .kvx-error {
-  --kvx-accent: #a3e635;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -555,16 +581,32 @@ textarea:focus-visible {
   background: var(--kvx-quiet);
 }
 
-.kvx-pad-ok { background: var(--kvx-ok); }
-.kvx-pad-warn { background: var(--kvx-warn); }
-.kvx-pad-danger { background: var(--kvx-danger); }
-.kvx-pad-info { background: var(--kvx-info); }
-.kvx-pad-active { background: var(--kvx-accent); }
+.kvx-pad-ok {
+  background: var(--kvx-ok);
+}
+.kvx-pad-warn {
+  background: var(--kvx-warn);
+}
+.kvx-pad-danger {
+  background: var(--kvx-danger);
+}
+.kvx-pad-info {
+  background: var(--kvx-info);
+}
+.kvx-pad-active {
+  background: var(--kvx-accent);
+}
 
 /* Hardware only. Never on Kleavox chrome. */
-.kvx-pad-fabricated { background: var(--dt-gold); }
-.kvx-pad-designed { background: var(--dt-hasl); }
-.kvx-pad-drawing { background: var(--dt-copper); }
+.kvx-pad-fabricated {
+  background: var(--dt-gold);
+}
+.kvx-pad-designed {
+  background: var(--dt-hasl);
+}
+.kvx-pad-drawing {
+  background: var(--dt-copper);
+}
 
 .kvx-status {
   display: inline-flex;

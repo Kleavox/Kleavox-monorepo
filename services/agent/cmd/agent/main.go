@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/config"
 	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/cycle"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/metrics"
 	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/reporter"
 )
 
@@ -48,6 +50,8 @@ func run(args []string) error {
 		return enroll(args)
 	case "status":
 		return status(args)
+	case "metrics":
+		return printMetrics()
 	case "install-service":
 		return installService(args)
 	case "uninstall-service":
@@ -58,6 +62,19 @@ func run(args []string) error {
 	default:
 		return fmt.Errorf("unknown command %q", command)
 	}
+}
+
+func printMetrics() error {
+	snapshot, err := metrics.Collect()
+	if err != nil {
+		return err
+	}
+	encoded, err := json.MarshalIndent(snapshot, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(encoded))
+	return nil
 }
 
 func enroll(args []string) error {

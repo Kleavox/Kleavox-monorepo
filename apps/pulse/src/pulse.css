@@ -1,8 +1,6 @@
 :root {
   color-scheme: dark;
-  color: #eaf4f5;
-  background: #070b0d;
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: var(--kvx-font);
   font-synthesis: none;
 }
 
@@ -15,8 +13,8 @@ body {
   min-height: 100dvh;
   margin: 0;
   background:
-    radial-gradient(circle at 75% 8%, rgb(61 219 224 / 9%), transparent 28rem),
-    #070b0d;
+    radial-gradient(circle at 75% 8%, rgb(163 230 53 / 9%), transparent 28rem),
+    var(--kvx-base);
 }
 
 button,
@@ -35,7 +33,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid #3ddbe0;
+  outline: 2px solid var(--kvx-accent);
   outline-offset: 3px;
 }
 
@@ -58,8 +56,8 @@ select:focus-visible {
 }
 
 .pulse-kicker {
-  margin: 0 0 14px;
-  color: #3ddbe0;
+  margin: 0 0 16px;
+  color: var(--kvx-accent);
   font-family: var(--kvx-mono);
   font-size: 0.67rem;
   font-weight: 800;
@@ -79,7 +77,7 @@ select:focus-visible {
 .pulse-command > div > p:not(.pulse-kicker),
 .pulse-guest section > p:not(.pulse-kicker) {
   max-width: 36rem;
-  margin: 28px 0 0;
+  margin: 32px 0 0;
   color: var(--pulse-muted);
   font-size: clamp(1rem, 1.3vw, 1.1rem);
   line-height: 1.65;
@@ -97,9 +95,9 @@ select:focus-visible {
   justify-content: center;
   min-height: 46px;
   padding: 0 1.5rem;
-  color: #041214;
-  background: #3ddbe0;
-  border: 1px solid #3ddbe0;
+  color: var(--kvx-accent-text);
+  background: var(--kvx-accent);
+  border: 1px solid var(--kvx-accent);
   font-family: var(--kvx-mono);
   font-size: 0.7rem;
   font-weight: 800;
@@ -111,7 +109,7 @@ select:focus-visible {
 
 .pulse-inline-form {
   width: min(100%, 380px);
-  padding: 20px;
+  padding: 24px;
   background: var(--pulse-panel-soft);
   border: 1px solid var(--pulse-line-bright);
 }
@@ -129,11 +127,20 @@ select:focus-visible {
 .pulse-projects input,
 .pulse-projects select {
   min-height: 40px;
-  padding: 0 11px;
+  padding: 0 12px;
   color: var(--pulse-ink);
   background: var(--pulse-base);
-  border: 1px solid var(--pulse-line-bright);
+  border: 1px solid var(--kvx-line-control);
   outline: none;
+}
+
+.pulse-inline-form input:focus-visible,
+.pulse-check-form input:focus-visible,
+.pulse-check-form select:focus-visible,
+.pulse-projects input:focus-visible,
+.pulse-projects select:focus-visible {
+  outline: 2px solid var(--kvx-accent);
+  outline-offset: 2px;
 }
 
 .pulse-inline-form > div,
@@ -150,10 +157,10 @@ select:focus-visible {
 .pulse-node button,
 .pulse-dialog button {
   min-height: 34px;
-  padding: 0 11px;
+  padding: 0 12px;
   color: var(--pulse-muted);
   background: transparent;
-  border: 1px solid var(--pulse-line-bright);
+  border: 1px solid var(--kvx-line-control);
   cursor: pointer;
 }
 
@@ -166,7 +173,7 @@ select:focus-visible {
 
 .pulse-strip > div {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   padding: 22px clamp(18px, 3vw, 38px);
   color: var(--pulse-muted);
   border-right: 1px solid var(--pulse-line-bright);
@@ -189,7 +196,7 @@ select:focus-visible {
 }
 
 .pulse-danger {
-  color: #fb7185 !important;
+  color: var(--kvx-danger) !important;
 }
 
 .pulse-grid {
@@ -217,7 +224,7 @@ select:focus-visible {
 }
 
 .pulse-section-title h2 {
-  margin: 0 0 30px;
+  margin: 0 0 32px;
   font-size: 2rem;
   letter-spacing: -0.045em;
 }
@@ -237,7 +244,7 @@ select:focus-visible {
   align-items: start;
   justify-content: space-between;
   gap: 24px;
-  padding: 22px 24px;
+  padding: 24px;
   border-bottom: 1px solid var(--pulse-line);
 }
 
@@ -257,6 +264,9 @@ select:focus-visible {
 }
 
 .pulse-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kvx-s2);
   color: var(--pulse-muted);
   font-family: var(--kvx-mono);
   font-size: 0.58rem;
@@ -265,21 +275,30 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
+.pulse-state::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--kvx-r1);
+  background: currentColor;
+}
+
 .pulse-state-online {
-  color: #4ade80;
+  color: var(--kvx-ok);
 }
 
 .pulse-state-offline {
-  color: #fb7185;
+  color: var(--kvx-danger);
 }
 
 .pulse-state-pending {
-  color: #fbbf24;
+  color: var(--kvx-warn);
 }
 
 .pulse-node-time {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   text-align: right;
 }
 
@@ -300,8 +319,8 @@ select:focus-visible {
 
 .pulse-resources > div {
   display: grid;
-  gap: 5px;
-  padding: 17px 20px;
+  gap: 4px;
+  padding: 16px 24px;
   border-right: 1px solid var(--pulse-line);
 }
 
@@ -331,12 +350,12 @@ select:focus-visible {
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--resource);
-  background: #3ddbe0;
+  background: var(--kvx-accent);
   content: "";
 }
 
 .pulse-checks {
-  padding: 18px 24px 22px;
+  padding: 16px 24px 24px;
 }
 
 .pulse-check-heading {
@@ -375,11 +394,11 @@ select:focus-visible {
 
 .pulse-report-list {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .pulse-report {
-  padding: 14px 0;
+  padding: 16px 0;
   border-top: 1px solid var(--pulse-line);
 }
 
@@ -404,7 +423,7 @@ select:focus-visible {
 }
 
 .pulse-report p {
-  margin: 7px 0 0;
+  margin: 8px 0 0;
   color: var(--pulse-muted);
   font-size: 0.76rem;
   overflow-wrap: anywhere;
@@ -414,15 +433,15 @@ select:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .pulse-report-actions button {
   min-height: 30px;
-  padding: 0 10px;
+  padding: 0 12px;
   color: var(--pulse-muted);
   background: transparent;
-  border: 1px solid var(--pulse-line-bright);
+  border: 1px solid var(--kvx-line-control);
   font-size: 0.68rem;
   cursor: pointer;
 }
@@ -432,33 +451,33 @@ select:focus-visible {
 }
 
 .pulse-report-error {
-  margin: 0 0 10px;
-  color: #fb7185;
+  margin: 0 0 12px;
+  color: var(--kvx-danger);
   font-size: 0.74rem;
 }
 
 .pulse-dot,
 .pulse-event {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   background: var(--pulse-muted);
-  border-radius: 50%;
+  border-radius: var(--kvx-r1);
 }
 
 .pulse-dot-up,
 .pulse-event-resolved {
-  background: #4ade80;
+  background: var(--kvx-ok);
 }
 
 .pulse-dot-down,
 .pulse-event-open {
-  background: #fb7185;
+  background: var(--kvx-danger);
 }
 
 .pulse-check-form {
   display: grid;
   grid-template-columns: 1fr 90px 1.4fr auto auto;
-  gap: 5px;
+  gap: 4px;
   width: 100%;
 }
 
@@ -470,16 +489,16 @@ select:focus-visible {
 }
 
 .pulse-text-action {
-  margin: 0 24px 22px;
-  color: #3ddbe0 !important;
+  margin: 0 24px 24px;
+  color: var(--kvx-accent) !important;
   font-size: 0.7rem;
 }
 
 .pulse-incidents article {
   display: grid;
   grid-template-columns: 8px 1fr;
-  gap: 13px;
-  padding: 15px 0;
+  gap: 12px;
+  padding: 16px 0;
   border-top: 1px solid var(--pulse-line);
 }
 
@@ -501,8 +520,8 @@ select:focus-visible {
 .pulse-projects form {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 5px;
-  margin: 14px 0;
+  gap: 4px;
+  margin: 16px 0;
 }
 
 .pulse-projects input {
@@ -513,21 +532,21 @@ select:focus-visible {
 .pulse-note-list > article {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  padding: 10px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--pulse-line);
 }
 
 .pulse-project-list select {
   min-height: 30px;
   width: 84px;
-  padding: 0 5px;
-  color: #3ddbe0;
+  padding: 0 4px;
+  color: var(--kvx-accent);
   font-family: var(--kvx-mono);
   font-size: 0.58rem;
   text-transform: uppercase;
-  border: 1px solid rgb(61 219 224 / 30%);
+  border: 1px solid rgb(163 230 53 / 30%);
 }
 
 .pulse-project-list strong {
@@ -553,14 +572,34 @@ select:focus-visible {
 
 .pulse-note-list > article > div {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pulse-inline-empty {
-  padding: 28px 0;
+  padding: 32px 0;
   color: var(--pulse-muted);
   border-top: 1px solid var(--pulse-line);
   font-size: 0.82rem;
+}
+
+.pulse-action-error {
+  display: flex;
+  align-items: center;
+  gap: var(--kvx-s2);
+  margin: var(--kvx-s2) 0 0;
+  color: var(--kvx-danger);
+  font-family: var(--kvx-mono);
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
+
+.pulse-action-error::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--kvx-r1);
+  background: currentColor;
 }
 
 .pulse-dialog-backdrop {
@@ -569,8 +608,8 @@ select:focus-visible {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 20px;
-  background: rgb(4 4 10 / 82%);
+  padding: 24px;
+  background: rgb(7 9 8 / 82%);
 }
 
 .pulse-dialog {
@@ -581,7 +620,7 @@ select:focus-visible {
 }
 
 .pulse-dialog h2 {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   font-size: 2rem;
   letter-spacing: -0.04em;
 }
@@ -593,7 +632,7 @@ select:focus-visible {
 .pulse-dialog pre {
   overflow: auto;
   padding: 16px;
-  color: #3ddbe0;
+  color: var(--kvx-accent);
   background: var(--pulse-base);
   border: 1px solid var(--pulse-line-bright);
   white-space: pre-wrap;
@@ -649,10 +688,10 @@ select:focus-visible {
 .pulse-guest-panel header {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 16px;
   color: var(--pulse-muted);
   border-bottom: 1px solid var(--pulse-line);
   font-family: var(--kvx-mono);
@@ -662,13 +701,13 @@ select:focus-visible {
 .pulse-guest-panel header span {
   width: 7px;
   height: 7px;
-  background: #4ade80;
+  background: var(--kvx-ok);
   border-radius: 50%;
-  box-shadow: 0 0 10px #4ade80;
+  box-shadow: 0 0 10px var(--kvx-ok);
 }
 
 .pulse-guest-panel header em {
-  color: #4ade80;
+  color: var(--kvx-ok);
   font-style: normal;
 }
 
@@ -680,8 +719,8 @@ select:focus-visible {
 
 .pulse-guest-metrics strong {
   display: grid;
-  gap: 6px;
-  padding: 25px;
+  gap: 8px;
+  padding: 24px;
   font-size: 2rem;
   border-right: 1px solid var(--pulse-line);
 }
@@ -696,18 +735,18 @@ select:focus-visible {
 .pulse-guest-panel svg {
   display: block;
   width: 100%;
-  padding: 30px 20px 15px;
+  padding: 32px 24px 16px;
   background:
-    linear-gradient(90deg, rgb(61 219 224 / 5%) 1px, transparent 1px),
-    linear-gradient(rgb(61 219 224 / 5%) 1px, transparent 1px);
+    linear-gradient(90deg, rgb(163 230 53 / 5%) 1px, transparent 1px),
+    linear-gradient(rgb(163 230 53 / 5%) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
 .pulse-guest-panel path {
   fill: none;
-  stroke: #3ddbe0;
+  stroke: var(--kvx-accent);
   stroke-width: 2;
-  filter: drop-shadow(0 0 5px rgb(61 219 224 / 42%));
+  filter: drop-shadow(0 0 5px rgb(163 230 53 / 42%));
 }
 
 @media (max-width: 980px) {
@@ -776,7 +815,7 @@ select:focus-visible {
   }
 
   .pulse-guest-metrics strong {
-    padding: 18px 12px;
+    padding: 16px 12px;
     font-size: 1.4rem;
   }
 }
@@ -790,19 +829,15 @@ select:focus-visible {
 }
 
 :root {
-  --pulse-base: #070b0d;
-  --pulse-panel: #0c1316;
-  --pulse-panel-soft: #101a1e;
-  --pulse-line: #1f3440;
-  --pulse-line-bright: #2e4d5c;
-  --pulse-ink: #eaf4f5;
-  --pulse-muted: #739099;
-  --pulse-quiet: #4d6570;
-  --pulse-accent: #3ddbe0;
-
-  --kvx-accent: var(--pulse-accent);
-  --kvx-accent-glow: rgb(61 219 224 / 12%);
-  --kvx-accent-text: #041214;
+  --pulse-base: var(--kvx-base);
+  --pulse-panel: var(--kvx-surface);
+  --pulse-panel-soft: var(--kvx-surface-raised);
+  --pulse-line: var(--kvx-line);
+  --pulse-line-bright: var(--kvx-line-bright);
+  --pulse-ink: var(--kvx-ink);
+  --pulse-muted: var(--kvx-muted);
+  --pulse-quiet: var(--kvx-quiet);
+  --pulse-accent: var(--kvx-accent);
 
   color: var(--pulse-ink);
   background: var(--pulse-base);
@@ -811,8 +846,8 @@ select:focus-visible {
 
 body {
   background:
-    radial-gradient(circle at 80% 3%, rgb(61 219 224 / 11%), transparent 31rem),
-    linear-gradient(90deg, rgb(61 219 224 / 3%) 1px, transparent 1px),
+    radial-gradient(circle at 80% 3%, rgb(163 230 53 / 11%), transparent 31rem),
+    linear-gradient(90deg, rgb(163 230 53 / 3%) 1px, transparent 1px),
     var(--pulse-base);
   background-size:
     auto,
@@ -840,11 +875,11 @@ body {
   height: 420px;
   right: 3%;
   top: 50%;
-  border: 1px solid rgb(61 219 224 / 13%);
+  border: 1px solid rgb(163 230 53 / 13%);
   border-radius: 50%;
   box-shadow:
-    0 0 0 65px rgb(61 219 224 / 2%),
-    0 0 0 130px rgb(61 219 224 / 1%);
+    0 0 0 65px rgb(163 230 53 / 2%),
+    0 0 0 130px rgb(163 230 53 / 1%);
   content: "";
   transform: translateY(-50%);
 }
@@ -878,9 +913,9 @@ body {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: end;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--pulse-line-bright);
-  background: rgb(12 19 22 / 80%);
+  background: rgb(14 18 16 / 80%);
   backdrop-filter: blur(16px);
 }
 
@@ -902,7 +937,7 @@ body {
 .pulse-command-readout i {
   width: 76%;
   height: 2px;
-  margin-top: 18px;
+  margin-top: 16px;
   background: var(--pulse-line);
 }
 
@@ -914,12 +949,11 @@ body {
   box-shadow: 0 0 14px var(--pulse-accent);
   content: "";
   transform-origin: left;
-  animation: pulse-sweep 2.2s ease-in-out infinite alternate;
 }
 
 .pulse-primary {
   min-height: 50px;
-  border-radius: 7px;
+  border-radius: var(--kvx-r2);
   border-color: var(--pulse-accent);
   background: var(--pulse-accent);
   transition:
@@ -929,8 +963,9 @@ body {
 }
 
 .pulse-primary:hover {
-  background: #75edf4;
-  box-shadow: 0 15px 36px rgb(61 219 224 / 18%);
+  background: var(--kvx-accent);
+  filter: brightness(1.15);
+  box-shadow: 0 15px 36px rgb(163 230 53 / 18%);
   transform: translateY(-2px);
 }
 
@@ -942,9 +977,9 @@ body {
   position: relative;
   z-index: 3;
   width: calc(100% - clamp(30px, 6vw, 90px));
-  margin: -30px auto 0;
+  margin: -32px auto 0;
   border: 1px solid var(--pulse-line-bright);
-  background: rgb(12 19 22 / 94%);
+  background: rgb(14 18 16 / 94%);
   box-shadow: 0 24px 70px rgb(0 0 0 / 34%);
 }
 
@@ -973,7 +1008,7 @@ body {
 }
 
 .pulse-side {
-  background: rgb(9 15 17 / 72%);
+  background: rgb(7 9 8 / 72%);
 }
 
 .pulse-side > section + section,
@@ -1024,8 +1059,8 @@ body {
 .pulse-check-form select,
 .pulse-projects input,
 .pulse-projects select {
-  border-color: var(--pulse-line);
-  background: #080d0f;
+  border-color: var(--kvx-line-control);
+  background: var(--kvx-base);
 }
 
 .pulse-resources i::after {
@@ -1041,7 +1076,7 @@ body {
 }
 
 .pulse-dialog {
-  border-radius: 10px;
+  border-radius: var(--kvx-r3);
 }
 
 .pulse-guest {
@@ -1059,13 +1094,13 @@ body {
   position: absolute;
   z-index: -1;
   inset: -28px 42px 28px -28px;
-  border: 1px solid rgb(61 219 224 / 13%);
+  border: 1px solid rgb(163 230 53 / 13%);
   content: "";
 }
 
 .pulse-guest-panel path {
   stroke-dasharray: 900;
-  animation: pulse-draw 4.5s linear infinite;
+  animation: pulse-draw 4.5s linear 1 both;
 }
 
 @keyframes pulse-enter {
@@ -1076,15 +1111,6 @@ body {
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes pulse-sweep {
-  from {
-    transform: scaleX(0.18);
-  }
-  to {
-    transform: scaleX(1);
   }
 }
 
@@ -1100,7 +1126,7 @@ body {
 @media (max-width: 980px) {
   .pulse-command {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: 32px;
     min-height: 0;
     padding-bottom: 60px;
   }
@@ -1134,6 +1160,11 @@ body {
 
   .pulse-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pulse-guest {
+    grid-template-columns: 1fr;
+    min-height: 0;
   }
 }
 

@@ -129,7 +129,7 @@ export function useChallenge(
       <div className="pass-challenge-inline" aria-live="polite">
         {status === "error" ? (
           <button className="pass-text-action" type="button" onClick={retry}>
-            Security check failed — retry
+            Security check failed, retry
           </button>
         ) : (
           <span>Security check…</span>
