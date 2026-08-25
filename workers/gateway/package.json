@@ -14,6 +14,7 @@
     "@kleavox/auth": "workspace:*",
     "@kleavox/config": "workspace:*",
     "@kleavox/core": "workspace:*",
+    "@kleavox/topology": "workspace:*",
     "@kleavox/web-app": "workspace:*",
     "hono": "catalog:"
   },

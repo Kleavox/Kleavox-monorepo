@@ -13,6 +13,7 @@
     "lint:async": "node tooling/lint/unhandled-async.mjs",
     "lint:ports": "node tooling/lint/worker-ports.mjs",
     "lint:patterns": "node tooling/lint/html-patterns.mjs",
+    "lint:legacy": "node tooling/lint/legacy-chrome.mjs",
     "test": "turbo run test && pnpm rust:test",
     "typecheck": "turbo run typecheck && tsc -p tsconfig.tooling.json --noEmit --checkers 1",
     "compression:build": "pnpm --filter @kleavox/compression build",

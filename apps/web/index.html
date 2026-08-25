@@ -21,107 +21,37 @@
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <header class="hdr">
-      <div class="shell hdr-inner">
-        <a class="wm" href="/" aria-label="Kleavox home">Kleav<b>ox</b></a>
-        <div class="account" data-account>
-          <a class="btn-nav" href="{{PASS_SIGNIN_HREF}}" data-signin>
-            Sign in
-          </a>
-          <div class="account-menu" data-account-menu hidden>
-            <button
-              type="button"
-              class="account-trigger"
-              data-account-trigger
-              aria-expanded="false"
-            >
-              <span data-account-name></span>
-            </button>
-            <div class="account-dropdown" data-account-dropdown hidden>
-              <button type="button" data-logout>Sign out</button>
-            </div>
+    <header data-app-header></header>
+    <template data-header-account>
+      <div class="account" data-account>
+        <a class="btn-nav" href="{{PASS_SIGNIN_HREF}}" data-signin> Sign in </a>
+        <div class="account-menu" data-account-menu hidden>
+          <button
+            type="button"
+            class="account-trigger"
+            data-account-trigger
+            aria-expanded="false"
+          >
+            <span data-account-name></span>
+          </button>
+          <div class="account-dropdown" data-account-dropdown hidden>
+            <button type="button" data-logout>Sign out</button>
           </div>
         </div>
       </div>
-    </header>
+    </template>
 
-    <main>
-      <section class="hero shell">
-        <div class="hero-copy">
-          <p class="kicker">KLEAVOX / SYSTEM</p>
-          <h1>One<br />system.</h1>
-          <p class="hero-lede">
-            Public routes, shared identity, and infrastructure signals. All
-            under one deliberate, edge-native platform.
-          </p>
-          <div class="hero-acts">
-            <a class="btn-p" href="{{PASS_HREF}}"
-              >Open Pass <span aria-hidden="true">→</span></a
-            >
-          </div>
-          <div class="route-sample" aria-hidden="true">
-            <strong>{{ROOT_HOST}}</strong>
-            <span>/launch</span>
-            <i></i>
-          </div>
-        </div>
-
-        <div class="mosaic" aria-label="Kleavox products">
-          <a class="mc mc1" href="{{LINK_HREF}}" aria-label="Open Kleavox Link">
-            <div class="mc-in">
-              <span class="mc-label">KLEAVOX / LINK</span>
-              <strong>One address for links.</strong>
-              <div class="mc-deco mc-deco-link" aria-hidden="true">
-                <span></span><span></span><span></span>
-                <div><b></b><b></b><b></b><b></b></div>
-              </div>
-              <div class="mc-bar"></div>
-            </div>
-            <span class="mc-tag">Link /</span>
-          </a>
-          <a class="mc mc2" href="{{PASS_HREF}}" aria-label="Open Kleavox Pass">
-            <div class="mc-in">
-              <span class="mc-label">KLEAVOX / PASS</span>
-              <strong>One account.</strong>
-              <div class="mc-deco mc-deco-pass" aria-hidden="true">
-                <div class="orb"><i></i><i></i></div>
-              </div>
-              <div class="mc-bar"></div>
-            </div>
-            <span class="mc-tag">Pass /</span>
-          </a>
-          <a class="mc mc3" href="{{PORT_HREF}}" aria-label="Open Kleavox Port">
-            <div class="mc-in">
-              <span class="mc-label">KLEAVOX / PORT</span>
-              <strong>Selected work.</strong>
-              <div class="mc-deco mc-deco-port" aria-hidden="true">
-                <i></i><i></i><i></i><i></i>
-              </div>
-              <div class="mc-bar"></div>
-            </div>
-            <span class="mc-tag">Port /</span>
-          </a>
-          <a
-            class="mc mc4"
-            href="{{PULSE_HREF}}"
-            aria-label="Open Kleavox Pulse"
-            data-pulse-only
-            hidden
-          >
-            <div class="mc-in">
-              <span class="mc-label">KLEAVOX / PULSE</span>
-              <strong>Watch every host.</strong>
-              <div class="mc-deco mc-deco-pulse" aria-hidden="true">
-                <i style="height: 38%"></i><i style="height: 62%"></i>
-                <i style="height: 48%"></i><i style="height: 82%"></i>
-                <i style="height: 55%"></i><i style="height: 70%"></i>
-              </div>
-              <div class="mc-bar"></div>
-            </div>
-            <span class="mc-tag">Pulse /</span>
-          </a>
-        </div>
+    <main class="kvx-main shell">
+      <h1 data-status-line></h1>
+      <section data-attention hidden>
+        <p class="kvx-section-label">Needs you <b data-attention-count></b></p>
+        <ul class="kvx-rows" data-attention-rows></ul>
       </section>
+      <section>
+        <p class="kvx-section-label">Tools <b>3</b></p>
+        <ul class="kvx-rows" data-tools></ul>
+      </section>
+      <div data-home-status></div>
     </main>
 
     <footer class="ftr">
