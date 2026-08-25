@@ -1,10 +1,11 @@
 export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code?: string,
-  ) {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
     super(message);
+    this.status = status;
+    this.code = code;
   }
 }
 
@@ -26,15 +27,19 @@ export async function readApiResponse<T = unknown>(
   return payload as T;
 }
 
+const BODYLESS_METHODS = new Set(["GET", "HEAD"]);
+
 export async function apiFetch<T = unknown>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const method = (init.method ?? "GET").toUpperCase();
+  const declaresJson = init.body !== undefined || !BODYLESS_METHODS.has(method);
   const response = await fetch(path, {
     ...init,
     credentials: "include",
     headers: {
-      ...(init.body ? { "content-type": "application/json" } : {}),
+      ...(declaresJson ? { "content-type": "application/json" } : {}),
       ...init.headers,
     },
   });

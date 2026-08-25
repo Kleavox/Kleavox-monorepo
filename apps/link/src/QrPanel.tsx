@@ -1,4 +1,7 @@
+import { createPortal } from "react-dom";
+import { useId } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { useDialog } from "@kleavox/ui";
 
 interface QrPanelLink {
   slug: string;
@@ -12,6 +15,8 @@ export default function QrPanel({
   link: QrPanelLink;
   onClose: () => void;
 }) {
+  const titleId = useId();
+  const dialogRef = useDialog<HTMLElement>(onClose);
   const download = () => {
     const svg = document.querySelector<SVGElement>("#link-qr-code");
     if (!svg) return;
@@ -25,13 +30,20 @@ export default function QrPanel({
     URL.revokeObjectURL(anchor.href);
   };
 
-  return (
+  return createPortal(
     <div className="link-modal-backdrop" role="presentation">
-      <section className="link-stats link-qr" role="dialog" aria-modal="true">
+      <section
+        ref={dialogRef}
+        tabIndex={-1}
+        className="link-stats link-qr"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <header>
           <div>
             <p className="link-kicker">QR / {link.slug}</p>
-            <h2>Scan route</h2>
+            <h2 id={titleId}>Scan route</h2>
           </div>
           <button type="button" onClick={onClose}>
             Close
@@ -51,6 +63,7 @@ export default function QrPanel({
           Download SVG
         </button>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

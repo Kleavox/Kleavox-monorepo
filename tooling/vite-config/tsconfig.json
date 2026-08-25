@@ -1,0 +1,4 @@
+{
+  "extends": "@kleavox/typescript/node.json",
+  "include": ["index.ts"]
+}

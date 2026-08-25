@@ -1,5 +1,4 @@
 export type CheckKind = "HTTP" | "TCP" | "SERVICE";
-export type CheckStatus = "UP" | "DOWN";
 
 export function validateCheckTarget(
   kind: CheckKind,
@@ -25,25 +24,4 @@ export function validateCheckTarget(
   }
 
   return /^[a-zA-Z0-9@_.:-]{1,128}$/u.test(value) ? value : null;
-}
-
-export function nextFailureCount(
-  previous: number,
-  status: CheckStatus,
-): number {
-  return status === "UP" ? 0 : previous + 1;
-}
-
-export function shouldOpenIncident(
-  status: CheckStatus,
-  failureCount: number,
-): boolean {
-  return status === "DOWN" && failureCount === 2;
-}
-
-export function shouldResolveIncident(
-  previousStatus: string,
-  status: CheckStatus,
-): boolean {
-  return previousStatus === "DOWN" && status === "UP";
 }

@@ -1,11 +1,24 @@
-import { isReservedSlug } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
+import {
+  accountCredentialRequestSchema,
+  accountDeleteRequestSchema,
+  accountSetupRequestSchema,
+  accountUpdateRequestSchema,
+  challengeRequestSchema,
+  emailActionRequestSchema,
+  loginRequestSchema,
+  oauthLinkRequestSchema,
+  preloginRequestSchema,
+  registerRequestSchema,
+  resetCredentialRequestSchema,
+  tokenActionRequestSchema,
+} from "@kleavox/pass-protocol";
 import type { Context, Hono } from "hono";
-import { z } from "zod";
+import type { ZodError } from "zod";
 
 import type { Env } from "../env";
 import { writeAuditEvent } from "../lib/audit";
-import { hashAuthVerifier, hashToken, randomToken } from "../lib/crypto";
+import { hashToken, randomToken } from "../lib/crypto";
 import type { OAuthProfile, OAuthProvider } from "../lib/oauth";
 import { getSession, readSessionToken } from "../lib/session";
 
@@ -23,20 +36,6 @@ interface UserRow {
   disabled_at: string | null;
   identity_id: string | null;
   password_hash: string | null;
-}
-
-interface AccountKeysRow {
-  kdf_salt: string;
-  auth_verifier_hash: string;
-  account_public_key: string;
-  wrapped_private_key: string;
-}
-
-export interface AccountKeyCredential {
-  salt: string;
-  authVerifier: string;
-  accountPublicKey: string;
-  wrappedPrivateKey: string;
 }
 
 export interface VerificationRecord {
@@ -59,82 +58,18 @@ export const EMAIL_VERIFICATION_TTL_MS = 30 * 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
 export const OAUTH_LINK_TTL_SECONDS = 15 * 60;
 
-const emailSchema = z
-  .string()
-  .trim()
-  .email()
-  .max(254)
-  .transform(normalizeEmail);
-const tokenSchema = z.string().min(32).max(256);
-const usernameSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .regex(
-    /^[a-z0-9_]{3,20}$/u,
-    "Username must be 3-20 lowercase letters, digits, or underscores.",
-  )
-  .refine((value) => !isReservedSlug(value), "This username is reserved.");
-
-const accountKeysSchema = z.object({
-  salt: z.string().min(16).max(128),
-  authVerifier: z.string().min(40).max(128),
-  accountPublicKey: z.string().min(40).max(512),
-  wrappedPrivateKey: z.string().min(40).max(512),
-});
-
-export const registerSchema = z.object({
-  email: emailSchema,
-  username: usernameSchema,
-  keys: accountKeysSchema,
-});
-
-export const preloginSchema = z.object({ email: emailSchema });
-
-export const loginSchema = z.object({
-  email: emailSchema,
-  authVerifier: z.string().min(40).max(128),
-});
-
-export const emailActionSchema = z.object({
-  email: emailSchema,
-});
-
-export const tokenActionSchema = z.object({
-  token: tokenSchema,
-});
-
-export const resetPasswordSchema = z.object({
-  token: tokenSchema,
-  keys: accountKeysSchema,
-});
-
-export const challengeSchema = z.object({
-  token: z.string().min(1).max(4096),
-  scope: z.enum(["basic", "fresh"]),
-  returnTo: z.string().max(2048).optional(),
-});
-
-export const accountUpdateSchema = z.object({
-  username: usernameSchema,
-});
-
-export const accountSetupSchema = z.object({
-  username: usernameSchema,
-  keys: accountKeysSchema.optional(),
-});
-
-export const oauthLinkSchema = z.object({
-  token: tokenSchema,
-});
-
-export const accountPasswordSchema = z.object({
-  keys: accountKeysSchema,
-});
-
-export const accountDeleteSchema = z.object({
-  confirmEmail: emailSchema,
-});
+export const registerSchema = registerRequestSchema;
+export const preloginSchema = preloginRequestSchema;
+export const loginSchema = loginRequestSchema;
+export const emailActionSchema = emailActionRequestSchema;
+export const tokenActionSchema = tokenActionRequestSchema;
+export const resetPasswordSchema = resetCredentialRequestSchema;
+export const challengeSchema = challengeRequestSchema;
+export const accountUpdateSchema = accountUpdateRequestSchema;
+export const accountSetupSchema = accountSetupRequestSchema;
+export const oauthLinkSchema = oauthLinkRequestSchema;
+export const accountPasswordSchema = accountCredentialRequestSchema;
+export const accountDeleteSchema = accountDeleteRequestSchema;
 
 export function apiError(
   context: AppContext,
@@ -143,10 +78,6 @@ export function apiError(
   message: string,
 ) {
   return context.json({ code, message }, status);
-}
-
-function normalizeEmail(value: string): string {
-  return value.toLowerCase();
 }
 
 export function clientIp(request: Request): string {
@@ -219,46 +150,6 @@ export async function findUserByEmail(
   )
     .bind(email)
     .first<UserRow>();
-}
-
-export async function findAccountKeys(
-  env: Env,
-  userId: string,
-): Promise<AccountKeysRow | null> {
-  return env.DB.prepare(
-    `SELECT kdf_salt, auth_verifier_hash, account_public_key,
-            wrapped_private_key
-     FROM account_keys WHERE user_id = ?`,
-  )
-    .bind(userId)
-    .first<AccountKeysRow>();
-}
-
-export async function storeAccountKeys(
-  env: Env,
-  userId: string,
-  keys: AccountKeyCredential,
-): Promise<void> {
-  await env.DB.prepare(
-    `INSERT INTO account_keys
-       (user_id, kdf_salt, auth_verifier_hash, account_public_key,
-        wrapped_private_key)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(user_id) DO UPDATE SET
-       kdf_salt = excluded.kdf_salt,
-       auth_verifier_hash = excluded.auth_verifier_hash,
-       account_public_key = excluded.account_public_key,
-       wrapped_private_key = excluded.wrapped_private_key,
-       updated_at = datetime('now')`,
-  )
-    .bind(
-      userId,
-      keys.salt,
-      await hashAuthVerifier(keys.authVerifier),
-      keys.accountPublicKey,
-      keys.wrappedPrivateKey,
-    )
-    .run();
 }
 
 type OAuthResolution =
@@ -334,7 +225,7 @@ export async function createVerificationToken(
   };
 }
 
-export function firstIssue(error: z.ZodError): string {
+export function firstIssue(error: ZodError): string {
   return error.issues[0]?.message ?? "Invalid input.";
 }
 

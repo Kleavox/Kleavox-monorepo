@@ -1,4 +1,5 @@
 import type { Identity } from "@kleavox/core";
+export type { DeviceSession } from "@kleavox/pass-protocol";
 
 export type Mode = "login" | "register" | "forgot";
 
@@ -16,13 +17,4 @@ export interface FormState {
 export interface OAuthProviders {
   google: boolean;
   github: boolean;
-}
-
-export interface DeviceSession {
-  id: string;
-  createdAt: string;
-  expiresAt: string;
-  userAgent: string | null;
-  ip: string | null;
-  current: boolean;
 }

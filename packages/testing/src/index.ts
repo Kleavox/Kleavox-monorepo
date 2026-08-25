@@ -4,13 +4,41 @@ export interface MockFetcher {
   fetch: ReturnType<typeof vi.fn>;
 }
 
-export function createMockFetcher() {
+export interface MockD1Database {
+  prepare: ReturnType<typeof vi.fn>;
+  bind: ReturnType<typeof vi.fn>;
+  first: ReturnType<typeof vi.fn>;
+  all: ReturnType<typeof vi.fn>;
+  run: ReturnType<typeof vi.fn>;
+  batch: ReturnType<typeof vi.fn>;
+  exec: ReturnType<typeof vi.fn>;
+}
+
+export interface MockKVNamespace {
+  get: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  list: ReturnType<typeof vi.fn>;
+  getWithMetadata: ReturnType<typeof vi.fn>;
+}
+
+export interface MockR2Bucket {
+  get: ReturnType<typeof vi.fn>;
+  head: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  list: ReturnType<typeof vi.fn>;
+  createMultipartUpload: ReturnType<typeof vi.fn>;
+  resumeMultipartUpload: ReturnType<typeof vi.fn>;
+}
+
+export function createMockFetcher(): MockFetcher {
   return {
     fetch: vi.fn(() => Promise.resolve(new Response(null, { status: 404 }))),
   };
 }
 
-export function createMockD1Database() {
+export function createMockD1Database(): MockD1Database {
   return {
     prepare: vi.fn().mockReturnThis(),
     bind: vi.fn().mockReturnThis(),
@@ -22,7 +50,7 @@ export function createMockD1Database() {
   };
 }
 
-export function createMockKVNamespace() {
+export function createMockKVNamespace(): MockKVNamespace {
   return {
     get: vi.fn(),
     put: vi.fn(),
@@ -32,7 +60,7 @@ export function createMockKVNamespace() {
   };
 }
 
-export function createMockR2Bucket() {
+export function createMockR2Bucket(): MockR2Bucket {
   return {
     get: vi.fn(),
     head: vi.fn(),

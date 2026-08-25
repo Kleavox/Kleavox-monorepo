@@ -20,7 +20,9 @@ import { linkUnavailablePage, protectedLinkPage } from "./lib/page";
 import { hashLinkPassword, verifyLinkPassword } from "./lib/password";
 import { clientContext, parseExpiration, parseTargetUrl } from "./lib/request";
 import { generateSlug, isValidSlug, normalizeSlug } from "./lib/slug";
-import { app as dropApp, purgeDropUser } from "./drop/app";
+import { isoTimestamp } from "./lib/timestamps";
+import { app as dropApp } from "./drop/app";
+import { createDropLifecycle } from "./drop/lifecycle";
 
 interface Variables {
   session: SessionIdentity;
@@ -168,7 +170,7 @@ app.post("/internal/purge-user", async (context) => {
   await context.env.DB.prepare(`DELETE FROM links WHERE user_id = ?`)
     .bind(userId)
     .run();
-  await purgeDropUser(context.env, userId);
+  await createDropLifecycle(context.env).purgeAccount(userId);
   return context.json({ ok: true });
 });
 
@@ -634,12 +636,12 @@ function publicLink(link: LinkRow, publicOrigin: string) {
     targetUrl: link.target_url,
     shortUrl: `${publicOrigin}/${link.slug}`,
     protected: Boolean(link.password_hash),
-    expiresAt: link.expires_at,
-    disabledAt: link.disabled_at,
+    expiresAt: isoTimestamp(link.expires_at),
+    disabledAt: isoTimestamp(link.disabled_at),
     clickCount: link.click_count,
-    lastClickedAt: link.last_clicked_at,
-    createdAt: link.created_at,
-    updatedAt: link.updated_at,
+    lastClickedAt: isoTimestamp(link.last_clicked_at),
+    createdAt: isoTimestamp(link.created_at),
+    updatedAt: isoTimestamp(link.updated_at),
   };
 }
 

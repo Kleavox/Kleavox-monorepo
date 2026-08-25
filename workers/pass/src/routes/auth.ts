@@ -4,6 +4,7 @@ import {
   verifyTurnstile,
 } from "@kleavox/auth";
 
+import { findAccountKeys } from "../account/credentials";
 import {
   clearSessionCookie,
   makeSessionCookie,
@@ -29,7 +30,6 @@ import {
   checkVerification,
   clientIp,
   currentSession,
-  findAccountKeys,
   findUserByEmail,
   firstIssue,
   loginSchema,

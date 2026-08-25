@@ -1,0 +1,11 @@
+{
+  "extends": "@kleavox/typescript/library.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

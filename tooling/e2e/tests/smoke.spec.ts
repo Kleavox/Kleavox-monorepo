@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import { LOCAL_WORKER_PORTS, localWorkerOrigin } from "@kleavox/topology";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -10,9 +11,9 @@ const repoRoot = path.resolve(
   "..",
 );
 
-const GATEWAY = "http://localhost:8786";
-const PASS = "http://localhost:8787";
-const LINK = "http://localhost:8788";
+const GATEWAY = localWorkerOrigin("gateway", "localhost");
+const PASS = localWorkerOrigin("pass", "localhost");
+const LINK = localWorkerOrigin("link", "localhost");
 
 const email = `e2e-${Date.now()}@example.com`;
 const password = "playwright-password-1";
@@ -170,7 +171,7 @@ test("guest short-link creation routes through the security challenge", async ({
     .fill("https://example.org/e2e");
   await page.getByRole("button", { name: "Shorten" }).click();
 
-  await page.waitForURL((url) => url.port === "8787");
+  await page.waitForURL((url) => url.port === String(LOCAL_WORKER_PORTS.pass));
   await context.close();
 });
 

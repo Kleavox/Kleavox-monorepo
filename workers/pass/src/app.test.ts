@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import app from "./app";
 import type { Env } from "./env";
 
@@ -16,6 +16,18 @@ const baseEnv = {
 } as unknown as Env;
 
 describe("Pass HTTP boundary", () => {
+  it("requires the zero-knowledge account key table before reporting ready", async () => {
+    const first = vi.fn(async () => ({ total: 5 }));
+    const prepare = vi.fn((_sql: string) => ({ first }));
+    const response = await app.request("https://pass.product.test/ready", {}, {
+      ...baseEnv,
+      DB: { prepare },
+    } as unknown as Env);
+
+    expect(response.status).toBe(200);
+    expect(prepare.mock.calls[0]?.[0]).toContain("account_keys");
+  });
+
   it("rejects state-changing requests from another origin", async () => {
     const response = await app.request(
       "https://pass.product.test/api/login",

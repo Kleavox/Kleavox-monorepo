@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { COMPATIBILITY_DATE, workerName } from "@kleavox/topology";
 
 const args = process.argv.slice(2);
 const local = hasFlag("--local");
@@ -126,12 +127,12 @@ function configPath() {
   writeFileSync(
     cachedConfigPath,
     JSON.stringify({
-      name: `${prefix}-pass`,
-      compatibility_date: "2026-06-05",
+      name: workerName(prefix, "pass"),
+      compatibility_date: COMPATIBILITY_DATE,
       d1_databases: [
         {
           binding: "DB",
-          database_name: `${prefix}-pass`,
+          database_name: workerName(prefix, "pass"),
           database_id: databaseId,
         },
       ],

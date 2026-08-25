@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,10 +18,10 @@ import (
 	"syscall"
 	"time"
 
-	"example.com/kleavox/agent/internal/checks"
-	"example.com/kleavox/agent/internal/config"
-	"example.com/kleavox/agent/internal/metrics"
-	"example.com/kleavox/agent/internal/reporter"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/config"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/cycle"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/metrics"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/reporter"
 )
 
 var version = "dev"
@@ -49,6 +50,8 @@ func run(args []string) error {
 		return enroll(args)
 	case "status":
 		return status(args)
+	case "metrics":
+		return printMetrics()
 	case "install-service":
 		return installService(args)
 	case "uninstall-service":
@@ -59,6 +62,19 @@ func run(args []string) error {
 	default:
 		return fmt.Errorf("unknown command %q", command)
 	}
+}
+
+func printMetrics() error {
+	snapshot, err := metrics.Collect()
+	if err != nil {
+		return err
+	}
+	encoded, err := json.MarshalIndent(snapshot, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(encoded))
+	return nil
 }
 
 func enroll(args []string) error {
@@ -108,11 +124,16 @@ func runDaemon(args []string, once bool) error {
 		return err
 	}
 	client := reporter.New(cfg.Endpoint, cfg.Token, version)
+	host, err := currentHost()
+	if err != nil {
+		return err
+	}
+	monitoringCycle := cycle.New(client, host)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	if once {
-		_, err := executeCycle(ctx, client, cfg.NodeID)
+		_, err := monitoringCycle.Execute(ctx, cfg.NodeID)
 		return err
 	}
 
@@ -120,7 +141,7 @@ func runDaemon(args []string, once bool) error {
 	interval := cfg.Interval
 	for {
 		started := time.Now()
-		nextInterval, err := executeCycle(ctx, client, cfg.NodeID)
+		nextInterval, err := monitoringCycle.Execute(ctx, cfg.NodeID)
 		if err != nil {
 			log.Printf("monitoring cycle failed: %v", err)
 		} else if nextInterval >= 15 && nextInterval <= 3600 {
@@ -139,36 +160,6 @@ func runDaemon(args []string, once bool) error {
 		case <-timer.C:
 		}
 	}
-}
-
-func executeCycle(ctx context.Context, client *reporter.Client, nodeID string) (int, error) {
-	snapshot, err := metrics.Collect()
-	if err != nil {
-		return 0, fmt.Errorf("collect metrics: %w", err)
-	}
-	host, err := currentHost()
-	if err != nil {
-		return 0, err
-	}
-	heartbeat, err := client.SendHeartbeat(ctx, reporter.Heartbeat{
-		NodeID: nodeID, Host: host, Metrics: snapshot,
-	})
-	if err != nil {
-		return 0, describeResponseError("heartbeat", err)
-	}
-
-	agentConfig, err := client.FetchConfig(ctx)
-	if err != nil {
-		return 0, describeResponseError("fetch checks", err)
-	}
-	results := checks.RunAll(ctx, agentConfig.Checks)
-	if err := client.SendResults(ctx, nodeID, results); err != nil {
-		return 0, describeResponseError("report checks", err)
-	}
-	if agentConfig.IntervalSeconds > 0 {
-		return agentConfig.IntervalSeconds, nil
-	}
-	return heartbeat.IntervalSeconds, nil
 }
 
 func status(args []string) error {

@@ -1,4 +1,13 @@
-import { FormEvent, Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  type FormEvent,
+  Suspense,
+  lazy,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 import {
   apiFetch as request,
   displayHandle,
@@ -11,6 +20,8 @@ import {
   ROOT_HOST,
   ROOT_ORIGIN,
   signInUrl,
+  useAction,
+  useDialog,
 } from "@kleavox/ui";
 
 import { FilesApp } from "./files";
@@ -64,13 +75,15 @@ export function WorkspaceApp() {
   const handleLogout = async () => {
     try {
       await request("/api/logout", { method: "POST" });
-    } finally {
-      window.location.reload();
+    } catch (cause) {
+      setState({ status: "error", message: errorMessage(cause) });
+      return;
     }
+    window.location.reload();
   };
 
   if (state.status === "error") {
-    return <ErrorScreen code="503" />;
+    return <ErrorScreen code="503" message={state.message} />;
   }
 
   return (
@@ -277,7 +290,7 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
               value={slug}
               onChange={(event) => setSlug(event.target.value.toLowerCase())}
               placeholder="optional"
-              pattern="[a-z0-9][a-z0-9-]{1,49}"
+              pattern="[a-z0-9][a-z0-9\-]{1,49}"
             />
           </div>
         </label>
@@ -340,7 +353,7 @@ function LinkList({
         })),
         ...files.map((file) => ({
           kind: "file" as const,
-          createdAt: file.created_at,
+          createdAt: file.createdAt,
           value: file,
         })),
       ].sort(
@@ -426,19 +439,22 @@ function FileRow({
   onRefresh: () => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
-  const publicUrl = `${ROOT_ORIGIN}/${file.public_token}`;
+  const { error, run } = useAction();
+  const publicUrl = `${ROOT_ORIGIN}/${file.publicToken}`;
   const state =
-    file.status === "ACTIVE" && Date.parse(file.expires_at) <= Date.now()
+    file.status === "ACTIVE" && Date.parse(file.expiresAt) <= Date.now()
       ? "Expired"
       : file.status[0] + file.status.slice(1).toLowerCase();
 
   async function remove() {
     setBusy(true);
     try {
-      await request(`/api/public/${encodeURIComponent(file.public_token)}`, {
-        method: "DELETE",
+      await run(async () => {
+        await request(`/api/public/${encodeURIComponent(file.publicToken)}`, {
+          method: "DELETE",
+        });
+        await onRefresh();
       });
-      await onRefresh();
     } finally {
       setBusy(false);
     }
@@ -448,17 +464,17 @@ function FileRow({
     <article className="link-row link-file-row" role="listitem">
       <div className="link-route">
         <a href={publicUrl} target="_blank" rel="noreferrer">
-          /{file.public_token}
+          /{file.publicToken}
         </a>
-        <p title={file.original_name}>{file.original_name}</p>
+        <p title={file.name}>{file.name}</p>
       </div>
       <div className="link-tags">
         <span data-state={state.toLowerCase()}>{state}</span>
         <span className="link-tag-file">File</span>
-        {Boolean(file.protected) && <span>Protected</span>}
+        {file.protected && <span>Protected</span>}
       </div>
       <div className="link-clicks">
-        <strong>{file.download_count.toLocaleString()}</strong>
+        <strong>{file.downloadCount.toLocaleString()}</strong>
         <span>downloads</span>
       </div>
       <div className="link-actions">
@@ -479,6 +495,14 @@ function FileRow({
           </button>
         )}
       </div>
+      {error && (
+        <p
+          className="link-form-status link-form-status-error link-row-error"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
     </article>
   );
 }
@@ -494,6 +518,7 @@ function LinkRow({
   const [showStats, setShowStats] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const { error, run } = useAction();
   const expired = link.expiresAt
     ? Date.parse(link.expiresAt) <= Date.now()
     : false;
@@ -502,14 +527,16 @@ function LinkRow({
   const mutate = async (action: "toggle" | "delete") => {
     setBusy(true);
     try {
-      await request(`/api/links/${encodeURIComponent(link.slug)}`, {
-        method: action === "delete" ? "DELETE" : "PATCH",
-        body:
-          action === "toggle"
-            ? JSON.stringify({ disabled: !link.disabledAt })
-            : undefined,
+      await run(async () => {
+        await request(`/api/links/${encodeURIComponent(link.slug)}`, {
+          method: action === "delete" ? "DELETE" : "PATCH",
+          body:
+            action === "toggle"
+              ? JSON.stringify({ disabled: !link.disabledAt })
+              : undefined,
+        });
+        await onRefresh();
       });
-      await onRefresh();
     } finally {
       setBusy(false);
     }
@@ -563,6 +590,14 @@ function LinkRow({
           Delete
         </button>
       </div>
+      {error && (
+        <p
+          className="link-form-status link-form-status-error link-row-error"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
       {showStats && (
         <StatsPanel link={link} onClose={() => setShowStats(false)} />
       )}
@@ -591,6 +626,8 @@ function EditPanel({
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
+  const titleId = useId();
+  const dialogRef = useDialog<HTMLFormElement>(onClose);
   const [targetUrl, setTargetUrl] = useState(link.targetUrl);
   const [expiresAt, setExpiresAt] = useState(
     link.expiresAt ? link.expiresAt.slice(0, 16) : "",
@@ -621,13 +658,21 @@ function EditPanel({
     }
   };
 
-  return (
+  return createPortal(
     <div className="link-modal-backdrop" role="presentation">
-      <form className="link-stats link-edit" onSubmit={submit}>
+      <form
+        ref={dialogRef}
+        tabIndex={-1}
+        className="link-stats link-edit"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onSubmit={submit}
+      >
         <header>
           <div>
             <p className="link-kicker">EDIT / {link.slug}</p>
-            <h2>Route settings</h2>
+            <h2 id={titleId}>Route settings</h2>
           </div>
           <button type="button" onClick={onClose}>
             Close
@@ -680,7 +725,8 @@ function EditPanel({
           {state.status === "loading" ? "Saving..." : "Save"}
         </button>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -691,6 +737,8 @@ function StatsPanel({
   link: LinkRecord;
   onClose: () => void;
 }) {
+  const titleId = useId();
+  const dialogRef = useDialog<HTMLElement>(onClose);
   const [stats, setStats] = useState<LinkStats>();
   const [error, setError] = useState<string>();
 
@@ -705,13 +753,20 @@ function StatsPanel({
     ...(stats?.daily.map((item) => item.value) ?? []),
   );
 
-  return (
+  return createPortal(
     <div className="link-modal-backdrop" role="presentation">
-      <section className="link-stats" role="dialog" aria-modal="true">
+      <section
+        ref={dialogRef}
+        tabIndex={-1}
+        className="link-stats"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <header>
           <div>
             <p className="link-kicker">ANALYTICS / {link.slug}</p>
-            <h2>{stats?.total ?? link.clickCount} clicks</h2>
+            <h2 id={titleId}>{stats?.total ?? link.clickCount} clicks</h2>
           </div>
           <button type="button" onClick={onClose}>
             Close
@@ -743,7 +798,8 @@ function StatsPanel({
           </>
         )}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

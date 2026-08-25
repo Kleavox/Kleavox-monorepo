@@ -1,12 +1,7 @@
 {
+  "extends": "@kleavox/typescript/node.json",
   "compilerOptions": {
-    "strict": true,
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "types": ["node"],
-    "noEmit": true,
-    "skipLibCheck": true
+    "lib": ["ES2024", "DOM"]
   },
   "include": ["playwright.config.ts", "tests"]
 }

@@ -1,3 +1,5 @@
+import { COMPATIBILITY_DATE, publicHost, workerName } from "@kleavox/topology";
+
 export type DomainMode = "none" | "canonical";
 
 export interface DeployEnvironment {
@@ -10,7 +12,6 @@ export interface DeployEnvironment {
   PULSE_D1_ID: string;
   DROP_BUCKET_NAME: string;
   AUTH_FROM_EMAIL: string;
-  AGENT_DOWNLOAD_BASE: string;
 }
 
 interface Route {
@@ -21,7 +22,7 @@ interface Route {
 type WorkerConfig = Record<string, unknown>;
 
 const base = {
-  compatibility_date: "2026-06-05",
+  compatibility_date: COMPATIBILITY_DATE,
   workers_dev: true,
   preview_urls: false,
   observability: { enabled: true },
@@ -38,13 +39,12 @@ export function productionConfigs(
   const prefix = normalizeWorkerPrefix(env.WORKER_PREFIX);
   const canonical = domains === "canonical";
   const names = {
-    pass: `${prefix}-pass`,
-    link: `${prefix}-link`,
-    pulse: `${prefix}-pulse`,
-    portfolio: `${prefix}-portfolio`,
-    gateway: `${prefix}-gateway`,
+    pass: workerName(prefix, "pass"),
+    link: workerName(prefix, "link"),
+    pulse: workerName(prefix, "pulse"),
+    portfolio: workerName(prefix, "portfolio"),
+    gateway: workerName(prefix, "gateway"),
   };
-  const host = (subdomain: string) => `${subdomain}.${rootDomain}`;
 
   return {
     pass: {
@@ -60,7 +60,7 @@ export function productionConfigs(
       },
       vars: {
         ENVIRONMENT: "production",
-        PUBLIC_ORIGIN: `https://${host("pass")}`,
+        PUBLIC_ORIGIN: `https://${publicHost(rootDomain, "pass")}`,
         ROOT_DOMAIN: rootDomain,
         FROM_EMAIL: env.AUTH_FROM_EMAIL,
       },
@@ -74,7 +74,7 @@ export function productionConfigs(
         },
       ],
       services: [{ binding: "LINK", service: names.link }],
-      ...(canonical ? { routes: routes(host("pass")) } : {}),
+      ...(canonical ? { routes: routes(publicHost(rootDomain, "pass")) } : {}),
     },
     link: {
       ...base,
@@ -90,7 +90,6 @@ export function productionConfigs(
       vars: {
         ENVIRONMENT: "production",
         PUBLIC_SHORT_ORIGIN: rootOrigin,
-        PUBLIC_APP_ORIGIN: `https://${host("link")}`,
       },
       d1_databases: [
         {
@@ -113,7 +112,7 @@ export function productionConfigs(
         rateLimit("FILE_REPORT_RATE_LIMIT", "3103", 5),
       ],
       triggers: { crons: ["*/15 * * * *"] },
-      ...(canonical ? { routes: routes(host("link")) } : {}),
+      ...(canonical ? { routes: routes(publicHost(rootDomain, "link")) } : {}),
     },
     pulse: {
       ...base,
@@ -128,8 +127,7 @@ export function productionConfigs(
       },
       vars: {
         ENVIRONMENT: "production",
-        PUBLIC_ORIGIN: `https://${host("pulse")}`,
-        AGENT_DOWNLOAD_BASE: env.AGENT_DOWNLOAD_BASE,
+        PUBLIC_ORIGIN: `https://${publicHost(rootDomain, "pulse")}`,
         FROM_EMAIL: env.AUTH_FROM_EMAIL,
       },
       d1_databases: [
@@ -145,7 +143,7 @@ export function productionConfigs(
         { binding: "LINK", service: names.link },
       ],
       triggers: { crons: ["17 3 * * *"] },
-      ...(canonical ? { routes: routes(host("pulse")) } : {}),
+      ...(canonical ? { routes: routes(publicHost(rootDomain, "pulse")) } : {}),
     },
     gateway: {
       ...base,
@@ -216,7 +214,6 @@ function validateEnvironment(env: DeployEnvironment) {
     "PULSE_D1_ID",
     "DROP_BUCKET_NAME",
     "AUTH_FROM_EMAIL",
-    "AGENT_DOWNLOAD_BASE",
   ] as const satisfies readonly (keyof DeployEnvironment)[];
 
   for (const key of requiredKeys) {

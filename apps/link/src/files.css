@@ -1,6 +1,6 @@
 :root {
-  color: #f0f0f0;
-  background: #000;
+  color: var(--kvx-ink);
+  background: var(--kvx-base);
   font-family: var(--kvx-font);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -14,7 +14,9 @@ html,
 body {
   min-width: 320px;
   min-height: 100dvh;
-  background: radial-gradient(circle, #202020 0.75px, transparent 0.75px), #000;
+  background:
+    radial-gradient(circle, var(--kvx-line) 0.75px, transparent 0.75px),
+    var(--kvx-base);
   background-size: 22px 22px;
 }
 
@@ -40,7 +42,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #48caf0;
+  outline: 3px solid var(--kvx-accent);
   outline-offset: 3px;
 }
 
@@ -57,12 +59,12 @@ a {
 }
 
 .drop-page {
-  --ink: #eaf4f8;
-  --muted: #7599a8;
-  --line: #192330;
-  --paper: #070a0d;
-  --panel: #0c1016;
-  --accent: #48caf0;
+  --ink: var(--kvx-ink);
+  --muted: var(--kvx-muted);
+  --line: var(--kvx-line);
+  --paper: var(--kvx-base);
+  --panel: var(--kvx-surface);
+  --accent: var(--kvx-accent);
   min-height: 100dvh;
   overflow: hidden;
 }
@@ -96,7 +98,7 @@ a {
 .drop-header nav {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 32px;
 }
 
 .drop-header nav a,
@@ -128,7 +130,7 @@ a {
 }
 
 .drop-kicker {
-  margin: 0 0 22px;
+  margin: 0 0 24px;
   color: var(--muted);
   font-family: var(--kvx-mono);
   font-size: 0.72rem;
@@ -166,8 +168,8 @@ a {
   min-height: 236px;
   border-bottom: 1px solid var(--ink);
   background:
-    linear-gradient(90deg, rgb(240 240 240 / 5%) 1px, transparent 1px),
-    linear-gradient(rgb(240 240 240 / 5%) 1px, transparent 1px), var(--panel);
+    linear-gradient(90deg, rgb(239 245 240 / 5%) 1px, transparent 1px),
+    linear-gradient(rgb(239 245 240 / 5%) 1px, transparent 1px), var(--panel);
   background-size: 24px 24px;
   transition:
     background-color 160ms ease,
@@ -190,7 +192,7 @@ a {
 .drop-zone-action {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   width: 100%;
   min-height: 236px;
   padding: 42px;
@@ -211,7 +213,7 @@ a {
   place-items: center;
   border: 1px solid var(--ink);
   background: var(--accent);
-  color: #031620;
+  color: var(--kvx-accent-text);
   font-size: 2.15rem;
   font-weight: 300;
   line-height: 1;
@@ -228,7 +230,7 @@ a {
 }
 
 .drop-zone-action small {
-  margin-top: 7px;
+  margin-top: 8px;
   color: var(--muted);
   font-size: 0.84rem;
 }
@@ -252,7 +254,7 @@ a {
 }
 
 .drop-file-meta {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   color: var(--muted);
   font-family: var(--kvx-mono);
   font-size: 0.76rem;
@@ -271,15 +273,15 @@ a {
 .drop-options {
   display: grid;
   grid-template-columns: 1fr 0.72fr;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 
 .drop-options label,
 .drop-unlock {
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  padding: 20px 22px;
+  gap: 8px;
+  padding: 24px;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
@@ -304,7 +306,7 @@ a {
 }
 
 .drop-options label i {
-  color: #666;
+  color: var(--kvx-quiet);
   font-family: inherit;
   font-style: normal;
   font-weight: 400;
@@ -326,21 +328,28 @@ a {
   outline: none;
 }
 
+.drop-options input:focus-visible,
+.drop-options select:focus-visible,
+.drop-unlock input:focus-visible {
+  outline: 2px solid var(--kvx-accent);
+  outline-offset: 2px;
+}
+
 .drop-options input::placeholder,
 .drop-unlock input::placeholder {
-  color: #666;
+  color: var(--kvx-quiet);
   font-weight: 500;
 }
 
 .drop-progress {
-  padding: 18px 22px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--line);
 }
 
 .drop-progress > div {
   height: 6px;
   overflow: hidden;
-  background: #222;
+  background: var(--kvx-surface-raised);
 }
 
 .drop-progress span {
@@ -351,7 +360,7 @@ a {
 }
 
 .drop-progress p {
-  margin: 9px 0 0;
+  margin: 8px 0 0;
   color: var(--muted);
   font-family: var(--kvx-mono);
   font-size: 0.7rem;
@@ -363,7 +372,7 @@ a {
   min-height: 60px;
   border: 0;
   background: var(--accent);
-  color: #031620;
+  color: var(--kvx-accent-text);
   font-size: 0.9rem;
   font-weight: 800;
   transition:
@@ -373,7 +382,7 @@ a {
 
 .drop-primary:hover:not(:disabled),
 .drop-secondary:hover:not(:disabled) {
-  background: #48caf0;
+  background: var(--kvx-accent);
 }
 
 .drop-primary:active:not(:disabled),
@@ -382,8 +391,8 @@ a {
 }
 
 .drop-primary:disabled {
-  background: #202020;
-  color: #777;
+  background: var(--kvx-surface-raised);
+  color: var(--kvx-quiet);
 }
 
 .drop-rule {
@@ -391,7 +400,7 @@ a {
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px 16px;
-  padding: 14px 22px;
+  padding: 16px 24px;
   border-top: 1px solid var(--ink);
   color: var(--muted);
   font-family: var(--kvx-mono);
@@ -401,15 +410,15 @@ a {
 
 .drop-message {
   margin: 0;
-  padding: 14px 22px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--line);
   font-size: 0.8rem;
   line-height: 1.4;
 }
 
 .drop-message.is-error {
-  background: rgb(239 68 68 / 10%);
-  color: #f87171;
+  background: rgb(239 106 90 / 10%);
+  color: var(--kvx-danger);
 }
 
 .drop-result,
@@ -439,7 +448,7 @@ a {
 
 .drop-result p:not(.drop-kicker) {
   max-width: 33rem;
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   color: var(--muted);
   line-height: 1.55;
 }
@@ -452,7 +461,7 @@ a {
 }
 
 .drop-delete-result {
-  margin-top: 20px;
+  margin-top: 24px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -471,7 +480,7 @@ a {
 
 .drop-share-line input {
   min-width: 0;
-  padding: 18px;
+  padding: 16px;
   border: 0;
   background: transparent;
   font-family: var(--kvx-mono);
@@ -508,7 +517,7 @@ a {
   grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.75fr) auto;
   gap: 24px;
   align-items: center;
-  padding: 22px 0;
+  padding: 24px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -521,7 +530,7 @@ a {
 .drop-row-main span,
 .drop-row-state time {
   display: block;
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--muted);
   font-family: var(--kvx-mono);
   font-size: 0.7rem;
@@ -557,8 +566,8 @@ a {
 .drop-row-actions button,
 .drop-report > button,
 .drop-report-form > div button {
-  padding: 8px 11px;
-  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border: 1px solid var(--kvx-line-control);
   background: transparent;
   color: var(--muted);
   font-size: 0.72rem;
@@ -586,7 +595,7 @@ a {
 
 .drop-principles p {
   margin: 0;
-  padding: 28px 32px 28px 0;
+  padding: 32px 32px 32px 0;
   color: var(--muted);
   line-height: 1.55;
 }
@@ -599,7 +608,7 @@ a {
 .drop-footer {
   display: flex;
   justify-content: space-between;
-  gap: 28px;
+  gap: 32px;
   padding: 24px 0 38px;
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -612,7 +621,7 @@ a {
 
 .drop-footer div {
   display: flex;
-  gap: 22px;
+  gap: 24px;
 }
 
 .drop-receive {
@@ -653,7 +662,7 @@ a {
 }
 
 .drop-receipt dl div {
-  padding: 22px;
+  padding: 24px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -671,7 +680,7 @@ a {
 }
 
 .drop-receipt dd {
-  margin: 9px 0 0;
+  margin: 8px 0 0;
   overflow-wrap: anywhere;
   font-size: 0.92rem;
   font-weight: 750;
@@ -683,7 +692,7 @@ a {
 
 .drop-download-note {
   margin: 0;
-  padding: 12px 20px;
+  padding: 12px 24px;
   border-top: 1px solid var(--ink);
   color: var(--muted);
   font-family: var(--kvx-mono);
@@ -701,7 +710,7 @@ a {
 .drop-receive-loading span {
   display: block;
   height: 42px;
-  background: #202020;
+  background: var(--kvx-surface-raised);
   animation: drop-pulse 1.25s ease-in-out infinite alternate;
 }
 
@@ -731,7 +740,7 @@ a {
 
 .drop-report-form {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   max-width: 560px;
   margin-left: auto;
 }
@@ -740,7 +749,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 24px;
 }
 
 .drop-report-form h2 {
@@ -750,19 +759,19 @@ a {
 .drop-report-form select,
 .drop-report-form textarea {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kvx-line-control);
   border-radius: 0;
   background: var(--panel);
 }
 
 .drop-report-form select {
   min-height: 46px;
-  padding: 0 14px;
+  padding: 0 16px;
 }
 
 .drop-report-form textarea {
   min-height: 120px;
-  padding: 14px;
+  padding: 16px;
   resize: vertical;
 }
 
@@ -843,7 +852,7 @@ a {
   }
 
   .drop-intro {
-    margin-top: 28px;
+    margin-top: 32px;
   }
 
   .drop-zone,
@@ -854,7 +863,7 @@ a {
 
   .drop-zone-action,
   .drop-file {
-    padding: 28px 22px;
+    padding: 32px 24px;
   }
 
   .drop-zone-mark {
@@ -868,7 +877,7 @@ a {
   }
 
   .drop-options label {
-    padding: 17px;
+    padding: 16px;
   }
 
   .drop-rule {
@@ -917,7 +926,7 @@ a {
 
   .drop-principles p,
   .drop-principles p + p {
-    padding: 22px 0;
+    padding: 24px 0;
     border-left: 0;
     border-bottom: 1px solid var(--line);
   }
@@ -966,7 +975,7 @@ a {
 
   .drop-zone-action,
   .drop-file {
-    padding: 22px 16px;
+    padding: 24px 16px;
   }
 
   .drop-receipt dl div {
@@ -986,12 +995,12 @@ a {
 }
 
 .drop-page {
-  --ink: var(--link-ink, #eaf4f8);
-  --muted: var(--link-muted, #7599a8);
-  --line: var(--link-line, #192330);
-  --paper: var(--link-base, #070a0d);
-  --panel: var(--link-panel, #0c1016);
-  --accent: var(--link-accent, #48caf0);
+  --ink: var(--link-ink, var(--kvx-ink));
+  --muted: var(--link-muted, var(--kvx-muted));
+  --line: var(--link-line, var(--kvx-line));
+  --paper: var(--link-base, var(--kvx-base));
+  --panel: var(--link-panel, var(--kvx-surface));
+  --accent: var(--link-accent, var(--kvx-accent));
   background: var(--paper);
 }
 
@@ -1011,7 +1020,7 @@ a {
 .drop-embedded .drop-hero-copy {
   display: grid;
   grid-template-columns: 42px 1fr;
-  gap: 0 20px;
+  gap: 0 24px;
   padding: 0;
   margin-bottom: 42px;
 }
@@ -1024,7 +1033,7 @@ a {
 }
 
 .drop-embedded .drop-kicker {
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   color: var(--accent);
   font-family: var(--kvx-mono);
   letter-spacing: 0.13em;
@@ -1040,14 +1049,14 @@ a {
 
 .drop-embedded .drop-intro {
   grid-column: 2;
-  margin: 17px 0 0;
+  margin: 16px 0 0;
   font-size: 0.88rem;
 }
 
 .drop-embedded .drop-station {
   border-color: var(--line);
-  border-radius: 10px;
-  background: #090d0a;
+  border-radius: var(--kvx-r3);
+  background: var(--kvx-base);
   overflow: hidden;
 }
 
@@ -1055,8 +1064,8 @@ a {
   min-height: 208px;
   border-color: var(--line);
   background:
-    linear-gradient(90deg, rgb(72 202 240 / 4%) 1px, transparent 1px),
-    linear-gradient(rgb(72 202 240 / 4%) 1px, transparent 1px), #070b0f;
+    linear-gradient(90deg, rgb(163 230 53 / 4%) 1px, transparent 1px),
+    linear-gradient(rgb(163 230 53 / 4%) 1px, transparent 1px), var(--kvx-base);
   background-size: 22px 22px;
 }
 
@@ -1073,12 +1082,12 @@ a {
 }
 
 .drop-zone-action:hover:not(:disabled) {
-  background: rgb(72 202 240 / 5%);
+  background: rgb(163 230 53 / 5%);
 }
 
 .drop-zone-mark {
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--kvx-r1);
   background: var(--accent);
   transition: transform 220ms var(--kvx-ease);
 }
@@ -1101,12 +1110,13 @@ a {
 .drop-primary,
 .drop-secondary {
   background: var(--accent);
-  color: #031620;
+  color: var(--kvx-accent-text);
 }
 
 .drop-primary:hover:not(:disabled),
 .drop-secondary:hover:not(:disabled) {
-  background: #72d9f5;
+  background: var(--kvx-accent);
+  filter: brightness(1.15);
 }
 
 .drop-embedded .drop-rule {
@@ -1121,7 +1131,7 @@ a {
 }
 
 .drop-embedded .drop-ledger-heading {
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .drop-embedded .drop-ledger h2 {
@@ -1164,17 +1174,21 @@ a {
 }
 
 .drop-share-line,
-.drop-receipt,
+.drop-receipt {
+  border-color: var(--line);
+  background: var(--panel);
+}
+
 .drop-report-form select,
 .drop-report-form textarea {
-  border-color: var(--line);
+  border-color: var(--kvx-line-control);
   background: var(--panel);
 }
 
 .drop-receive-page {
   background:
-    radial-gradient(circle at 80% 18%, rgb(72 202 240 / 8%), transparent 27rem),
-    linear-gradient(90deg, rgb(72 202 240 / 3%) 1px, transparent 1px),
+    radial-gradient(circle at 80% 18%, rgb(163 230 53 / 8%), transparent 27rem),
+    linear-gradient(90deg, rgb(163 230 53 / 3%) 1px, transparent 1px),
     var(--paper);
   background-size:
     auto,
@@ -1198,7 +1212,7 @@ a {
 }
 
 .drop-receipt {
-  border-radius: 12px;
+  border-radius: var(--kvx-r3);
   box-shadow: 0 36px 100px rgb(0 0 0 / 38%);
 }
 
@@ -1210,7 +1224,7 @@ a {
   .drop-embedded .drop-hero,
   .drop-embedded .drop-ledger,
   .drop-embedded .drop-result {
-    padding-inline: 18px;
+    padding-inline: 16px;
   }
 
   .drop-embedded .drop-hero-copy {

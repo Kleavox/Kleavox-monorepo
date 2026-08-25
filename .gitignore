@@ -13,8 +13,6 @@ dist/
 coverage/
 *.tsbuildinfo
 
-/docs/
-
 # Framework output
 .vite/
 

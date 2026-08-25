@@ -120,7 +120,9 @@ export function Welcome({
       .then((account) =>
         setCanSetPassword(!account.providers.includes("password")),
       )
-      .catch(() => {});
+      .catch((cause) =>
+        setState({ status: "error", message: errorMessage(cause) }),
+      );
   }, []);
 
   async function submit(event: FormEvent) {

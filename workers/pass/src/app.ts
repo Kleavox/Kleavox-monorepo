@@ -84,9 +84,12 @@ app.get("/ready", async (context) => {
     `SELECT COUNT(*) AS total
      FROM sqlite_master
      WHERE type = 'table'
-       AND name IN ('users', 'identities', 'verification_tokens', 'auth_events')`,
+       AND name IN (
+         'users', 'identities', 'verification_tokens', 'auth_events',
+         'account_keys'
+       )`,
   ).first<{ total: number }>();
-  const ready = result?.total === 4;
+  const ready = result?.total === 5;
   return context.json(
     { service: "pass", status: ready ? "ready" : "migration_required" },
     ready ? 200 : 503,

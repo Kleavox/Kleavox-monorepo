@@ -1,14 +1,10 @@
 #![deny(dead_code)]
 
-use aes_gcm::{
-    aead::generic_array::GenericArray,
-    aead::stream::{DecryptorBE32, EncryptorBE32},
-    aead::KeyInit,
-    Aes256Gcm,
-};
+use aead_stream::{DecryptorBE32, EncryptorBE32};
+use aes_gcm::{Aes256Gcm, aead::KeyInit};
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
 };
 use wasm_bindgen::prelude::*;
 
@@ -17,7 +13,7 @@ pub fn hash_password(password: &str, salt: &str) -> Result<String, JsValue> {
     let standard_salt = salt.replace("-", "+").replace("_", "/");
     let salt_string = SaltString::from_b64(&standard_salt)
         .map_err(|e| JsValue::from_str(&format!("Invalid salt: {}", e)))?;
-    
+
     let argon2 = Argon2::default();
     let password_hash = argon2
         .hash_password(password.as_bytes(), &salt_string)
@@ -47,7 +43,7 @@ fn stream_cipher(key: &[u8]) -> Result<Aes256Gcm, JsValue> {
     if key.len() != 32 {
         return Err(JsValue::from_str("key must be 32 bytes"));
     }
-    Ok(Aes256Gcm::new(GenericArray::from_slice(key)))
+    Aes256Gcm::new_from_slice(key).map_err(|_| JsValue::from_str("key must be 32 bytes"))
 }
 
 #[wasm_bindgen]
@@ -73,7 +69,7 @@ impl StreamEncryptor {
     pub fn new(key: &[u8]) -> Result<StreamEncryptor, JsValue> {
         let cipher = stream_cipher(key)?;
         Ok(StreamEncryptor {
-            inner: Some(EncryptorBE32::from_aead(cipher, &GenericArray::default())),
+            inner: Some(EncryptorBE32::from_aead(cipher, &Default::default())),
         })
     }
 
@@ -105,7 +101,7 @@ impl StreamDecryptor {
     pub fn new(key: &[u8]) -> Result<StreamDecryptor, JsValue> {
         let cipher = stream_cipher(key)?;
         Ok(StreamDecryptor {
-            inner: Some(DecryptorBE32::from_aead(cipher, &GenericArray::default())),
+            inner: Some(DecryptorBE32::from_aead(cipher, &Default::default())),
         })
     }
 
@@ -140,8 +136,14 @@ mod tests {
         assert_eq!(c1.len(), b"the first slice".len() + 16);
 
         let mut dec = StreamDecryptor::new(&key).unwrap();
-        assert_eq!(dec.push_inner(&c1, false).unwrap().as_slice(), b"the first slice");
-        assert_eq!(dec.push_inner(&c2, false).unwrap().as_slice(), b"the second slice");
+        assert_eq!(
+            dec.push_inner(&c1, false).unwrap().as_slice(),
+            b"the first slice"
+        );
+        assert_eq!(
+            dec.push_inner(&c2, false).unwrap().as_slice(),
+            b"the second slice"
+        );
         assert_eq!(dec.push_inner(&c3, true).unwrap().as_slice(), b"final");
     }
 

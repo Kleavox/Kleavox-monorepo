@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"example.com/kleavox/agent/internal/reporter"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/reporter"
 )
 
 func RunAll(ctx context.Context, definitions []reporter.Check) []reporter.CheckResult {

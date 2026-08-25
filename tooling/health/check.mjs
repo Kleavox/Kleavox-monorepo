@@ -1,10 +1,13 @@
+import { publicOrigin } from "@kleavox/topology";
+
 const rootDomain = requiredEnvironment("APP_ROOT_DOMAIN");
 const origins = {
-  gateway: process.env.GATEWAY_ORIGIN ?? `https://${rootDomain}`,
-  pass: process.env.PASS_ORIGIN ?? `https://pass.${rootDomain}`,
-  link: process.env.LINK_ORIGIN ?? `https://link.${rootDomain}`,
-  pulse: process.env.PULSE_ORIGIN ?? `https://pulse.${rootDomain}`,
-  portfolio: process.env.PORTFOLIO_ORIGIN ?? `https://port.${rootDomain}`,
+  gateway: process.env.GATEWAY_ORIGIN ?? publicOrigin(rootDomain, "gateway"),
+  pass: process.env.PASS_ORIGIN ?? publicOrigin(rootDomain, "pass"),
+  link: process.env.LINK_ORIGIN ?? publicOrigin(rootDomain, "link"),
+  pulse: process.env.PULSE_ORIGIN ?? publicOrigin(rootDomain, "pulse"),
+  portfolio:
+    process.env.PORTFOLIO_ORIGIN ?? publicOrigin(rootDomain, "portfolio"),
 };
 
 const checks = [

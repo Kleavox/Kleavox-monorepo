@@ -1,12 +1,10 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "@kleavox/typescript/library.json",
   "compilerOptions": {
-    "declaration": true,
-    "declarationMap": true,
-    "noEmit": false,
     "outDir": "dist",
     "rootDir": "src",
-    "sourceMap": true
+    "types": ["@cloudflare/workers-types"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

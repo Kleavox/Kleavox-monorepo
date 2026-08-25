@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { ApiError, apiFetch as request, errorMessage } from "@kleavox/core";
 import { ROOT_HOST, challengeUrl } from "@kleavox/ui";
 

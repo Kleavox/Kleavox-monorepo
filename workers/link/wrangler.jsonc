@@ -3,12 +3,12 @@
   "name": "local-link",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-05",
+  "dev": { "port": 8788 },
   "workers_dev": true,
   "preview_urls": false,
   "vars": {
     "ENVIRONMENT": "development",
     "PUBLIC_SHORT_ORIGIN": "http://127.0.0.1:8786",
-    "PUBLIC_APP_ORIGIN": "http://127.0.0.1:8788",
   },
   "assets": {
     "directory": "../../apps/link/dist",

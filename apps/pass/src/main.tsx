@@ -106,7 +106,7 @@ function App() {
             Every tool.
           </h1>
           <p className="kvx-lede">
-            Sign in once to unlock Link, file drops, and Pulse — all under the
+            Sign in once to unlock Link, file drops, and Pulse. All under the
             same identity.
           </p>
         </div>

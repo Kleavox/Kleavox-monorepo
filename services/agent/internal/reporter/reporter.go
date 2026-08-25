@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"example.com/kleavox/agent/internal/metrics"
+	"github.com/Kleavox/Kleavox-monorepo/services/agent/internal/metrics"
 )
 
 type Host struct {
@@ -42,7 +42,7 @@ type Check struct {
 	Name           string `json:"name"`
 	Kind           string `json:"kind"`
 	Target         string `json:"target"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
+	TimeoutSeconds int    `json:"timeoutSeconds"`
 }
 
 type AgentConfig struct {

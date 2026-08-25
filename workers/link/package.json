@@ -7,9 +7,8 @@
     "build": "wrangler deploy --dry-run --outdir dist",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit --checkers 1 && tsc -p tsconfig.test.json --noEmit --checkers 1"
   },
   "dependencies": {
     "@kleavox/auth": "workspace:*",
@@ -17,6 +16,7 @@
     "@kleavox/core": "workspace:*",
     "@kleavox/crypto": "workspace:*",
     "@kleavox/link-app": "workspace:*",
+    "@kleavox/link-protocol": "workspace:*",
     "@kleavox/worker": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
@@ -24,6 +24,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
     "@kleavox/testing": "workspace:*",
+    "@kleavox/typescript": "workspace:*",
+    "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"
