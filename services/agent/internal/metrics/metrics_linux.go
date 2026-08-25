@@ -127,15 +127,22 @@ func readMemory() (used int64, total int64, err error) {
 	return total - available, total, nil
 }
 
+// diskUsage reports the same bytes df does. Free blocks, not available blocks:
+// a filesystem reserves a slice for root, and counting that slice as used
+// overstates a large disk by the whole reservation.
+func diskUsage(blocks, free uint64, blockSize int64) (used int64, total int64) {
+	total = int64(blocks) * blockSize
+	return total - int64(free)*blockSize, total
+}
+
 func readDisk(path string) (used int64, total int64, err error) {
 	var stat syscall.Statfs_t
 	if err := syscall.Statfs(path, &stat); err != nil {
 		return 0, 0, err
 	}
 
-	total = int64(stat.Blocks) * int64(stat.Bsize)
-	available := int64(stat.Bavail) * int64(stat.Bsize)
-	return total - available, total, nil
+	used, total = diskUsage(uint64(stat.Blocks), uint64(stat.Bfree), int64(stat.Bsize))
+	return used, total, nil
 }
 
 func readLoad() (float64, float64, float64, error) {

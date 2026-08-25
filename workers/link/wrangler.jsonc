@@ -3,6 +3,7 @@
   "name": "local-link",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-05",
+  "dev": { "port": 8788 },
   "workers_dev": true,
   "preview_urls": false,
   "vars": {

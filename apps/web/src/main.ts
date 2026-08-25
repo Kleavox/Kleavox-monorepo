@@ -1,4 +1,6 @@
 import { displayHandle } from "@kleavox/core";
+import "@kleavox/ui/styles.css";
+import "@kleavox/ui/products.css";
 import "./styles/global.css";
 
 const account = document.querySelector<HTMLElement>("[data-account]");

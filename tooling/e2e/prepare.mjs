@@ -20,11 +20,11 @@ const env = {
 };
 
 execSync(
-  "pnpm exec turbo run build --filter=@kleavox/gateway-worker^... --filter=@kleavox/pass-worker^... --filter=@kleavox/link-worker^...",
+  "pnpm exec turbo run build --filter=@kleavox/gateway-worker^... --filter=@kleavox/pass-worker^... --filter=@kleavox/link-worker^... --filter=@kleavox/pulse-worker^...",
   { cwd: repoRoot, env, stdio: "inherit" },
 );
 
-for (const worker of ["pass", "link"]) {
+for (const worker of ["pass", "link", "pulse"]) {
   rmSync(path.join(repoRoot, "workers", worker, ".wrangler", "state"), {
     recursive: true,
     force: true,

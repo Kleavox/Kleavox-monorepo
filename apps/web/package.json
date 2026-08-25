@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@kleavox/config": "workspace:*",
-    "@kleavox/core": "workspace:*"
+    "@kleavox/core": "workspace:*",
+    "@kleavox/ui": "workspace:*"
   },
   "devDependencies": {
     "@kleavox/typescript": "workspace:*",

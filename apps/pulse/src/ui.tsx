@@ -1,5 +1,16 @@
 import type { CSSProperties } from "react";
 
+export { useAction } from "@kleavox/ui";
+
+export function ActionError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p className="pulse-action-error" role="alert">
+      {message}
+    </p>
+  );
+}
+
 export function Metric({
   label,
   value,

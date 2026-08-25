@@ -27,6 +27,12 @@ export default defineConfig({
       timeout: 90_000,
     },
     {
+      command: `pnpm exec wrangler dev --config ../../workers/pulse/wrangler.jsonc --port ${LOCAL_WORKER_PORTS.pulse}`,
+      url: `${localWorkerOrigin("pulse")}/health`,
+      reuseExistingServer: reuse,
+      timeout: 90_000,
+    },
+    {
       command: `pnpm exec wrangler dev --config ../../workers/gateway/wrangler.jsonc --port ${LOCAL_WORKER_PORTS.gateway}`,
       url: `${localWorkerOrigin("gateway")}/health`,
       reuseExistingServer: reuse,

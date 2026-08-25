@@ -53,7 +53,7 @@ owner deliberately; there is no catch-all proxy to another Worker.
 | `crates/compression`                    | Rust/WASM browser-side compression                                |
 | `services/agent`                        | Go Pulse Agent                                                    |
 | `tooling`                               | Deployment, E2E, health-check, lint, TypeScript, and Vite tooling |
-| `CONTEXT.md`                            | Canonical domain language and platform invariants                 |
+| `../CONTEXT.md`                         | Canonical domain language and platform invariants (parent folder) |
 
 The implementation is organised around a small set of domain modules rather
 than route handlers or UI screens:
@@ -96,7 +96,13 @@ pnpm --filter @kleavox/e2e e2e:install
 Source-controlled Wrangler configurations use local placeholder resources.
 Local development does not require production credentials. Put browser
 overrides in `.env.local` and Worker secrets in `.dev.vars`; both are ignored by
-Git.
+Git. Each app's `.env.example` already carries the local origins from
+`packages/topology`, so `cp .env.example .env.local` in `apps/*` is enough.
+
+Those origins are baked in at build time and each Worker serves its app from
+`dist/`, so an app built without them points at the production hostnames and
+signs nobody in locally. `tooling/e2e/prepare.mjs` builds with the right values;
+so does a plain `pnpm build` once `.env.local` exists.
 
 ## Development
 
@@ -116,7 +122,10 @@ pnpm --dir workers/pass exec wrangler dev --port 8787
 
 Wrangler's local service registry connects Workers started in separate
 terminals. The canonical local ports and service names are maintained in
-`packages/topology`.
+`packages/topology`, and each Worker's `wrangler.jsonc` pins its own `dev.port`
+to match. Without that pin every Worker takes Wrangler's default 8787, all four
+bind the same socket, and only one of them answers, so `pnpm lint:ports` fails
+the build if the two ever disagree.
 
 ## Commands
 
@@ -125,7 +134,9 @@ terminals. The canonical local ports and service names are maintained in
 | `pnpm build`                            | Build all TypeScript applications, Workers, and packages                |
 | `pnpm test`                             | Run workspace unit tests                                                |
 | `pnpm typecheck`                        | Type-check runtime and tooling interfaces with TypeScript 7             |
-| `pnpm lint`                             | Verify formatting and unused files, exports, and dependencies           |
+| `pnpm lint`                             | Verify formatting, unused files and exports, and async error handling   |
+| `pnpm lint:async`                       | Reject async event handlers that discard their failure                  |
+| `pnpm lint:ports`                       | Reject a Worker dev port that drifts from `packages/topology`           |
 | `pnpm format:check`                     | Verify repository formatting                                            |
 | `pnpm native:check`                     | Validate Rust and Go formatting, tests, builds, vet, and dead code      |
 | `pnpm check`                            | Run the complete static, unit, native, and build verification gate      |
@@ -151,8 +162,10 @@ pnpm e2e
   public key become unreadable by design.
 - Pulse is admin-only and exposes no public role-promotion endpoint.
 
-See `CONTEXT.md` for the complete domain vocabulary and invariants used by the
-source and tests.
+See `../CONTEXT.md` for the complete domain vocabulary and invariants used by
+the source and tests. It sits in the parent folder rather than in this
+repository because every agent-facing document for kleavox.xyz lives there,
+beside `THEME.md` and `THEME-DECISIONS.md`.
 
 ## CI, deployment, and releases
 
@@ -181,3 +194,19 @@ per workspace process while Turborepo controls parallelism across workspaces.
 Libraries built by `tsc` are checked during their build. Separate `typecheck`
 tasks are reserved for Vite applications, Wrangler Workers, tests, and tooling
 whose normal build step does not perform full type analysis.
+
+### Why there is no ESLint
+
+`typescript-eslint` refuses to load against TypeScript 7 and throws rather than
+warning, so no rule that needs a TypeScript parser can run here, including ones
+that need no type information at all. Support is tracked in
+[typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940).
+
+The rules this repository actually wanted were `no-floating-promises`,
+`no-misused-promises`, and `react-hooks/exhaustive-deps`. In August 2026 the
+first two would have caught fourteen event handlers across `pulse` and `link`
+that awaited an API call and dropped the rejection, leaving the control looking
+broken and the operator with no message. `tooling/lint/unhandled-async.mjs`
+stands in for them until the parser lands: it is narrower than the real rules
+and only guards that one class. Replace it with ESLint when TypeScript 7 is
+supported, not before.

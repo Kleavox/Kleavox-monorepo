@@ -120,7 +120,12 @@ export function SendView({
   }
 
   async function copyShareUrl(url: string) {
-    await navigator.clipboard.writeText(url);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      setError("This browser would not let the page copy to the clipboard.");
+      return;
+    }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
@@ -131,7 +136,12 @@ export function SendView({
       await copyShareUrl(base);
       return;
     }
-    const key = localStorage.getItem(dropKeyStorageKey(drop.publicToken));
+    let key: string | null = null;
+    try {
+      key = localStorage.getItem(dropKeyStorageKey(drop.publicToken));
+    } catch {
+      key = null;
+    }
     if (!key) {
       setError(
         "The encryption key for this transfer is not stored on this device.",
@@ -143,10 +153,16 @@ export function SendView({
 
   async function deleteResultDrop() {
     if (!result) return;
-    const response = await fetch(`/api/public/${result.publicToken}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${result.manageToken}` },
-    });
+    let response: Response;
+    try {
+      response = await fetch(`/api/public/${result.publicToken}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${result.manageToken}` },
+      });
+    } catch {
+      setError("This transfer could not be deleted.");
+      return;
+    }
     if (!response.ok) {
       setError("This transfer could not be deleted.");
       return;
@@ -157,9 +173,15 @@ export function SendView({
   }
 
   async function deleteDrop(drop: AccountDrop) {
-    const response = await fetch(`/api/public/${drop.publicToken}`, {
-      method: "DELETE",
-    });
+    let response: Response;
+    try {
+      response = await fetch(`/api/public/${drop.publicToken}`, {
+        method: "DELETE",
+      });
+    } catch {
+      setError("That transfer could not be deleted.");
+      return;
+    }
     if (!response.ok) {
       setError("That transfer could not be deleted.");
       return;
@@ -222,6 +244,8 @@ export function SendView({
             <input
               ref={inputRef}
               type="file"
+              tabIndex={-1}
+              aria-hidden="true"
               disabled={busy}
               onChange={(event) => chooseFile(event.target.files?.[0])}
             />
@@ -366,8 +390,8 @@ export function SendView({
             )}
             {result.encrypted && (
               <p className="drop-compression">
-                End-to-end encrypted. The key lives only in this link — copy it
-                now.
+                End-to-end encrypted. The key lives only in this link, so copy
+                it now.
               </p>
             )}
             <button

@@ -39,10 +39,14 @@ export function Account({
         setNameInput(account.user.username ?? "");
         setProviders(account.providers);
       })
-      .catch(() => {});
+      .catch((cause) =>
+        setState({ status: "error", message: errorMessage(cause) }),
+      );
     void api<{ sessions: DeviceSession[] }>("/api/sessions")
       .then((result) => setDevices(result.sessions))
-      .catch(() => {});
+      .catch((cause) =>
+        setState({ status: "error", message: errorMessage(cause) }),
+      );
   }, []);
 
   async function deleteAccount(event: FormEvent) {
@@ -143,6 +147,7 @@ export function Account({
   return (
     <section className="pass-account">
       <p className="pass-section-label">Signed in</p>
+      <Status state={state} />
       {editing ? (
         <form className="pass-name-edit" onSubmit={saveName}>
           <Field
@@ -273,7 +278,7 @@ export function Account({
       {devices && devices.length > 0 && (
         <div className="pass-devices">
           <p className="pass-section-label">Devices</p>
-          {devices.map((device) => (
+          {devices.map((device, index) => (
             <div key={device.id} className="pass-device">
               <div>
                 <strong>
@@ -288,6 +293,11 @@ export function Account({
               <button
                 className="pass-text-action"
                 type="button"
+                aria-label={
+                  device.current
+                    ? "Sign out of this device"
+                    : `Revoke session ${index + 1}: ${deviceLabel(device.userAgent)}, signed in ${new Date(device.createdAt).toLocaleString()}`
+                }
                 disabled={state.status === "loading"}
                 onClick={() => void revokeDevice(device)}
               >
@@ -363,7 +373,6 @@ export function Account({
           </button>
         )}
       </div>
-      <Status state={state} />
     </section>
   );
 }
