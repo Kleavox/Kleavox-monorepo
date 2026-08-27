@@ -13,6 +13,7 @@ import {
   buildOverview,
   toOverviewParts,
   type DropList,
+  type FileReportList,
   type LinkPage,
   type OverviewOrigins,
   type PassSessions,
@@ -122,6 +123,14 @@ function isReportList(value: unknown): value is ReportList {
   );
 }
 
+function isFileReportList(value: unknown): value is FileReportList {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { reports?: unknown }).reports)
+  );
+}
+
 function isPulseRows(value: unknown): value is PulseRows {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as {
@@ -136,6 +145,19 @@ function isPulseRows(value: unknown): value is PulseRows {
   );
 }
 
+function originsForHost(hostname: string): OverviewOrigins {
+  if (hostname === "127.0.0.1" || hostname === "localhost") {
+    return {
+      link: localWorkerOrigin("link", hostname),
+      pulse: localWorkerOrigin("pulse", hostname),
+    };
+  }
+  return {
+    link: publicOrigin(hostname, "link"),
+    pulse: publicOrigin(hostname, "pulse"),
+  };
+}
+
 function originsFor(
   request: Request,
   publicOriginUrl: string,
@@ -143,32 +165,27 @@ function originsFor(
   allowed: Set<string>;
   targets: OverviewOrigins;
 } {
-  const url = new URL(request.url);
-  if (url.hostname === "127.0.0.1" || url.hostname === "localhost") {
-    const link = localWorkerOrigin("link", url.hostname);
-    const pulse = localWorkerOrigin("pulse", url.hostname);
-    return {
-      allowed: new Set([
-        link,
-        pulse,
-        localWorkerOrigin("pass", url.hostname),
-        localWorkerOrigin("gateway", url.hostname),
-      ]),
-      targets: { link, pulse },
-    };
-  }
-  const root = new URL(publicOriginUrl).hostname;
-  const link = publicOrigin(root, "link");
-  const pulse = publicOrigin(root, "pulse");
-  return {
-    allowed: new Set([
-      link,
-      pulse,
-      publicOrigin(root, "pass"),
-      publicOrigin(root, "gateway"),
-    ]),
-    targets: { link, pulse },
-  };
+  const publicHostname = new URL(publicOriginUrl).hostname;
+  const { link, pulse } = originsForHost(publicHostname);
+  const allowed =
+    publicHostname === "127.0.0.1" || publicHostname === "localhost"
+      ? new Set([
+          link,
+          pulse,
+          localWorkerOrigin("pass", publicHostname),
+          localWorkerOrigin("gateway", publicHostname),
+        ])
+      : new Set([
+          link,
+          pulse,
+          publicOrigin(publicHostname, "pass"),
+          publicOrigin(publicHostname, "gateway"),
+        ]);
+
+  const requestHostname = new URL(request.url).hostname;
+  const targets = originsForHost(requestHostname);
+
+  return { allowed, targets };
 }
 
 function corsHeaders(
@@ -210,35 +227,54 @@ app.get("/api/estate", async (context) => {
   const LINK_BASE = `http://${INTERNAL_HOSTS.LINK}`;
   const PULSE_BASE = `http://${INTERNAL_HOSTS.PULSE}`;
 
-  const [sessions, links, drops, reports, pulseRows] = await Promise.all([
-    part<PassSessions>(
-      context.env.PASS,
-      `${PASS_BASE}/api/sessions`,
-      raw,
-      isPassSessions,
-    ),
-    part<LinkPage>(
-      context.env.LINK,
-      `${LINK_BASE}/api/links?limit=1`,
-      raw,
-      isLinkPage,
-    ),
-    part<DropList>(context.env.LINK, `${LINK_BASE}/api/drops`, raw, isDropList),
-    part<ReportList>(
-      context.env.LINK,
-      `${LINK_BASE}/api/admin/reports`,
-      raw,
-      isReportList,
-    ),
-    part<PulseRows>(
-      context.env.PULSE,
-      `${PULSE_BASE}/api/overview`,
-      raw,
-      isPulseRows,
-    ),
-  ]);
+  const [sessions, links, drops, reports, fileReports, pulseRows] =
+    await Promise.all([
+      part<PassSessions>(
+        context.env.PASS,
+        `${PASS_BASE}/api/sessions`,
+        raw,
+        isPassSessions,
+      ),
+      part<LinkPage>(
+        context.env.LINK,
+        `${LINK_BASE}/api/links?limit=1`,
+        raw,
+        isLinkPage,
+      ),
+      part<DropList>(
+        context.env.LINK,
+        `${LINK_BASE}/api/drops`,
+        raw,
+        isDropList,
+      ),
+      part<ReportList>(
+        context.env.LINK,
+        `${LINK_BASE}/api/admin/reports`,
+        raw,
+        isReportList,
+      ),
+      part<FileReportList>(
+        context.env.LINK,
+        `${LINK_BASE}/api/admin/file-reports`,
+        raw,
+        isFileReportList,
+      ),
+      part<PulseRows>(
+        context.env.PULSE,
+        `${PULSE_BASE}/api/overview`,
+        raw,
+        isPulseRows,
+      ),
+    ]);
 
-  const parts = toOverviewParts({ sessions, links, drops, reports, pulseRows });
+  const parts = toOverviewParts({
+    sessions,
+    links,
+    drops,
+    reports,
+    fileReports,
+    pulseRows,
+  });
 
   return context.json(
     buildOverview(parts, session.identity.role, targets),

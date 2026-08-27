@@ -95,4 +95,12 @@ describe("formatAge", () => {
   it("returns a dash rather than a negative age for a future timestamp", () => {
     expect(formatAge("2026-08-25T19:00:00Z", now)).toBe("--");
   });
+
+  it("reports the remaining time until a future timestamp when asked for remaining", () => {
+    expect(formatAge("2026-08-26T00:00:00Z", now, "remaining")).toBe("6h");
+  });
+
+  it("returns a dash for remaining time on a timestamp already in the past", () => {
+    expect(formatAge("2026-08-25T16:00:00Z", now, "remaining")).toBe("--");
+  });
 });

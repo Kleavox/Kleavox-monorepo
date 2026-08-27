@@ -44,10 +44,10 @@ const full: OverviewParts = {
 describe("buildOverview", () => {
   it("carries each tool's counts through", () => {
     const overview = buildOverview(full, "ADMIN", ORIGINS);
-    expect(overview.pass.devices).toBe(1);
-    expect(overview.link.active).toBe(12);
-    expect(overview.pulse.nodes).toBe(2);
-    expect(overview.pulse.down).toBe(1);
+    expect(overview.pass?.devices).toBe(1);
+    expect(overview.link?.active).toBe(12);
+    expect(overview.pulse?.nodes).toBe(2);
+    expect(overview.pulse?.down).toBe(1);
   });
 
   it("puts danger before warn", () => {
@@ -83,6 +83,47 @@ describe("buildOverview", () => {
     ]);
   });
 
+  it("ranks a soon-to-expire link above a recently opened report, not by raw timestamp", () => {
+    const now = Date.now();
+    const overview = buildOverview(
+      {
+        pass: null,
+        link: {
+          active: 0,
+          files: 0,
+          reported: 0,
+          expiring: [
+            {
+              slug: "about-to-go",
+              filename: "gone.pdf",
+              downloads: 0,
+              expiresAt: new Date(now + 10 * 60 * 1000).toISOString(),
+            },
+          ],
+        },
+        pulse: {
+          nodes: 0,
+          checksFailing: 0,
+          openIncidents: 0,
+          down: [],
+          openReports: [
+            {
+              slug: "just-opened",
+              reason: "SPAM",
+              since: new Date(now - 5 * 60 * 1000).toISOString(),
+            },
+          ],
+        },
+      },
+      "ADMIN",
+      ORIGINS,
+    );
+    expect(overview.attention.map((item) => item.kind)).toEqual([
+      "link-expiring",
+      "abuse-report",
+    ]);
+  });
+
   it("emits an ISO timestamp, never a rendered age", () => {
     const overview = buildOverview(full, "ADMIN", ORIGINS);
     for (const item of overview.attention) {
@@ -90,21 +131,34 @@ describe("buildOverview", () => {
     }
   });
 
-  it("degrades to zeroes when an upstream failed, rather than rejecting", () => {
+  it("marks the expiring-link item as remaining time, not elapsed time", () => {
+    const overview = buildOverview(full, "ADMIN", ORIGINS);
+    const expiring = overview.attention.find(
+      (item) => item.kind === "link-expiring",
+    );
+    expect(expiring?.age).toBe("remaining");
+    const report = overview.attention.find(
+      (item) => item.kind === "abuse-report",
+    );
+    expect(report?.age).toBe("elapsed");
+  });
+
+  it("degrades to null when an upstream failed, rather than rejecting or reporting zero", () => {
     const overview = buildOverview(
       { pass: null, link: null, pulse: null },
       "ADMIN",
       ORIGINS,
     );
-    expect(overview.pass.devices).toBe(0);
-    expect(overview.link.active).toBe(0);
-    expect(overview.pulse.nodes).toBe(0);
+    expect(overview.pass).toBeNull();
+    expect(overview.link).toBeNull();
+    expect(overview.pulse).toBeNull();
     expect(overview.attention).toEqual([]);
   });
 
   it("still reports the tools that answered when one upstream failed", () => {
     const overview = buildOverview({ ...full, pulse: null }, "ADMIN", ORIGINS);
-    expect(overview.link.active).toBe(12);
+    expect(overview.link?.active).toBe(12);
+    expect(overview.pulse).toBeNull();
     expect(
       overview.attention.every((item) => item.kind === "link-expiring"),
     ).toBe(true);
@@ -175,6 +229,24 @@ const rawFull: RawOverviewParts = {
       },
     ],
   },
+  fileReports: {
+    reports: [
+      {
+        id: "fr1",
+        reason: "MALWARE",
+        status: "OPEN",
+        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        public_token: "f_bad_file",
+      },
+      {
+        id: "fr2",
+        reason: "SPAM",
+        status: "REJECTED",
+        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        public_token: "f_old_file",
+      },
+    ],
+  },
   pulseRows: {
     nodes: [
       {
@@ -213,16 +285,33 @@ describe("toOverviewParts", () => {
     expect(slugs).toEqual(["f_soonExpiring"]);
   });
 
-  it("counts only open reports as reported, and surfaces them under pulse", () => {
+  it("counts only open link reports and open file reports as reported, and surfaces both under pulse", () => {
     const parts = toOverviewParts(rawFull);
-    expect(parts.link?.reported).toBe(1);
+    expect(parts.link?.reported).toBe(2);
     expect(parts.pulse?.openReports).toEqual([
       {
         slug: "bad-link",
         reason: "MALWARE",
         since: rawFull.reports?.reports[0]?.created_at,
       },
+      {
+        slug: "f_bad_file",
+        reason: "MALWARE",
+        since: rawFull.fileReports?.reports[0]?.created_at,
+      },
     ]);
+  });
+
+  it("a null file-reports response still surfaces open link reports", () => {
+    const parts = toOverviewParts({ ...rawFull, fileReports: null });
+    expect(parts.link?.reported).toBe(1);
+    expect(parts.pulse?.openReports.map((r) => r.slug)).toEqual(["bad-link"]);
+  });
+
+  it("a null link-reports response still surfaces open file reports", () => {
+    const parts = toOverviewParts({ ...rawFull, reports: null });
+    expect(parts.link?.reported).toBe(1);
+    expect(parts.pulse?.openReports.map((r) => r.slug)).toEqual(["f_bad_file"]);
   });
 
   it("treats an enrolled node with no last signal as down", () => {
@@ -241,6 +330,7 @@ describe("toOverviewParts", () => {
       links: null,
       drops: null,
       reports: null,
+      fileReports: null,
       pulseRows: {
         nodes: [
           {
@@ -264,6 +354,7 @@ describe("toOverviewParts", () => {
       links: null,
       drops: null,
       reports: null,
+      fileReports: null,
       pulseRows: {
         nodes: [
           {
@@ -288,6 +379,7 @@ describe("toOverviewParts", () => {
       links: null,
       drops: null,
       reports: null,
+      fileReports: null,
       pulseRows: {
         nodes: [
           {
@@ -317,6 +409,7 @@ describe("toOverviewParts", () => {
       links: null,
       drops: null,
       reports: null,
+      fileReports: null,
       pulseRows: {
         nodes: [
           {
@@ -345,11 +438,15 @@ describe("toOverviewParts", () => {
     const parts = toOverviewParts({ ...rawFull, links: null });
     expect(parts.link?.active).toBe(0);
     expect(parts.link?.files).toBe(3);
-    expect(parts.link?.reported).toBe(1);
+    expect(parts.link?.reported).toBe(2);
   });
 
-  it("a null reports response zeroes only the reports fields, not the pulse node data", () => {
-    const parts = toOverviewParts({ ...rawFull, reports: null });
+  it("a null reports and file-reports response zeroes only the reports fields, not the pulse node data", () => {
+    const parts = toOverviewParts({
+      ...rawFull,
+      reports: null,
+      fileReports: null,
+    });
     expect(parts.link?.reported).toBe(0);
     expect(parts.pulse?.openReports).toEqual([]);
     expect(parts.pulse?.nodes).toBe(2);
@@ -361,21 +458,19 @@ describe("toOverviewParts", () => {
     expect(parts.pulse?.nodes).toBe(0);
     expect(parts.pulse?.down).toEqual([]);
     expect(parts.pulse?.checksFailing).toBe(0);
-    expect(parts.pulse?.openReports).toEqual([
-      {
-        slug: "bad-link",
-        reason: "MALWARE",
-        since: rawFull.reports?.reports[0]?.created_at,
-      },
+    expect(parts.pulse?.openReports.map((r) => r.slug)).toEqual([
+      "bad-link",
+      "f_bad_file",
     ]);
   });
 
-  it("degrades every field to null or zero when all five upstreams failed", () => {
+  it("degrades every field to null or zero when all six upstreams failed", () => {
     const parts = toOverviewParts({
       sessions: null,
       links: null,
       drops: null,
       reports: null,
+      fileReports: null,
       pulseRows: null,
     });
     expect(parts).toEqual({ pass: null, link: null, pulse: null });
@@ -387,6 +482,7 @@ describe("toOverviewParts", () => {
       links: null,
       drops: null,
       reports: null,
+      fileReports: null,
       pulseRows: {
         nodes: [
           {
@@ -412,6 +508,7 @@ describe("toOverviewParts", () => {
       links: null,
       drops: null,
       reports: null,
+      fileReports: null,
       pulseRows: {
         nodes: [
           {
@@ -447,6 +544,7 @@ describe("toOverviewParts", () => {
           },
         ],
       },
+      fileReports: null,
       pulseRows: null,
     });
     expect(parts.pulse?.openReports).toEqual([

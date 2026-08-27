@@ -24,7 +24,7 @@ function App() {
   const route = window.location.pathname;
 
   useEffect(() => {
-    void loadNavCounts(ROOT_ORIGIN).then(setCounts);
+    void loadNavCounts().then(setCounts);
   }, []);
 
   useEffect(() => {

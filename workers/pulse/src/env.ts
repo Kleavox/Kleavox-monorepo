@@ -5,6 +5,7 @@ export interface Env {
   DB: D1Database;
   PASS: Fetcher;
   LINK: Fetcher;
+  GATEWAY: Fetcher;
   ENVIRONMENT: DeployEnvironment;
   PUBLIC_ORIGIN: string;
   FROM_EMAIL: string;

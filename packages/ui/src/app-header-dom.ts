@@ -51,10 +51,16 @@ export function renderAppHeader(
     }
 
     const active = current === tool.key;
-    const count = counts ? counts[tool.key] : null;
+    const raw = counts ? counts[tool.key] : undefined;
+    const display =
+      raw === undefined ? null : raw === null ? "--" : String(raw);
     const severity = counts ? counts.attention[tool.key] : null;
     const name =
-      count === null ? tool.label : `${tool.label}, ${count} ${tool.noun}`;
+      active || raw === undefined
+        ? tool.label
+        : raw === null
+          ? `${tool.label}, unknown`
+          : `${tool.label}, ${raw} ${tool.noun}`;
 
     const link = document.createElement("a");
     link.href = tool.origin;
@@ -67,11 +73,11 @@ export function renderAppHeader(
     labelSpan.textContent = tool.label;
     link.append(labelSpan);
 
-    if (!active && count !== null) {
+    if (!active && display !== null) {
       const countSpan = document.createElement("span");
       countSpan.className = "kvx-nav-count";
       countSpan.setAttribute("aria-hidden", "true");
-      countSpan.textContent = String(count);
+      countSpan.textContent = display;
       link.append(countSpan);
     }
 

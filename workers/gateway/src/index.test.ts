@@ -273,6 +273,110 @@ describe("Gateway estate endpoint", () => {
     });
   });
 
+  it("reports a fully failed upstream as null, never as an all-zero block", async () => {
+    const passFetch = vi.fn(async (url: string) => {
+      if (url.includes("/internal/session")) {
+        return Response.json({ identity: { id: "u1", role: "ADMIN" } });
+      }
+      return Response.json({ sessions: [{ id: "s1" }] });
+    });
+    const pulseFetch = vi.fn(async () => new Response(null, { status: 500 }));
+
+    const response = await app.request(
+      "https://product.test/api/estate",
+      { headers: { cookie: "__Secure-kleavox_session=tok" } },
+      {
+        PASS: { fetch: passFetch },
+        LINK: {
+          fetch: vi.fn(async () => new Response(null, { status: 404 })),
+        },
+        PULSE: { fetch: pulseFetch },
+        ASSETS: { fetch: vi.fn() },
+        PUBLIC_ORIGIN: "https://product.test",
+      } as unknown as Env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { pulse: unknown; link: unknown };
+    expect(body.pulse).toBeNull();
+    expect(body.link).toBeNull();
+  });
+
+  it("merges file abuse reports with link abuse reports into the count and attention list", async () => {
+    const passFetch = vi.fn(async (url: string) => {
+      if (url.includes("/internal/session")) {
+        return Response.json({ identity: { id: "u1", role: "ADMIN" } });
+      }
+      return Response.json({ sessions: [] });
+    });
+    const linkFetch = vi.fn(async (url: string) => {
+      if (url.includes("/api/links")) {
+        return Response.json({
+          data: [],
+          meta: { page: 1, limit: 1, total: 0, totalPages: 0 },
+        });
+      }
+      if (url.includes("/api/drops")) {
+        return Response.json({ drops: [] });
+      }
+      if (url.includes("/api/admin/file-reports")) {
+        return Response.json({
+          reports: [
+            {
+              id: "fr1",
+              reason: "MALWARE",
+              status: "OPEN",
+              created_at: new Date().toISOString(),
+              public_token: "f_evil",
+            },
+          ],
+        });
+      }
+      if (url.includes("/api/admin/reports")) {
+        return Response.json({ reports: [] });
+      }
+      return new Response(null, { status: 404 });
+    });
+    const pulseFetch = vi.fn(async (url: string) => {
+      if (url.includes("/api/overview")) {
+        return Response.json({ nodes: [], checks: [], incidents: [] });
+      }
+      return new Response(null, { status: 404 });
+    });
+
+    const response = await app.request(
+      "https://product.test/api/estate",
+      { headers: { cookie: "__Secure-kleavox_session=tok" } },
+      {
+        PASS: { fetch: passFetch },
+        LINK: { fetch: linkFetch },
+        PULSE: { fetch: pulseFetch },
+        ASSETS: { fetch: vi.fn() },
+        PUBLIC_ORIGIN: "https://product.test",
+      } as unknown as Env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      link: { reported: number };
+      attention: Array<{ kind: string; title: string; href: string }>;
+    };
+    expect(body.link.reported).toBe(1);
+    expect(
+      body.attention.some(
+        (item) =>
+          item.kind === "abuse-report" &&
+          item.title.includes("f_evil") &&
+          item.href === "https://pulse.product.test/#reports",
+      ),
+    ).toBe(true);
+    expect(
+      linkFetch.mock.calls.some((call) =>
+        String(call[0]).includes("/api/admin/file-reports"),
+      ),
+    ).toBe(true);
+  });
+
   it("204s the OPTIONS preflight", async () => {
     const response = await app.request(
       "https://product.test/api/estate",

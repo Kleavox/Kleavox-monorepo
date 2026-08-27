@@ -51,7 +51,7 @@ async function registerAndSignIn(
 
 test("web home loads through the gateway", async ({ page }) => {
   await page.goto(`${GATEWAY}/`);
-  await expect(page.locator(".wm")).toContainText("Kleav");
+  await expect(page.locator(".kvx-brand")).toContainText(/kleav/i);
   await expect(page.locator("[data-signin]")).toBeVisible();
 });
 
@@ -131,6 +131,9 @@ test("a private transfer reaches another account end-to-end", async ({
   );
 
   await alicePage.goto(`${LINK}/`);
+  await alicePage
+    .getByRole("tab", { name: "Send a file", exact: true })
+    .click();
   await alicePage.locator('input[type="file"]').setInputFiles({
     name: "secret.txt",
     mimeType: "text/plain",

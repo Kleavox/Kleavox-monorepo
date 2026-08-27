@@ -1,5 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { navCountsFrom, readCache, writeCache } from "./nav-counts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  loadNavCounts,
+  loadOverview,
+  navCountsFrom,
+  readCache,
+  writeCache,
+} from "./nav-counts";
 import type { Overview } from "./nav-counts";
 
 const overview: Overview = {
@@ -39,6 +45,21 @@ describe("navCountsFrom", () => {
   it("carries the viewer's role through, so the header can gate Pulse", () => {
     expect(navCountsFrom(overview).role).toBe("ADMIN");
     expect(navCountsFrom({ ...overview, role: "USER" }).role).toBe("USER");
+  });
+
+  it("reports a failed tool's count as null, never as zero", () => {
+    const counts = navCountsFrom({ ...overview, pulse: null });
+    expect(counts.pulse).toBeNull();
+    expect(counts.pulse).not.toBe(0);
+  });
+
+  it("leaves the attention severity unmarked for a tool whose data is unknown", () => {
+    expect(navCountsFrom({ ...overview, pulse: null }).attention.pulse).toBe(
+      null,
+    );
+    expect(navCountsFrom({ ...overview, link: null }).attention.link).toBe(
+      null,
+    );
   });
 });
 
@@ -80,5 +101,96 @@ describe("the cache", () => {
       removeItem: () => {},
     });
     expect(readCache(Date.now())).toBeNull();
+  });
+
+  it("treats a cached body missing role or attention as invalid, not as fresh", () => {
+    sessionStorage.setItem(
+      "kvx:overview",
+      JSON.stringify({ at: Date.now(), overview: { pass: { devices: 1 } } }),
+    );
+    expect(readCache(Date.now())).toBeNull();
+  });
+
+  it("treats a missing 'at' as stale rather than fresh", () => {
+    sessionStorage.setItem("kvx:overview", JSON.stringify({ overview }));
+    expect(readCache(Date.now())).toBeNull();
+  });
+
+  it("never throws when the cached overview is missing a tool block entirely", () => {
+    sessionStorage.setItem(
+      "kvx:overview",
+      JSON.stringify({
+        at: Date.now(),
+        overview: { role: "ADMIN", attention: [] },
+      }),
+    );
+    expect(() => readCache(Date.now())).not.toThrow();
+  });
+
+  it("rejects a cached body whose pulse key is entirely absent, not merely null", () => {
+    sessionStorage.setItem(
+      "kvx:overview",
+      JSON.stringify({
+        at: Date.now(),
+        overview: {
+          role: "ADMIN",
+          attention: [],
+          pass: { devices: 1 },
+          link: { active: 1, files: 0, reported: 0, expiringSoon: 0 },
+        },
+      }),
+    );
+    expect(readCache(Date.now())).toBeNull();
+  });
+});
+
+describe("loadNavCounts", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("resolves to null rather than throwing when a 200 body is missing pulse", async () => {
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              role: "ADMIN",
+              attention: [],
+              pass: { devices: 1 },
+              link: { active: 1, files: 0, reported: 0, expiringSoon: 0 },
+            }),
+            { status: 200 },
+          ),
+      ),
+    );
+    await expect(loadNavCounts()).resolves.toBeNull();
+  });
+});
+
+describe("loadOverview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns the full overview so callers can read fields NavCounts drops, like link.reported", async () => {
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () => new Response(JSON.stringify(overview), { status: 200 }),
+      ),
+    );
+    await expect(loadOverview()).resolves.toEqual(overview);
   });
 });

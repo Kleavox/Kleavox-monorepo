@@ -45,6 +45,12 @@ app.get("/api/session", async (context) => {
     : context.json({ authenticated: false });
 });
 
+app.get("/api/estate", (context) =>
+  context.env.GATEWAY.fetch(
+    new Request(`http://${INTERNAL_HOSTS.GATEWAY}/api/estate`, context.req.raw),
+  ),
+);
+
 app.post("/internal/report-notify", async (context) => {
   if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PULSE) {
     return context.body(null, 404);

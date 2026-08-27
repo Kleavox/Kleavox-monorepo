@@ -191,6 +191,12 @@ app.get("/api/session", async (context) => {
     : context.json({ authenticated: false });
 });
 
+app.get("/api/estate", (context) =>
+  context.env.GATEWAY.fetch(
+    new Request(`http://${INTERNAL_HOSTS.GATEWAY}/api/estate`, context.req.raw),
+  ),
+);
+
 app.post("/api/logout", async (context) => {
   const token = readCookie(context.req.raw, SESSION_COOKIE);
   if (token) {

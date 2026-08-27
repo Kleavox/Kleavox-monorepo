@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { apiFetch as api, errorMessage } from "@kleavox/core";
+import { plural } from "@kleavox/ui";
 
 import type { DropReport, LinkReport } from "./types";
-import { InlineEmpty, SectionTitle } from "./ui";
+import { InlineEmpty } from "./ui";
 
 export function AbuseReports({
   onCountChange,
@@ -82,9 +83,16 @@ export function AbuseReports({
     );
   };
 
+  const total = (linkReports?.length ?? 0) + (dropReports?.length ?? 0);
+
   return (
-    <section aria-label="Abuse reports">
-      <SectionTitle eyebrow="Moderation" title="Abuse reports" />
+    <section aria-label="Abuse reports" id="reports">
+      <p className="kvx-section-label">
+        <span>Moderation</span>
+        <b>
+          {total} {plural(total, "report", "reports")}
+        </b>
+      </p>
       {error && <p className="pulse-report-error">{error}</p>}
       {!linkReports || !dropReports ? (
         <InlineEmpty message="Loading reports..." />
