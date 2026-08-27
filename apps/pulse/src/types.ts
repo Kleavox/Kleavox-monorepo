@@ -14,6 +14,7 @@ export interface NodeRecord {
   agent_version: string | null;
   last_seen_at: string | null;
   enrolled_at: string | null;
+  disabled_at: string | null;
   interval_seconds: number;
   cpu_percent: number | null;
   memory_used_bytes: number | null;

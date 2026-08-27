@@ -23,6 +23,7 @@ const admin = { user: "probeops", email: "probeops@example.com" };
 let context: BrowserContext;
 let page: Page;
 let problems: string[] = [];
+let expectFailure = false;
 
 const passDir = path.join(repoRoot, "workers", "pass");
 
@@ -110,10 +111,12 @@ test.beforeAll(async ({ browser }) => {
   page = await context.newPage();
   problems = [];
   page.on("console", (message) => {
+    if (expectFailure) return;
     if (message.type() === "error") problems.push("console: " + message.text());
   });
   page.on("pageerror", (error) => problems.push("pageerror: " + error.message));
   page.on("response", (response) => {
+    if (expectFailure) return;
     if (response.status() >= 400 && response.url().includes("/api/")) {
       problems.push(response.status() + " " + response.url());
     }
@@ -153,9 +156,7 @@ test.afterAll(async () => {
 
 test("pulse: enroll a node and manage its checks", async () => {
   await page.goto(`${PULSE}/`);
-  await expect(
-    page.getByRole("heading", { name: "See every host." }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^pulse:/ })).toBeVisible();
 
   await page.getByRole("button", { name: "Enroll node" }).click();
   await page.getByLabel("Node label").fill(`probe-node-${run}`);
@@ -221,32 +222,37 @@ test("link: short link lifecycle and edit", async () => {
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
 
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
   await expect(
-    page.locator(".link-row").first(),
+    page.locator(".link-activity-row").first(),
     "a link created a second ago belongs at the top of the activity list",
   ).toContainText(slug);
 
+  await row.hover();
   await row.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(
     row.getByRole("button", { name: "Resume", exact: true }),
   ).toBeVisible();
+  await row.hover();
   await row.getByRole("button", { name: "Resume", exact: true }).click();
   await expect(
     row.getByRole("button", { name: "Pause", exact: true }),
   ).toBeVisible();
 
+  await row.hover();
   await row.getByRole("button", { name: "Stats", exact: true }).click();
   await expect(page.locator(".link-stats")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".link-stats")).toHaveCount(0);
 
+  await row.hover();
   await row.getByRole("button", { name: "QR", exact: true }).click();
   await expect(page.locator(".link-qr")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".link-qr")).toHaveCount(0);
 
+  await row.hover();
   await row.getByRole("button", { name: "Edit", exact: true }).click();
   const editor = page.locator(".link-edit");
   await expect(editor).toBeVisible();
@@ -256,11 +262,14 @@ test("link: short link lifecycle and edit", async () => {
   await editor.getByRole("button", { name: "Save" }).click();
   await expect(editor).toHaveCount(0, { timeout: 20000 });
   await expect(
-    page.locator(".link-row", { hasText: "example.com/moved-here" }),
+    page.locator(".link-activity-row", { hasText: "example.com/moved-here" }),
   ).toBeVisible();
 
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -273,14 +282,14 @@ test("link: an abuse report reaches the Pulse inbox", async () => {
     .fill("https://example.com/reported");
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toBeVisible({
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toBeVisible({
     timeout: 20000,
   });
 
   await page.goto(`${LINK}/report`);
-  await expect(
-    page.getByRole("heading", { name: "Report a link" }),
-  ).toBeVisible();
+  await expect(page.getByText("Report a link")).toBeVisible();
 
   const form = page.locator("form");
   await form.locator("input").first().fill(slug);
@@ -318,12 +327,11 @@ async function ringless(selectors: string[]): Promise<string[]> {
 test("every form control shows where the keyboard is", async () => {
   await page.goto(`${LINK}/`);
   expect(
-    await ringless([
-      ".drop-options select",
-      ".drop-options input",
-      ".link-field input",
-      ".link-prefix-input input",
-    ]),
+    await ringless([".link-field input", ".link-prefix-input input"]),
+  ).toEqual([]);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
+  expect(
+    await ringless([".drop-options select", ".drop-options input"]),
   ).toEqual([]);
 
   await page.goto(`${PULSE}/`);
@@ -349,7 +357,7 @@ test("a modal opened from a hovered row still covers the page", async () => {
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
 
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
   await row.hover();
   await row.getByRole("button", { name: "Stats", exact: true }).click();
@@ -367,8 +375,11 @@ test("a modal opened from a hovered row still covers the page", async () => {
   expect(covers).toBe(true);
 
   await page.keyboard.press("Escape");
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -454,7 +465,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
     .fill("https://example.com/dialog");
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toBeVisible({
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toBeVisible({
     timeout: 20000,
   });
 
@@ -463,8 +476,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
       "Stats",
       async () => {
         await page.goto(`${LINK}/`);
-        await page
-          .locator(".link-row", { hasText: slug })
+        const openerRow = page.locator(".link-activity-row", { hasText: slug });
+        await openerRow.hover();
+        await openerRow
           .getByRole("button", { name: "Stats", exact: true })
           .click();
       },
@@ -473,8 +487,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
       "QR",
       async () => {
         await page.goto(`${LINK}/`);
-        await page
-          .locator(".link-row", { hasText: slug })
+        const openerRow = page.locator(".link-activity-row", { hasText: slug });
+        await openerRow.hover();
+        await openerRow
           .getByRole("button", { name: "QR", exact: true })
           .click();
       },
@@ -483,8 +498,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
       "Edit",
       async () => {
         await page.goto(`${LINK}/`);
-        await page
-          .locator(".link-row", { hasText: slug })
+        const openerRow = page.locator(".link-activity-row", { hasText: slug });
+        await openerRow.hover();
+        await openerRow
           .getByRole("button", { name: "Edit", exact: true })
           .click();
       },
@@ -550,11 +566,12 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
   expect(problemsFound).toEqual([]);
 
   await page.goto(`${LINK}/`);
-  await page
-    .locator(".link-row", { hasText: slug })
-    .getByRole("button", { name: "Delete", exact: true })
-    .click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  const finalRow = page.locator(".link-activity-row", { hasText: slug });
+  await finalRow.hover();
+  await finalRow.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -584,11 +601,11 @@ test("pass: the account page lists devices and can revoke one", async () => {
 
 test("pass: every session control says which device it acts on", async () => {
   await page.goto(`${PASS}/`);
-  await expect(page.locator(".pass-device").first()).toBeVisible({
+  await expect(page.locator(".pass-row-device").first()).toBeVisible({
     timeout: 20000,
   });
   const names = await page
-    .locator(".pass-device button")
+    .locator(".pass-row-device button")
     .evaluateAll((nodes) =>
       nodes.map(
         (node) => node.getAttribute("aria-label") || node.textContent || "",
@@ -600,6 +617,7 @@ test("pass: every session control says which device it acts on", async () => {
 
 test("link: a drop can be created, opened by its link, and deleted", async () => {
   await page.goto(`${LINK}/`);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
   await page.locator('.drop-zone input[type="file"]').setInputFiles({
     name: `probe-${run}.txt`,
     mimeType: "text/plain",
@@ -625,10 +643,13 @@ test("link: a drop can be created, opened by its link, and deleted", async () =>
   await viewer.close();
 
   await page.goto(`${LINK}/`);
-  const dropRow = page.locator(".link-row", { hasText: `probe-${run}.txt` });
+  const dropRow = page.locator(".link-activity-row", {
+    hasText: `probe-${run}.txt`,
+  });
   await expect(dropRow).toBeVisible({ timeout: 20000 });
+  await dropRow.hover();
   await dropRow.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(dropRow.locator(".link-tags")).toContainText("Deleted", {
+  await expect(dropRow.locator(".kvx-row-state")).toContainText("Deleted", {
     timeout: 20000,
   });
   await expect(dropRow.getByRole("button", { name: "Delete" })).toHaveCount(0);
@@ -643,7 +664,7 @@ test("gateway: resolves a live slug, refuses a paused one, 404s an unknown one",
     .fill("https://example.com/gateway-target");
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
 
   const hop = await page.request.get(`${GATEWAY}/${slug}`, { maxRedirects: 0 });
@@ -656,6 +677,7 @@ test("gateway: resolves a live slug, refuses a paused one, 404s an unknown one",
   });
   expect(missing.status()).toBe(404);
 
+  await row.hover();
   await row.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(
     row.getByRole("button", { name: "Resume", exact: true }),
@@ -665,8 +687,11 @@ test("gateway: resolves a live slug, refuses a paused one, 404s an unknown one",
   });
   expect(blocked.status()).toBeGreaterThanOrEqual(400);
 
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -683,9 +708,9 @@ test("link: a password-protected short link asks before it resolves", async () =
     .fill("probe-passphrase");
   await page.getByRole("button", { name: "Create link" }).click();
 
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
-  await expect(row.locator(".link-tags")).toContainText("Protected");
+  await expect(row.locator(".kvx-row-detail")).toContainText("Protected");
 
   const guarded = await page.request.get(`${GATEWAY}/${slug}`, {
     maxRedirects: 0,
@@ -695,14 +720,18 @@ test("link: a password-protected short link asks before it resolves", async () =
     "a protected link must not hand out its destination",
   ).not.toBe("https://example.com/locked");
 
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
 
 test("link: a drop stops at its download limit", async () => {
   await page.goto(`${LINK}/`);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
   await page.locator('.drop-zone input[type="file"]').setInputFiles({
     name: `limit-${run}.txt`,
     mimeType: "text/plain",
@@ -911,6 +940,68 @@ test("pass: an account can delete itself", async () => {
     timeout: 20000,
   });
   await fresh.close();
+});
+
+test("the header appears on every origin and marks the right tool", async () => {
+  for (const [origin, tool] of [
+    [PASS, "pass"],
+    [LINK, "link"],
+    [PULSE, "pulse"],
+  ] as const) {
+    await page.goto(origin);
+    const current = page.locator('[aria-current="page"]');
+    await expect(current).toHaveCount(1);
+    await expect(current).toContainText(tool);
+  }
+});
+
+test("the operator home lists an attention item and navigates to it", async () => {
+  const slug = `probeexpiring${run}`;
+  await page.goto(`${LINK}/`);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
+  await page.locator('.drop-zone input[type="file"]').setInputFiles({
+    name: `${slug}.txt`,
+    mimeType: "text/plain",
+    buffer: Buffer.from(`expiring payload ${run}`),
+  });
+  await expect(page.getByText(`${slug}.txt`)).toBeVisible({ timeout: 20000 });
+  await page.locator(".drop-options select").selectOption("3600");
+  await page.getByRole("button", { name: "Create transfer" }).click();
+  await expect(page.getByLabel("Share URL")).toBeVisible({ timeout: 40000 });
+
+  await page.goto(GATEWAY);
+  const rows = page.locator("[data-attention-rows] a");
+  await expect(rows.first()).toBeVisible({ timeout: 20000 });
+  const href = await rows.first().getAttribute("href");
+  expect(href).toBeTruthy();
+  await rows.first().click();
+  await expect(page).toHaveURL(
+    new RegExp(href!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+  );
+
+  await page.goto(`${LINK}/`);
+  const expiringRow = page.locator(".link-activity-row", {
+    hasText: `${slug}.txt`,
+  });
+  await expiringRow.hover();
+  await expiringRow
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await expect(expiringRow.locator(".kvx-row-state")).toContainText("Deleted", {
+    timeout: 20000,
+  });
+});
+
+test("the operator home reports a failed estate call instead of rendering empty", async () => {
+  await page.route("**/api/estate", (route) => route.fulfill({ status: 500 }));
+  expectFailure = true;
+  await page.goto(GATEWAY);
+  await expect(page.locator("[data-home-status]")).toContainText(
+    /could not|failed|unavailable/i,
+  );
+  await expect(page.locator("[data-attention]")).toBeHidden();
+  await page.unroute("**/api/estate");
+  expectFailure = false;
 });
 
 test("pass: signing out actually signs you out", async () => {

@@ -5,6 +5,7 @@ export interface Env {
   DB: D1Database;
   SESSIONS: KVNamespace;
   LINK: Fetcher;
+  GATEWAY: Fetcher;
   ENVIRONMENT: DeployEnvironment;
   PUBLIC_ORIGIN: string;
   ROOT_DOMAIN: string;

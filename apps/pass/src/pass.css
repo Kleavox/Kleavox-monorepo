@@ -532,13 +532,7 @@ button {
 }
 
 body {
-  background:
-    radial-gradient(
-      circle at 15% 16%,
-      rgb(163 230 53 / 10%),
-      transparent 28rem
-    ),
-    var(--pass-base);
+  background: var(--pass-base);
 }
 
 .pass-section-label {

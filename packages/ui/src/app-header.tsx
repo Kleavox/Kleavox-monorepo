@@ -45,12 +45,16 @@ export function AppHeader({
             counts.role === "ADMIN",
         ).map((tool) => {
           const active = current === tool.key;
-          const count = counts ? counts[tool.key] : null;
+          const raw = counts ? counts[tool.key] : undefined;
+          const display =
+            raw === undefined ? null : raw === null ? "--" : String(raw);
           const severity = counts ? counts.attention[tool.key] : null;
           const name =
-            count === null
+            active || raw === undefined
               ? tool.label
-              : `${tool.label}, ${count} ${tool.noun}`;
+              : raw === null
+                ? `${tool.label}, unknown`
+                : `${tool.label}, ${raw} ${tool.noun}`;
           return (
             <a
               key={tool.key}
@@ -60,9 +64,9 @@ export function AppHeader({
               aria-label={name}
             >
               <span aria-hidden="true">{tool.label}</span>
-              {!active && count !== null ? (
+              {!active && display !== null ? (
                 <span className="kvx-nav-count" aria-hidden="true">
-                  {count}
+                  {display}
                 </span>
               ) : null}
               {!active && severity !== null ? (

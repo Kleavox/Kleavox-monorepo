@@ -3,12 +3,15 @@ type Severity = "warn" | "danger";
 type AttentionKind =
   "node-down" | "check-failing" | "abuse-report" | "link-expiring";
 
+type AttentionAge = "elapsed" | "remaining";
+
 interface AttentionItem {
   kind: AttentionKind;
   severity: Severity;
   title: string;
   detail: string;
   since: string;
+  age: AttentionAge;
   href: string;
 }
 
@@ -46,20 +49,20 @@ type ViewerRole = "ADMIN" | "USER";
 
 export interface Overview {
   role: ViewerRole;
-  pass: { devices: number };
+  pass: { devices: number } | null;
   link: {
     active: number;
     files: number;
     reported: number;
     expiringSoon: number;
-  };
+  } | null;
   pulse: {
     nodes: number;
     down: number;
     checksFailing: number;
     openIncidents: number;
     openReports: number;
-  };
+  } | null;
   attention: AttentionItem[];
 }
 
@@ -69,6 +72,15 @@ export interface OverviewOrigins {
 }
 
 const SEVERITY_ORDER: Record<Severity, number> = { danger: 0, warn: 1 };
+const EXPIRING_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+function urgencyMs(item: AttentionItem, now: number): number {
+  const at = Date.parse(item.since);
+  if (item.age === "remaining") {
+    return EXPIRING_WINDOW_MS - Math.max(0, at - now);
+  }
+  return Math.max(0, now - at);
+}
 
 export function buildOverview(
   parts: OverviewParts,
@@ -85,6 +97,7 @@ export function buildOverview(
       title: node.name,
       detail: "no signal",
       since: node.lastSignal,
+      age: "elapsed",
       href: `${pulseOrigin}/#fleet`,
     });
   }
@@ -96,6 +109,7 @@ export function buildOverview(
       title: `abuse report /${report.slug}`,
       detail: `${report.reason.toLowerCase()}, not yet reviewed`,
       since: report.since,
+      age: "elapsed",
       href: `${pulseOrigin}/#reports`,
     });
   }
@@ -107,32 +121,38 @@ export function buildOverview(
       title: `/${item.slug}`,
       detail: `${item.filename}, ${item.downloads} downloads`,
       since: item.expiresAt,
+      age: "remaining",
       href: `${linkOrigin}/`,
     });
   }
 
+  const now = Date.now();
   attention.sort((a, b) => {
     const bySeverity = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
     if (bySeverity !== 0) return bySeverity;
-    return Date.parse(a.since) - Date.parse(b.since);
+    return urgencyMs(b, now) - urgencyMs(a, now);
   });
 
   return {
     role,
-    pass: { devices: parts.pass?.devices ?? 0 },
-    link: {
-      active: parts.link?.active ?? 0,
-      files: parts.link?.files ?? 0,
-      reported: parts.link?.reported ?? 0,
-      expiringSoon: parts.link?.expiring.length ?? 0,
-    },
-    pulse: {
-      nodes: parts.pulse?.nodes ?? 0,
-      down: parts.pulse?.down.length ?? 0,
-      checksFailing: parts.pulse?.checksFailing ?? 0,
-      openIncidents: parts.pulse?.openIncidents ?? 0,
-      openReports: parts.pulse?.openReports.length ?? 0,
-    },
+    pass: parts.pass ? { devices: parts.pass.devices } : null,
+    link: parts.link
+      ? {
+          active: parts.link.active,
+          files: parts.link.files,
+          reported: parts.link.reported,
+          expiringSoon: parts.link.expiring.length,
+        }
+      : null,
+    pulse: parts.pulse
+      ? {
+          nodes: parts.pulse.nodes,
+          down: parts.pulse.down.length,
+          checksFailing: parts.pulse.checksFailing,
+          openIncidents: parts.pulse.openIncidents,
+          openReports: parts.pulse.openReports.length,
+        }
+      : null,
     attention,
   };
 }
@@ -172,6 +192,18 @@ export interface ReportList {
   reports: ReportRow[];
 }
 
+interface FileReportRow {
+  id: string;
+  reason: string;
+  status: ReportStatus;
+  created_at: string;
+  public_token: string | null;
+}
+
+export interface FileReportList {
+  reports: FileReportRow[];
+}
+
 interface PulseNodeRow {
   name: string;
   enrolled_at: string | null;
@@ -200,10 +232,10 @@ export interface RawOverviewParts {
   links: LinkPage | null;
   drops: DropList | null;
   reports: ReportList | null;
+  fileReports: FileReportList | null;
   pulseRows: PulseRows | null;
 }
 
-const EXPIRING_WINDOW_MS = 6 * 60 * 60 * 1000;
 const MIN_NODE_GRACE_SECONDS = 90;
 const NODE_GRACE_INTERVAL_MULTIPLIER = 3;
 const SQLITE_TIMESTAMP = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/u;
@@ -242,16 +274,21 @@ function isExpiringSoon(expiresAt: string): boolean {
 }
 
 export function toOverviewParts(raw: RawOverviewParts): OverviewParts {
-  const openReports = (raw.reports?.reports ?? []).filter(
+  const openLinkReports = (raw.reports?.reports ?? []).filter(
     (report) => report.status === "OPEN",
   );
+  const openFileReports = (raw.fileReports?.reports ?? []).filter(
+    (report) => report.status === "OPEN",
+  );
+  const reportsKnown = raw.reports !== null || raw.fileReports !== null;
+  const reportedCount = openLinkReports.length + openFileReports.length;
 
   const link: LinkSummary | null =
-    raw.links || raw.drops || raw.reports
+    raw.links || raw.drops || reportsKnown
       ? {
           active: raw.links?.meta.total ?? 0,
           files: raw.drops?.drops.length ?? 0,
-          reported: raw.reports ? openReports.length : 0,
+          reported: reportsKnown ? reportedCount : 0,
           expiring: raw.drops
             ? raw.drops.drops
                 .filter(
@@ -269,7 +306,7 @@ export function toOverviewParts(raw: RawOverviewParts): OverviewParts {
       : null;
 
   const pulse: PulseSummary | null =
-    raw.pulseRows || raw.reports
+    raw.pulseRows || reportsKnown
       ? {
           nodes: raw.pulseRows?.nodes.length ?? 0,
           checksFailing: raw.pulseRows
@@ -290,12 +327,19 @@ export function toOverviewParts(raw: RawOverviewParts): OverviewParts {
                   lastSignal: toIso(node.last_seen_at ?? node.enrolled_at),
                 }))
             : [],
-          openReports: raw.reports
-            ? openReports.map((report) => ({
-                slug: report.slug ?? report.id,
-                reason: report.reason,
-                since: toIso(report.created_at),
-              }))
+          openReports: reportsKnown
+            ? [
+                ...openLinkReports.map((report) => ({
+                  slug: report.slug ?? report.id,
+                  reason: report.reason,
+                  since: toIso(report.created_at),
+                })),
+                ...openFileReports.map((report) => ({
+                  slug: report.public_token ?? report.id,
+                  reason: report.reason,
+                  since: toIso(report.created_at),
+                })),
+              ]
             : [],
         }
       : null;

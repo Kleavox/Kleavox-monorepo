@@ -1,3 +1,4 @@
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import { securityHeaders } from "@kleavox/worker";
 import { Hono } from "hono";
 
@@ -95,6 +96,12 @@ app.get("/ready", async (context) => {
     ready ? 200 : 503,
   );
 });
+
+app.get("/api/estate", (context) =>
+  context.env.GATEWAY.fetch(
+    new Request(`http://${INTERNAL_HOSTS.GATEWAY}/api/estate`, context.req.raw),
+  ),
+);
 
 registerOAuthRoutes(app);
 registerAccountRoutes(app);

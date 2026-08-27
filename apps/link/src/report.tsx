@@ -1,6 +1,13 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { ApiError, apiFetch as request, errorMessage } from "@kleavox/core";
-import { ROOT_HOST, challengeUrl } from "@kleavox/ui";
+import {
+  AppHeader,
+  ROOT_HOST,
+  ROOT_ORIGIN,
+  challengeUrl,
+  loadNavCounts,
+} from "@kleavox/ui";
+import type { NavCounts } from "@kleavox/ui";
 
 import { clearDraft, readDraft, REPORT_DRAFT_KEY, saveDraft } from "./drafts";
 import type { FormState } from "./types";
@@ -13,6 +20,11 @@ export function ReportApp() {
   const [reason, setReason] = useState(draft?.reason ?? "PHISHING");
   const [details, setDetails] = useState(draft?.details ?? "");
   const [state, setState] = useState<FormState>({ status: "idle" });
+  const [counts, setCounts] = useState<NavCounts | null>(null);
+
+  useEffect(() => {
+    void loadNavCounts().then(setCounts);
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -38,20 +50,10 @@ export function ReportApp() {
 
   return (
     <div className="link-app">
-      <header className="link-header">
-        <a className="link-brand" href="/">
-          KLEAV<span>OX</span> <span>/ LINK</span>
-        </a>
-        <nav>
-          <a href="/">Create</a>
-        </nav>
-      </header>
+      <AppHeader product="LINK" rootOrigin={ROOT_ORIGIN} counts={counts} />
       <main className="link-report-page">
         <form className="link-create" onSubmit={submit}>
-          <div className="link-section-heading">
-            <p className="link-kicker">SAFETY</p>
-            <h1>Report a link</h1>
-          </div>
+          <p className="kvx-section-label">Report a link</p>
           <label className="link-field">
             <span>Slug</span>
             <div className="link-prefix-input">

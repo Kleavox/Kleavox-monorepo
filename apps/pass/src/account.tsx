@@ -192,7 +192,13 @@ export function Account({
                   value: devices ? String(devices.length) : "--",
                   label: "devices",
                 },
-                { value: providers ? providers.join(" ") : "--", label: "" },
+                {
+                  value:
+                    providers && providers.length > 0
+                      ? providers.join(" ")
+                      : "--",
+                  label: "",
+                },
               ],
             }}
           />

@@ -13,6 +13,7 @@ import {
   type AttentionItem,
   type NavCounts,
   type Overview,
+  type StatusField,
   type StatusLineModel,
 } from "@kleavox/ui";
 
@@ -38,11 +39,13 @@ interface ToolDef {
 }
 
 function passDetail(overview: Overview): string {
+  if (overview.pass === null) return "--";
   const { devices } = overview.pass;
   return `${devices} ${plural(devices, "device", "devices")}`;
 }
 
 function linkDetail(overview: Overview): string {
+  if (overview.link === null) return "--";
   const { active, files, reported } = overview.link;
   return [
     `${active} ${plural(active, "route", "routes")}`,
@@ -52,6 +55,7 @@ function linkDetail(overview: Overview): string {
 }
 
 function pulseDetail(overview: Overview): string {
+  if (overview.pulse === null) return "--";
   const { nodes, checksFailing, openIncidents } = overview.pulse;
   return [
     `${nodes} ${plural(nodes, "node", "nodes")}`,
@@ -66,14 +70,6 @@ const TOOLS: ToolDef[] = [
   { key: "pulse", label: "Pulse", href: PULSE_ORIGIN, detail: pulseDetail },
 ];
 
-const DEFAULT_COUNTS: NavCounts = {
-  role: "USER",
-  pass: 0,
-  link: 0,
-  pulse: 0,
-  attention: { pass: null, link: null, pulse: null },
-};
-
 const headerTarget = document.querySelector<HTMLElement>("[data-app-header]");
 const headerAccountTemplate = document.querySelector<HTMLTemplateElement>(
   "[data-header-account]",
@@ -85,13 +81,13 @@ const accountNode =
       ) as HTMLElement)
     : null;
 
-function paintHeader(counts: NavCounts): void {
+function paintHeader(counts: NavCounts | null): void {
   if (!headerTarget) return;
   renderAppHeader(headerTarget, { counts });
   if (accountNode) headerTarget.append(accountNode);
 }
 
-paintHeader(DEFAULT_COUNTS);
+paintHeader(null);
 
 const account =
   accountNode?.matches("[data-account]") === true
@@ -148,8 +144,20 @@ function renderSignedOut(): void {
   main.append(link);
 }
 
+function knownField(
+  value: number | null,
+  singular: string,
+  pluralLabel: string,
+): StatusField {
+  return value === null
+    ? { value: "--", label: pluralLabel }
+    : { value: String(value), label: plural(value, singular, pluralLabel) };
+}
+
 function homeModel(overview: Overview): StatusLineModel {
   const waiting = overview.attention.length;
+  const unknown =
+    overview.pass === null || overview.link === null || overview.pulse === null;
   const lead =
     waiting > 0
       ? {
@@ -157,23 +165,16 @@ function homeModel(overview: Overview): StatusLineModel {
           label: plural(waiting, "needs attention", "need attention"),
           attention: true,
         }
-      : { value: "nothing", label: "needs you" };
+      : unknown
+        ? { value: "status", label: "unknown", attention: true }
+        : { value: "nothing", label: "needs you" };
   return {
     tool: "kleavox",
     fields: [
       lead,
-      {
-        value: String(overview.link.active),
-        label: plural(overview.link.active, "route", "routes"),
-      },
-      {
-        value: String(overview.pulse.nodes),
-        label: plural(overview.pulse.nodes, "node", "nodes"),
-      },
-      {
-        value: String(overview.pass.devices),
-        label: plural(overview.pass.devices, "device", "devices"),
-      },
+      knownField(overview.link?.active ?? null, "route", "routes"),
+      knownField(overview.pulse?.nodes ?? null, "node", "nodes"),
+      knownField(overview.pass?.devices ?? null, "device", "devices"),
     ],
   };
 }
@@ -204,7 +205,7 @@ function attentionRow(item: AttentionItem): HTMLLIElement {
 
   const age = document.createElement("span");
   age.className = "kvx-row-age";
-  age.textContent = formatAge(item.since);
+  age.textContent = formatAge(item.since, new Date(), item.age);
 
   const tool = document.createElement("span");
   tool.className = "kvx-row-tool";
@@ -236,12 +237,14 @@ function toolRow(tool: ToolDef, overview: Overview): HTMLLIElement {
 
 function renderTools(overview: Overview): void {
   const target = document.querySelector<HTMLElement>("[data-tools]");
+  const count = document.querySelector<HTMLElement>("[data-tools-count]");
   if (!target) return;
   const counts = navCountsFrom(overview);
   const rows = TOOLS.filter(
     (tool) => tool.key !== "pulse" || counts.role === "ADMIN",
   ).map((tool) => toolRow(tool, overview));
   target.replaceChildren(...rows);
+  if (count) count.textContent = String(rows.length);
 }
 
 function renderHome(overview: Overview): void {

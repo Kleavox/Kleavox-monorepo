@@ -1,6 +1,9 @@
 import type { NodeRecord } from "./types";
 
-export function nodeState(node: NodeRecord): "pending" | "online" | "offline" {
+export type NodeState = "disabled" | "pending" | "online" | "offline";
+
+export function nodeState(node: NodeRecord): NodeState {
+  if (node.disabled_at) return "disabled";
   if (!node.enrolled_at) return "pending";
   if (!node.last_seen_at) return "offline";
   const grace = Math.max(90, node.interval_seconds * 3) * 1000;

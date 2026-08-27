@@ -660,7 +660,7 @@ textarea:focus-visible {
   line-height: 0.9;
   letter-spacing: -0.05em;
   color: var(--kvx-ink);
-  text-shadow: 0 0 26px rgb(61 219 224 / 16%);
+  text-shadow: 0 0 26px var(--kvx-accent-glow);
   /* An arrival gesture, not a permanent state. A perpetually flickering
      error screen is hostile: the reader is already stuck, and the message
      they need is the thing vibrating. */

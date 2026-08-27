@@ -18,6 +18,7 @@ export {
   formatAge,
   plural,
   statusSentence,
+  type AgeDirection,
   type StatusField,
   type StatusLineModel,
 } from "./status-line";
@@ -25,9 +26,11 @@ export { StatusLine } from "./StatusLine";
 export { renderStatusLine } from "./status-line-dom";
 export {
   loadNavCounts,
+  loadOverview,
   navCountsFrom,
   readCache,
   writeCache,
+  type AttentionAge,
   type AttentionItem,
   type AttentionKind,
   type NavCounts,

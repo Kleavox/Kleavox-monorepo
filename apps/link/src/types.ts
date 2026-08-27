@@ -36,6 +36,7 @@ export type LoadState =
       status: "ready";
       identity: Identity;
       links: LinkRecord[];
+      linksTotal: number;
       files: AccountDrop[];
     }
   | { status: "error"; message: string };

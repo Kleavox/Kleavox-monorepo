@@ -1,11 +1,13 @@
 import { createPortal } from "react-dom";
 import {
   type FormEvent,
+  type KeyboardEvent,
   Suspense,
   lazy,
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -19,10 +21,15 @@ import {
   ErrorScreen,
   ROOT_HOST,
   ROOT_ORIGIN,
+  StatusLine,
+  loadNavCounts,
+  loadOverview,
+  plural,
   signInUrl,
   useAction,
   useDialog,
 } from "@kleavox/ui";
+import type { NavCounts } from "@kleavox/ui";
 
 import { FilesApp } from "./files";
 import type { AccountDrop } from "./files";
@@ -36,6 +43,26 @@ import type {
 
 const QrPanel = lazy(() => import("./QrPanel"));
 
+const LINKS_PAGE_LIMIT = 50;
+
+async function fetchAllLinks(): Promise<{
+  data: LinkRecord[];
+  total: number;
+}> {
+  const first = await request<{
+    data: LinkRecord[];
+    meta: { total: number; totalPages: number };
+  }>(`/api/links?limit=${LINKS_PAGE_LIMIT}`);
+  const data = [...first.data];
+  for (let page = 2; page <= first.meta.totalPages; page += 1) {
+    const next = await request<{ data: LinkRecord[] }>(
+      `/api/links?limit=${LINKS_PAGE_LIMIT}&page=${page}`,
+    );
+    data.push(...next.data);
+  }
+  return { data, total: first.meta.total };
+}
+
 export function WorkspaceApp() {
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
@@ -47,7 +74,7 @@ export function WorkspaceApp() {
         return;
       }
       const [links, files] = await Promise.all([
-        request<{ data: LinkRecord[] }>("/api/links"),
+        fetchAllLinks(),
         request<{ drops: AccountDrop[] }>("/api/drops"),
       ]);
       if (
@@ -61,6 +88,7 @@ export function WorkspaceApp() {
         status: "ready",
         identity: session.identity,
         links: links.data,
+        linksTotal: links.total,
         files: files.drops,
       });
     } catch (error) {
@@ -94,8 +122,8 @@ export function WorkspaceApp() {
         {state.status === "guest" && <Guest />}
         {state.status === "ready" && (
           <Dashboard
-            identity={state.identity}
             links={state.links}
+            linksTotal={state.linksTotal}
             files={state.files}
             onRefresh={refresh}
           />
@@ -113,6 +141,11 @@ function Header({
   onLogout: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [counts, setCounts] = useState<NavCounts | null>(null);
+
+  useEffect(() => {
+    void loadNavCounts().then(setCounts);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -122,13 +155,9 @@ function Header({
   }, [menuOpen]);
 
   return (
-    <AppHeader product="LINK" rootOrigin={ROOT_ORIGIN}>
-      <nav className="kvx-nav" aria-label="Product navigation">
-        <a className="is-active" href="/">
-          Create
-        </a>
+    <AppHeader product="LINK" rootOrigin={ROOT_ORIGIN} counts={counts}>
+      <nav className="kvx-nav" aria-label="Link tools">
         <a href="/report">Report</a>
-        <a href={ROOT_ORIGIN}>System</a>
         {state.status === "ready" ? (
           <div className="link-account">
             <button
@@ -162,67 +191,175 @@ function Header({
 }
 
 function Dashboard({
-  identity,
   links,
+  linksTotal,
   files,
   onRefresh,
 }: {
-  identity: Identity;
   links: LinkRecord[];
+  linksTotal: number;
   files: AccountDrop[];
   onRefresh: () => Promise<void>;
 }) {
-  const totalClicks = useMemo(
-    () => links.reduce((total, link) => total + link.clickCount, 0),
-    [links],
-  );
+  const [reported, setReported] = useState<number | null>(null);
+
+  useEffect(() => {
+    void loadOverview().then((overview) =>
+      setReported(overview?.link?.reported ?? null),
+    );
+  }, []);
+
+  const summary = useMemo(() => {
+    const now = Date.now();
+    const expiring =
+      links.filter(
+        (link) =>
+          !link.disabledAt &&
+          link.expiresAt !== null &&
+          isExpiringSoon(link.expiresAt, now),
+      ).length +
+      files.filter(
+        (file) =>
+          file.status === "ACTIVE" && isExpiringSoon(file.expiresAt, now),
+      ).length;
+    return {
+      active: linksTotal,
+      files: files.length,
+      expiring,
+      reported,
+    };
+  }, [links, files, linksTotal, reported]);
 
   return (
     <div className="kvx-shell-wide">
-      <section className="link-hero">
-        <div>
-          <p className="kvx-kicker">LINK / {identity.email}</p>
-          <h1 className="kvx-title">
-            One address.
-            <br />
-            Any handoff.
-          </h1>
-          <p className="kvx-lede">
-            Route a destination or send a temporary file from the same
-            workspace.
-          </p>
-        </div>
-        <dl className="link-summary">
-          <div>
-            <dt>Active handoffs</dt>
-            <dd>
-              {links.filter((link) => !link.disabledAt).length +
-                files.filter((file) => file.status === "ACTIVE").length}
-            </dd>
-          </div>
-          <div>
-            <dt>Route visits</dt>
-            <dd>{totalClicks.toLocaleString()}</dd>
-          </div>
-        </dl>
-      </section>
+      <StatusLine
+        model={{
+          tool: "link",
+          fields: [
+            { value: String(summary.active), label: "active" },
+            { value: String(summary.files), label: "files" },
+            {
+              value: String(summary.expiring),
+              label: "expiring",
+              attention: summary.expiring > 0,
+            },
+            {
+              value:
+                summary.reported === null ? "--" : String(summary.reported),
+              label: "reported",
+            },
+          ],
+        }}
+      />
 
-      <section className="link-compose">
-        <header className="link-compose-heading">
-          <p className="kvx-kicker">CREATE / ONE PUBLIC NAMESPACE</p>
-          <h2>What are you sending?</h2>
-          <p>
-            URLs and files both leave as <strong>{ROOT_HOST}/...</strong>
-          </p>
-        </header>
-        <div className="link-compose-grid">
-          <CreateLink onCreated={onRefresh} />
-          <FilesApp embedded onChanged={onRefresh} />
-        </div>
-      </section>
+      <CreatePanel onCreated={onRefresh} />
 
       <LinkList links={links} files={files} onRefresh={onRefresh} />
     </div>
+  );
+}
+
+const EXPIRING_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+function isExpiringSoon(expiresAt: string, now: number): boolean {
+  const remaining = Date.parse(expiresAt) - now;
+  return remaining > 0 && remaining <= EXPIRING_WINDOW_MS;
+}
+
+type CreateTab = "link" | "file";
+const CREATE_TABS: CreateTab[] = ["link", "file"];
+
+function CreatePanel({ onCreated }: { onCreated: () => Promise<void> }) {
+  const uid = useId();
+  const [tab, setTab] = useState<CreateTab>("link");
+  const tabRefs = useRef<Record<CreateTab, HTMLButtonElement | null>>({
+    link: null,
+    file: null,
+  });
+
+  const focusTab = (target: CreateTab, delta: 1 | -1) => {
+    const index = CREATE_TABS.indexOf(target);
+    const next =
+      CREATE_TABS[(index + delta + CREATE_TABS.length) % CREATE_TABS.length];
+    if (!next) return;
+    setTab(next);
+    tabRefs.current[next]?.focus();
+  };
+
+  const onTabKeyDown = (
+    current: CreateTab,
+    event: KeyboardEvent<HTMLButtonElement>,
+  ) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      focusTab(current, 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusTab(current, -1);
+    }
+  };
+
+  return (
+    <section className="link-compose">
+      <p className="kvx-section-label">
+        <span>Create</span>
+        <b>{ROOT_HOST}/...</b>
+      </p>
+      <div
+        className="link-tablist"
+        role="tablist"
+        aria-label="Create a handoff"
+      >
+        <button
+          ref={(node) => {
+            tabRefs.current.link = node;
+          }}
+          id={`${uid}-tab-link`}
+          type="button"
+          role="tab"
+          className={tab === "link" ? "is-active" : undefined}
+          aria-selected={tab === "link"}
+          aria-controls={`${uid}-panel-link`}
+          tabIndex={tab === "link" ? 0 : -1}
+          onClick={() => setTab("link")}
+          onKeyDown={(event) => onTabKeyDown("link", event)}
+        >
+          Short link
+        </button>
+        <button
+          ref={(node) => {
+            tabRefs.current.file = node;
+          }}
+          id={`${uid}-tab-file`}
+          type="button"
+          role="tab"
+          className={tab === "file" ? "is-active" : undefined}
+          aria-selected={tab === "file"}
+          aria-controls={`${uid}-panel-file`}
+          tabIndex={tab === "file" ? 0 : -1}
+          onClick={() => setTab("file")}
+          onKeyDown={(event) => onTabKeyDown("file", event)}
+        >
+          Send a file
+        </button>
+      </div>
+      <div
+        id={`${uid}-panel-link`}
+        role="tabpanel"
+        aria-labelledby={`${uid}-tab-link`}
+        hidden={tab !== "link"}
+      >
+        <CreateLink onCreated={onCreated} />
+      </div>
+      <div
+        id={`${uid}-panel-file`}
+        role="tabpanel"
+        aria-labelledby={`${uid}-tab-file`}
+        hidden={tab !== "file"}
+      >
+        <FilesApp embedded onChanged={onCreated} />
+      </div>
+    </section>
   );
 }
 
@@ -262,14 +399,6 @@ function CreateLink({ onCreated }: { onCreated: () => Promise<void> }) {
 
   return (
     <form className="link-create" onSubmit={submit}>
-      <div className="link-section-heading">
-        <span className="link-create-index">01</span>
-        <div>
-          <p className="link-kicker">ROUTE A URL</p>
-          <h2>Short link</h2>
-        </div>
-      </div>
-
       <label className="link-field link-field-wide">
         <span>Destination URL</span>
         <input
@@ -374,8 +503,8 @@ function LinkList({
   if (activity.length === 0) {
     return (
       <section className="link-list link-empty">
-        <p className="link-kicker">ACTIVITY</p>
-        <h2>No handoffs yet.</h2>
+        <p className="kvx-section-label">Activity</p>
+        <p className="link-empty-message">No handoffs yet.</p>
       </section>
     );
   }
@@ -385,11 +514,13 @@ function LinkList({
 
   return (
     <section className="link-list">
-      <div className="link-section-heading">
-        <p className="link-kicker">ACTIVITY / {activity.length}</p>
-        <h2>Links and files</h2>
-      </div>
-      <div className="link-table" role="list">
+      <p className="kvx-section-label">
+        <span>Activity</span>
+        <b>
+          {activity.length} {plural(activity.length, "item", "items")}
+        </b>
+      </p>
+      <ul className="kvx-rows" role="list">
         {pageItems.map((item) =>
           item.kind === "link" ? (
             <LinkRow
@@ -405,7 +536,7 @@ function LinkList({
             />
           ),
         )}
-      </div>
+      </ul>
       {pageCount > 1 && (
         <nav className="link-pagination" aria-label="Activity pages">
           <button
@@ -461,23 +592,25 @@ function FileRow({
   }
 
   return (
-    <article className="link-row link-file-row" role="listitem">
-      <div className="link-route">
-        <a href={publicUrl} target="_blank" rel="noreferrer">
-          /{file.publicToken}
-        </a>
-        <p title={file.name}>{file.name}</p>
+    <li className="link-activity-row">
+      <div className="kvx-row">
+        <span className={statePad(state)} aria-hidden="true" />
+        <span className="kvx-row-state">{state}</span>
+        <span className="kvx-row-title">
+          <a href={publicUrl} target="_blank" rel="noreferrer">
+            /{file.publicToken}
+          </a>
+          <small className="kvx-row-detail" title={file.name}>
+            {file.name}
+            {file.protected ? " · Protected" : ""}
+          </small>
+        </span>
+        <span className="kvx-row-age">
+          {file.downloadCount.toLocaleString()} downloads
+        </span>
+        <span className="kvx-row-tool">f/</span>
       </div>
-      <div className="link-tags">
-        <span data-state={state.toLowerCase()}>{state}</span>
-        <span className="link-tag-file">File</span>
-        {file.protected && <span>Protected</span>}
-      </div>
-      <div className="link-clicks">
-        <strong>{file.downloadCount.toLocaleString()}</strong>
-        <span>downloads</span>
-      </div>
-      <div className="link-actions">
+      <div className="link-row-actions">
         <button
           type="button"
           onClick={() => void navigator.clipboard.writeText(publicUrl)}
@@ -503,7 +636,7 @@ function FileRow({
           {error}
         </p>
       )}
-    </article>
+    </li>
   );
 }
 
@@ -543,22 +676,25 @@ function LinkRow({
   };
 
   return (
-    <article className="link-row" role="listitem">
-      <div className="link-route">
-        <a href={link.shortUrl} target="_blank" rel="noreferrer">
-          /{link.slug}
-        </a>
-        <p title={link.targetUrl}>{link.targetUrl}</p>
+    <li className="link-activity-row">
+      <div className="kvx-row">
+        <span className={statePad(state)} aria-hidden="true" />
+        <span className="kvx-row-state">{state}</span>
+        <span className="kvx-row-title">
+          <a href={link.shortUrl} target="_blank" rel="noreferrer">
+            /{link.slug}
+          </a>
+          <small className="kvx-row-detail" title={link.targetUrl}>
+            {link.targetUrl}
+            {link.protected ? " · Protected" : ""}
+          </small>
+        </span>
+        <span className="kvx-row-age">
+          {link.clickCount.toLocaleString()} visits
+        </span>
+        <span className="kvx-row-tool">{"→"}</span>
       </div>
-      <div className="link-tags">
-        <span data-state={state.toLowerCase()}>{state}</span>
-        {link.protected && <span>Protected</span>}
-      </div>
-      <div className="link-clicks">
-        <strong>{link.clickCount.toLocaleString()}</strong>
-        <span>visits</span>
-      </div>
-      <div className="link-actions">
+      <div className="link-row-actions">
         <button
           type="button"
           onClick={() => void navigator.clipboard.writeText(link.shortUrl)}
@@ -613,8 +749,16 @@ function LinkRow({
           <QrPanel link={link} onClose={() => setShowQr(false)} />
         </Suspense>
       )}
-    </article>
+    </li>
   );
+}
+
+function statePad(word: string): string {
+  if (word === "Live" || word === "Active") return "kvx-pad kvx-pad-ok";
+  if (word === "Paused") return "kvx-pad kvx-pad-warn";
+  if (word === "Exhausted" || word === "Failed")
+    return "kvx-pad kvx-pad-danger";
+  return "kvx-pad";
 }
 
 function EditPanel({

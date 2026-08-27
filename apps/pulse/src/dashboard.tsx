@@ -1,10 +1,10 @@
-import { type FormEvent, useId, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiFetch as api } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
-import { useDialog } from "@kleavox/ui";
+import { StatusLine, plural, useDialog } from "@kleavox/ui";
 
-import { nodeState, percentage, relativeTime } from "./format";
+import { type NodeState, nodeState, percentage, relativeTime } from "./format";
 import { AbuseReports } from "./reports";
 import type {
   CheckRecord,
@@ -15,16 +15,81 @@ import type {
   Overview,
   Project,
 } from "./types";
-import {
-  ActionError,
-  InlineEmpty,
-  Metric,
-  Resource,
-  SectionTitle,
-  useAction,
-} from "./ui";
+import { ActionError, InlineEmpty, Metric, useAction } from "./ui";
 
 const NO_CHECKS: CheckRecord[] = [];
+
+const SECTIONS = [
+  { id: "fleet", label: "fleet" },
+  { id: "incidents", label: "incidents" },
+  { id: "reports", label: "reports" },
+  { id: "projects", label: "projects" },
+] as const;
+
+export function SectionNav() {
+  const [current, setCurrent] = useState<string>("fleet");
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (SECTIONS.some((section) => section.id === hash)) {
+      document.getElementById(hash)?.scrollIntoView();
+      setCurrent(hash);
+    }
+
+    const elements = SECTIONS.map((section) =>
+      document.getElementById(section.id),
+    ).filter((element): element is HTMLElement => element !== null);
+    if (elements.length === 0) return;
+
+    const markerLine = 96;
+    const observer = new IntersectionObserver(
+      () => {
+        let bestId: string | null = null;
+        let bestTop = -Infinity;
+        for (const element of elements) {
+          const rect = element.getBoundingClientRect();
+          if (rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
+          if (rect.top > markerLine) continue;
+          if (rect.top > bestTop) {
+            bestTop = rect.top;
+            bestId = element.id;
+          }
+        }
+        if (bestId) setCurrent(bestId);
+      },
+      { threshold: Array.from({ length: 21 }, (_, index) => index / 20) },
+    );
+    for (const element of elements) observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <nav className="pulse-section-nav" aria-label="Pulse sections">
+      {SECTIONS.map((section) => (
+        <a
+          key={section.id}
+          href={`#${section.id}`}
+          aria-current={current === section.id ? "true" : undefined}
+        >
+          {section.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+function statePad(state: NodeState): string {
+  if (state === "online") return "kvx-pad kvx-pad-ok";
+  if (state === "pending") return "kvx-pad kvx-pad-warn";
+  if (state === "disabled") return "kvx-pad";
+  return "kvx-pad kvx-pad-danger";
+}
+
+function metricText(value: number | null, suffix = ""): string {
+  return value === null
+    ? "--"
+    : `${value.toFixed(value >= 10 ? 0 : 1)}${suffix}`;
+}
 
 export function Dashboard({
   identity,
@@ -52,6 +117,7 @@ export function Dashboard({
     return map;
   }, [overview.checks]);
   const online = nodeStates.filter(({ state }) => state === "online").length;
+  const offline = nodeStates.filter(({ state }) => state === "offline").length;
   const openIncidents = overview.incidents.filter(
     (incident) => incident.status === "OPEN",
   ).length;
@@ -61,21 +127,33 @@ export function Dashboard({
 
   return (
     <main className="pulse-main">
-      <section className="pulse-command">
-        <div>
-          <p className="pulse-kicker">Workspace / {identity.email}</p>
-          <h1>See every host.</h1>
-          <p>Metrics, checks, incidents, projects, and notes.</p>
-        </div>
-        <div className="pulse-command-actions">
-          <div className="pulse-command-readout" aria-hidden="true">
-            <span>EDGE SIGNAL</span>
-            <strong>{online.toString().padStart(2, "0")}</strong>
-            <i />
-          </div>
-          <CreateNode onCreated={onEnrollment} onRefresh={onRefresh} />
-        </div>
-      </section>
+      <div className="pulse-top">
+        <p className="pulse-kicker">Workspace / {identity.email}</p>
+        <StatusLine
+          model={{
+            tool: "pulse",
+            fields: [
+              { value: String(overview.nodes.length), label: "nodes" },
+              {
+                value: String(offline),
+                label: "down",
+                attention: offline > 0,
+              },
+              {
+                value: String(downChecks),
+                label: "checks failing",
+                attention: downChecks > 0,
+              },
+              {
+                value: openReports === undefined ? "…" : String(openReports),
+                label: "reports open",
+                attention: (openReports ?? 0) > 0,
+              },
+            ],
+          }}
+        />
+        <CreateNode onCreated={onEnrollment} onRefresh={onRefresh} />
+      </div>
 
       <section className="pulse-strip" aria-label="Pulse summary">
         <Metric
@@ -107,12 +185,18 @@ export function Dashboard({
       </section>
 
       <div className="pulse-grid">
-        <section className="pulse-nodes">
-          <SectionTitle eyebrow="Fleet" title="Monitored nodes" />
+        <section className="pulse-nodes" id="fleet">
+          <p className="kvx-section-label">
+            <span>Fleet</span>
+            <b>
+              {overview.nodes.length}{" "}
+              {plural(overview.nodes.length, "node", "nodes")}
+            </b>
+          </p>
           {overview.nodes.length === 0 ? (
             <InlineEmpty message="Create a node to generate a one-time enrollment command." />
           ) : (
-            <div className="pulse-node-list">
+            <ul className="kvx-rows" role="list">
               {nodeStates.map(({ node, state }) => (
                 <NodePanel
                   key={node.id}
@@ -123,7 +207,7 @@ export function Dashboard({
                   onEnrollment={onEnrollment}
                 />
               ))}
-            </div>
+            </ul>
           )}
         </section>
 
@@ -213,13 +297,14 @@ function NodePanel({
   onEnrollment,
 }: {
   node: NodeRecord;
-  state: "pending" | "online" | "offline";
+  state: NodeState;
   checks: CheckRecord[];
   onRefresh: () => Promise<void>;
   onEnrollment: (value: Enrollment) => void;
 }) {
   const memory = percentage(node.memory_used_bytes, node.memory_total_bytes);
   const disk = percentage(node.disk_used_bytes, node.disk_total_bytes);
+  const checksUp = checks.filter((check) => check.status === "UP").length;
   const { error, run } = useAction();
 
   const renewEnrollment = () =>
@@ -231,12 +316,13 @@ function NodePanel({
     });
 
   return (
-    <article className="pulse-node">
-      <header>
-        <div>
-          <span className={`pulse-state pulse-state-${state}`}>{state}</span>
-          <h3>{node.name}</h3>
-          <p>
+    <li className="pulse-node">
+      <div className="kvx-row">
+        <span className={statePad(state)} aria-hidden="true" />
+        <span className="kvx-row-state">{state}</span>
+        <span className="kvx-row-title">
+          {node.name}
+          <small className="kvx-row-detail">
             {[
               node.hostname,
               node.operating_system,
@@ -245,69 +331,71 @@ function NodePanel({
             ]
               .filter(Boolean)
               .join(" / ") || "Awaiting agent enrollment"}
-          </p>
-        </div>
-        <div className="pulse-node-time">
-          <span>Last signal</span>
-          <strong>{relativeTime(node.last_seen_at)}</strong>
-        </div>
-      </header>
-
-      <div className="pulse-resources">
-        <Resource label="CPU" value={node.cpu_percent} suffix="%" />
-        <Resource label="Memory" value={memory} suffix="%" />
-        <Resource label="Disk" value={disk} suffix="%" />
-        <Resource label="Load" value={node.load_1} />
+          </small>
+          <small className="kvx-row-detail pulse-node-metrics">
+            CPU {metricText(node.cpu_percent, "%")} · MEM{" "}
+            {metricText(memory, "%")} · DISK {metricText(disk, "%")} · LOAD{" "}
+            {metricText(node.load_1)}
+          </small>
+        </span>
+        <span className="kvx-row-age">{relativeTime(node.last_seen_at)}</span>
+        <span className="kvx-row-tool">
+          {checks.length === 0 ? "--" : `${checksUp}/${checks.length}`}
+        </span>
       </div>
 
-      <div className="pulse-checks">
-        <div className="pulse-check-heading">
-          <strong>Checks</strong>
-          <CreateCheck nodeId={node.id} onRefresh={onRefresh} />
-        </div>
-        {checks.length === 0 ? (
-          <p className="pulse-muted">No checks assigned.</p>
-        ) : (
-          checks.map((check) => (
-            <div className="pulse-check" key={check.id}>
-              <span
-                className={`pulse-dot pulse-dot-${check.status.toLowerCase()}`}
-              />
-              <div>
-                <strong>{check.name}</strong>
-                <p>
-                  {check.kind} / {check.target}
-                </p>
+      <div className="pulse-node-detail">
+        <div className="pulse-checks">
+          <div className="pulse-check-heading">
+            <strong>Checks</strong>
+            <CreateCheck nodeId={node.id} onRefresh={onRefresh} />
+          </div>
+          {checks.length === 0 ? (
+            <p className="pulse-muted">No checks assigned.</p>
+          ) : (
+            checks.map((check) => (
+              <div className="pulse-check" key={check.id}>
+                <span
+                  className={`pulse-dot pulse-dot-${check.status.toLowerCase()}`}
+                />
+                <div>
+                  <strong>{check.name}</strong>
+                  <p>
+                    {check.kind} / {check.target}
+                  </p>
+                </div>
+                <span className="pulse-check-status">{check.status}</span>
+                <span>
+                  {check.latency_ms === null ? "--" : `${check.latency_ms} ms`}
+                </span>
+                <button
+                  onClick={() =>
+                    void run(async () => {
+                      await api(`/api/checks/${check.id}`, {
+                        method: "DELETE",
+                      });
+                      await onRefresh();
+                    })
+                  }
+                >
+                  Remove
+                </button>
               </div>
-              <span className="pulse-check-status">{check.status}</span>
-              <span>
-                {check.latency_ms === null ? "--" : `${check.latency_ms} ms`}
-              </span>
-              <button
-                onClick={() =>
-                  void run(async () => {
-                    await api(`/api/checks/${check.id}`, { method: "DELETE" });
-                    await onRefresh();
-                  })
-                }
-              >
-                Remove
-              </button>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
 
-      {state === "pending" && (
-        <button
-          className="pulse-text-action"
-          onClick={() => void renewEnrollment()}
-        >
-          Generate a new enrollment token
-        </button>
-      )}
-      <ActionError message={error} />
-    </article>
+        {state === "pending" && (
+          <button
+            className="pulse-text-action"
+            onClick={() => void renewEnrollment()}
+          >
+            Generate a new enrollment token
+          </button>
+        )}
+        <ActionError message={error} />
+      </div>
+    </li>
   );
 }
 
@@ -392,8 +480,13 @@ function CreateCheck({
 
 function IncidentList({ incidents }: { incidents: Incident[] }) {
   return (
-    <section className="pulse-incidents">
-      <SectionTitle eyebrow="Events" title="Incident log" />
+    <section className="pulse-incidents" id="incidents">
+      <p className="kvx-section-label">
+        <span>Events</span>
+        <b>
+          {incidents.length} {plural(incidents.length, "incident", "incidents")}
+        </b>
+      </p>
       {incidents.length === 0 ? (
         <InlineEmpty message="No incidents have been recorded." />
       ) : (
@@ -434,8 +527,13 @@ function ProjectNotes({
   const { error, run } = useAction();
 
   return (
-    <section className="pulse-projects">
-      <SectionTitle eyebrow="Context" title="Projects and notes" />
+    <section className="pulse-projects" id="projects">
+      <p className="kvx-section-label">
+        <span>Context</span>
+        <b>
+          {projects.length} {plural(projects.length, "project", "projects")}
+        </b>
+      </p>
       <form
         onSubmit={(event) => {
           event.preventDefault();

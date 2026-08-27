@@ -9,10 +9,12 @@ import {
   ErrorScreen,
   PASS_ORIGIN,
   ROOT_ORIGIN,
+  loadNavCounts,
   signInUrl,
 } from "@kleavox/ui";
+import type { NavCounts } from "@kleavox/ui";
 import "./pulse.css";
-import { Dashboard, EnrollmentDialog } from "./dashboard";
+import { Dashboard, EnrollmentDialog, SectionNav } from "./dashboard";
 import type { AppState, Enrollment, Overview, SessionResponse } from "./types";
 
 function App() {
@@ -66,12 +68,15 @@ function App() {
         {state.status === "loading" && <Loading />}
         {state.status === "guest" && <Guest />}
         {state.status === "ready" && (
-          <Dashboard
-            identity={state.identity}
-            overview={state.overview}
-            onRefresh={refreshOverview}
-            onEnrollment={setEnrollment}
-          />
+          <>
+            <SectionNav />
+            <Dashboard
+              identity={state.identity}
+              overview={state.overview}
+              onRefresh={refreshOverview}
+              onEnrollment={setEnrollment}
+            />
+          </>
         )}
       </main>
       {state.status === "guest" && <GuestFooter />}
@@ -86,8 +91,14 @@ function App() {
 }
 
 function Header({ state }: { state: AppState }) {
+  const [counts, setCounts] = useState<NavCounts | null>(null);
+
+  useEffect(() => {
+    void loadNavCounts().then(setCounts);
+  }, []);
+
   return (
-    <AppHeader product="PULSE" rootOrigin={ROOT_ORIGIN}>
+    <AppHeader product="PULSE" rootOrigin={ROOT_ORIGIN} counts={counts}>
       <nav className="kvx-nav">
         <a href={PASS_ORIGIN}>
           {state.status === "ready"
@@ -103,38 +114,10 @@ function Guest() {
   return (
     <main className="pulse-guest">
       <section>
-        <p className="pulse-kicker">Kleavox Pulse / Go agent</p>
-        <h1>
-          Your VPS,
-          <br />
-          in one signal.
-        </h1>
-        <p>Host metrics. Service checks. Incident history.</p>
         <a className="pulse-primary" href={signInUrl()}>
           Sign in
         </a>
       </section>
-      <div className="pulse-guest-panel" aria-hidden="true">
-        <header>
-          <span />
-          <b>node / production-01</b>
-          <em>online</em>
-        </header>
-        <div className="pulse-guest-metrics">
-          <strong>
-            18<i>% CPU</i>
-          </strong>
-          <strong>
-            42<i>% MEM</i>
-          </strong>
-          <strong>
-            61<i>% DISK</i>
-          </strong>
-        </div>
-        <svg viewBox="0 0 600 150">
-          <path d="M0 112L50 100L100 106L150 64L200 77L250 42L300 58L350 35L400 75L450 58L500 87L550 52L600 69" />
-        </svg>
-      </div>
     </main>
   );
 }

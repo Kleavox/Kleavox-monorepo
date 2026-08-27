@@ -33,6 +33,10 @@
       "binding": "PULSE",
       "service": "local-pulse",
     },
+    {
+      "binding": "GATEWAY",
+      "service": "local-gateway",
+    },
   ],
   "r2_buckets": [
     {
