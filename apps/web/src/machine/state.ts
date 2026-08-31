@@ -88,7 +88,8 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
     }
 
     case "reader-scanned": {
-      if (state.authStep !== "closed") return state;
+      if (state.authStep !== "closed" || state.status !== "reading")
+        return state;
       return { ...state, status: "idle", authStep: "methods", busy: true };
     }
 

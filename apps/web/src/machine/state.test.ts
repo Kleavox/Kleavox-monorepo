@@ -110,6 +110,12 @@ describe("the sign-in terminal steps", () => {
     expect(scanned.busy).toBe(true);
   });
 
+  it("reader-scanned is ignored if the card was never tapped", () => {
+    const guest = initialState("guest");
+    const ignored = reduce(guest, { type: "reader-scanned" });
+    expect(ignored).toEqual(guest);
+  });
+
   it("reader-scanned is a no-op once the terminal is already open", () => {
     const scanned = reduce(
       reduce(initialState("guest"), { type: "pass-tap" }),
