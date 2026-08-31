@@ -95,6 +95,8 @@
   --kvx-t2: 180ms;
   --kvx-t3: 320ms;
   --kvx-t4: 640ms;
+  --kvx-t5: 900ms;
+  --kvx-t6: 1400ms;
 
   --kvx-shell: min(1280px, calc(100vw - 48px));
   --kvx-shell-wide: min(1500px, calc(100vw - 48px));
