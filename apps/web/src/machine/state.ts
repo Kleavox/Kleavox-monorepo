@@ -16,7 +16,12 @@ export type MachineState = {
 
 export type MachineEvent =
   | { type: "select"; bay: BayCode }
+  | { type: "preselect"; bay: BayCode }
   | { type: "pass-tap" }
+  | { type: "reader-scanned" }
+  | { type: "otp-sent" }
+  | { type: "oauth-started" }
+  | { type: "verifying" }
   | { type: "pass-issued"; access: AccessRole }
   | { type: "pass-removed" }
   | { type: "otp-digits"; digits: string }
@@ -72,9 +77,35 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
       };
     }
 
+    case "preselect": {
+      if (state.busy) return state;
+      return { ...state, selection: event.bay, status: "selected" };
+    }
+
     case "pass-tap": {
       if (state.busy || state.access !== "guest") return state;
-      return { ...state, authStep: "methods", busy: true };
+      return { ...state, status: "reading", busy: true };
+    }
+
+    case "reader-scanned": {
+      if (state.authStep !== "closed") return state;
+      return { ...state, status: "idle", authStep: "methods", busy: true };
+    }
+
+    case "otp-sent": {
+      if (state.authStep !== "methods") return state;
+      return { ...state, authStep: "otp-machine", busy: true };
+    }
+
+    case "oauth-started": {
+      if (state.authStep !== "methods") return state;
+      return { ...state, authStep: "oauth", busy: true };
+    }
+
+    case "verifying": {
+      if (state.authStep !== "otp-machine" && state.authStep !== "oauth")
+        return state;
+      return { ...state, authStep: "issuing", busy: true };
     }
 
     case "pass-issued": {

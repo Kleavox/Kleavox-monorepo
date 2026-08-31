@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { initialState, permits, POLICY, reduce } from "./state";
-import type { BayCode } from "./state";
+import type { BayCode, MachineState } from "./state";
 
 describe("the policy table the reducer and the bay lights share", () => {
   it("matches the bay access table from the handoff", () => {
@@ -51,6 +51,25 @@ describe("selection policy", () => {
   });
 });
 
+describe("keypad preselect", () => {
+  it("selects a bay and waits without dispensing", () => {
+    const next = reduce(initialState("owner"), { type: "preselect", bay: "1" });
+    expect(next.status).toBe("selected");
+    expect(next.selection).toBe("1");
+    expect(next.busy).toBe(false);
+  });
+
+  it("is ignored while a sequence is busy", () => {
+    const dispensing = reduce(initialState("owner"), {
+      type: "select",
+      bay: "1",
+    });
+    const again = reduce(dispensing, { type: "preselect", bay: "2" });
+    expect(again.selection).toBe("1");
+    expect(again.status).toBe("dispensing");
+  });
+});
+
 describe("resuming a locked request", () => {
   it("dispenses the remembered bay as soon as the pass is issued", () => {
     const denied = reduce(initialState("guest"), { type: "select", bay: "1" });
@@ -60,11 +79,119 @@ describe("resuming a locked request", () => {
     expect(granted.authRequest).toBeNull();
   });
 
+  it("resumes bay 2 rather than a hardcoded bay 1", () => {
+    const denied = reduce(initialState("guest"), { type: "select", bay: "2" });
+    const granted = reduce(denied, { type: "pass-issued", access: "owner" });
+    expect(granted.status).toBe("dispensing");
+    expect(granted.selection).toBe("2");
+    expect(granted.authRequest).toBeNull();
+  });
+
   it("does not resume a bay the new pass still cannot open", () => {
     const denied = reduce(initialState("guest"), { type: "select", bay: "2" });
     const granted = reduce(denied, { type: "pass-issued", access: "visitor" });
     expect(granted.status).toBe("denied");
     expect(granted.authRequest).toBeNull();
+  });
+});
+
+describe("the sign-in terminal steps", () => {
+  it("pass-tap starts the reader", () => {
+    const tapped = reduce(initialState("guest"), { type: "pass-tap" });
+    expect(tapped.status).toBe("reading");
+    expect(tapped.busy).toBe(true);
+    expect(tapped.authStep).toBe("closed");
+  });
+
+  it("reader-scanned opens the method screen once the scan finishes", () => {
+    const tapped = reduce(initialState("guest"), { type: "pass-tap" });
+    const scanned = reduce(tapped, { type: "reader-scanned" });
+    expect(scanned.authStep).toBe("methods");
+    expect(scanned.busy).toBe(true);
+  });
+
+  it("reader-scanned is a no-op once the terminal is already open", () => {
+    const scanned = reduce(
+      reduce(initialState("guest"), { type: "pass-tap" }),
+      {
+        type: "reader-scanned",
+      },
+    );
+    const again = reduce(scanned, { type: "reader-scanned" });
+    expect(again).toEqual(scanned);
+  });
+
+  it("otp-sent moves the keypad into code entry", () => {
+    const scanned = reduce(
+      reduce(initialState("guest"), { type: "pass-tap" }),
+      {
+        type: "reader-scanned",
+      },
+    );
+    const sent = reduce(scanned, { type: "otp-sent" });
+    expect(sent.authStep).toBe("otp-machine");
+    expect(sent.busy).toBe(true);
+  });
+
+  it("otp-sent is ignored if the terminal was never opened", () => {
+    const guest = initialState("guest");
+    const ignored = reduce(guest, { type: "otp-sent" });
+    expect(ignored).toEqual(guest);
+  });
+
+  it("oauth-started marks the redirect about to happen", () => {
+    const scanned = reduce(
+      reduce(initialState("guest"), { type: "pass-tap" }),
+      {
+        type: "reader-scanned",
+      },
+    );
+    const started = reduce(scanned, { type: "oauth-started" });
+    expect(started.authStep).toBe("oauth");
+    expect(started.busy).toBe(true);
+  });
+
+  it("oauth-started cannot fire once otp-sent already claimed the step", () => {
+    const scanned = reduce(
+      reduce(initialState("guest"), { type: "pass-tap" }),
+      {
+        type: "reader-scanned",
+      },
+    );
+    const sent = reduce(scanned, { type: "otp-sent" });
+    const started = reduce(sent, { type: "oauth-started" });
+    expect(started).toEqual(sent);
+  });
+
+  it("verifying moves an in-flight code check to issuing", () => {
+    const scanned = reduce(
+      reduce(initialState("guest"), { type: "pass-tap" }),
+      {
+        type: "reader-scanned",
+      },
+    );
+    const sent = reduce(scanned, { type: "otp-sent" });
+    const verifying = reduce(sent, { type: "verifying" });
+    expect(verifying.authStep).toBe("issuing");
+    expect(verifying.busy).toBe(true);
+  });
+
+  it("verifying moves an in-flight oauth callback to issuing", () => {
+    const scanned = reduce(
+      reduce(initialState("guest"), { type: "pass-tap" }),
+      {
+        type: "reader-scanned",
+      },
+    );
+    const started = reduce(scanned, { type: "oauth-started" });
+    const verifying = reduce(started, { type: "verifying" });
+    expect(verifying.authStep).toBe("issuing");
+  });
+
+  it("verifying is ignored before a code or callback is in flight", () => {
+    const guest = initialState("guest");
+    const ignored = reduce(guest, { type: "verifying" });
+    expect(ignored).toEqual(guest);
   });
 });
 
@@ -125,5 +252,81 @@ describe("the otp buffer belongs to the reducer", () => {
     });
     const granted = reduce(typing, { type: "pass-issued", access: "visitor" });
     expect(granted.authDigits).toBe("");
+  });
+});
+
+type Status = MachineState["status"];
+type AuthStep = MachineState["authStep"];
+
+const ALL_STATUSES: Record<Status, true> = {
+  idle: true,
+  reading: true,
+  granted: true,
+  selected: true,
+  denied: true,
+  dispensing: true,
+};
+
+const ALL_AUTH_STEPS: Record<AuthStep, true> = {
+  closed: true,
+  methods: true,
+  "otp-machine": true,
+  oauth: true,
+  issuing: true,
+};
+
+describe("every declared state is reachable", () => {
+  it("produces every status value from some event sequence", () => {
+    const tapped = reduce(initialState("guest"), { type: "pass-tap" });
+    const preselected = reduce(initialState("owner"), {
+      type: "preselect",
+      bay: "1",
+    });
+    const denied = reduce(initialState("guest"), { type: "select", bay: "1" });
+    const dispensing = reduce(initialState("owner"), {
+      type: "select",
+      bay: "1",
+    });
+    const granted = reduce(initialState("guest"), {
+      type: "pass-issued",
+      access: "visitor",
+    });
+
+    const observed = new Set<Status>([
+      initialState("guest").status,
+      tapped.status,
+      preselected.status,
+      denied.status,
+      dispensing.status,
+      granted.status,
+    ]);
+
+    for (const status of Object.keys(ALL_STATUSES) as Status[]) {
+      expect(observed.has(status)).toBe(true);
+    }
+  });
+
+  it("produces every authStep value from some event sequence", () => {
+    const scanned = reduce(
+      reduce(initialState("guest"), { type: "pass-tap" }),
+      {
+        type: "reader-scanned",
+      },
+    );
+    const otpSent = reduce(scanned, { type: "otp-sent" });
+    const oauthStarted = reduce(scanned, { type: "oauth-started" });
+    const issuingFromOtp = reduce(otpSent, { type: "verifying" });
+
+    const observed = new Set<AuthStep>([
+      initialState("guest").authStep,
+      scanned.authStep,
+      otpSent.authStep,
+      oauthStarted.authStep,
+      issuingFromOtp.authStep,
+    ]);
+
+    for (const step of Object.keys(ALL_AUTH_STEPS) as AuthStep[]) {
+      expect(observed.has(step)).toBe(true);
+    }
   });
 });
