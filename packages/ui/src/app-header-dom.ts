@@ -1,39 +1,12 @@
 import { LINK_ORIGIN, PASS_ORIGIN, PULSE_ORIGIN } from "./origins";
-import type { Indicator, NavCounts, Severity } from "./nav-counts";
+import type { NavCounts } from "./nav-counts";
+import { displayFor, nameFor, padClass, severityFor } from "./indicator-view";
 
 const TOOLS = [
   { key: "pass", label: "pass", origin: PASS_ORIGIN, noun: "devices" },
   { key: "link", label: "link", origin: LINK_ORIGIN, noun: "active routes" },
   { key: "pulse", label: "pulse", origin: PULSE_ORIGIN, noun: "nodes" },
 ] as const;
-
-function padClass(severity: Severity | null): string {
-  if (severity === "danger") return "kvx-pad kvx-pad-danger";
-  if (severity === "warn") return "kvx-pad kvx-pad-warn";
-  return "";
-}
-
-function displayFor(indicator: Indicator | undefined): string | null {
-  if (indicator === undefined || indicator === "locked") return null;
-  if (indicator === "unknown") return "--";
-  return String(indicator.count);
-}
-
-function severityFor(indicator: Indicator | undefined): Severity | null {
-  if (indicator === undefined || indicator === "locked") return null;
-  if (indicator === "unknown") return "warn";
-  return indicator.severity;
-}
-
-function nameFor(
-  label: string,
-  noun: string,
-  indicator: Indicator | undefined,
-): string {
-  if (indicator === undefined || indicator === "locked") return label;
-  if (indicator === "unknown") return `${label}, unknown`;
-  return `${label}, ${indicator.count} ${noun}`;
-}
 
 export function renderAppHeader(
   target: HTMLElement,
