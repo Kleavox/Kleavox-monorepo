@@ -12,15 +12,47 @@ export function mountConsole(root: ParentNode): void {
   const sheet = window.matchMedia(SHEET_QUERY);
 
   let opened = false;
+  let held: HTMLElement[] = [];
 
   const isOpen = (): boolean => opened;
+
+  const outside = (): HTMLElement[] => {
+    const found: HTMLElement[] = [];
+    let node: HTMLElement = panel;
+    while (node !== document.body) {
+      const parent = node.parentElement;
+      if (parent === null) break;
+      for (const sibling of parent.children) {
+        if (sibling === node || sibling === scrim || sibling === terminal)
+          continue;
+        if (sibling instanceof HTMLElement) found.push(sibling);
+      }
+      node = parent;
+    }
+    return found;
+  };
+
+  const seal = (open: boolean): void => {
+    for (const node of held) node.removeAttribute("inert");
+    held = open ? outside() : [];
+    for (const node of held) node.setAttribute("inert", "");
+  };
 
   const project = (open: boolean): void => {
     panel.dataset.console = open ? "open" : "closed";
     dock.setAttribute("aria-expanded", String(open));
     panel.setAttribute("aria-hidden", String(!open));
     panel.toggleAttribute("inert", !open);
-    scrim?.setAttribute("aria-hidden", String(!open));
+    scrim?.setAttribute("aria-hidden", "true");
+    if (sheet.matches) {
+      panel.setAttribute("role", "dialog");
+      panel.setAttribute("aria-modal", "true");
+      seal(open);
+      return;
+    }
+    panel.removeAttribute("role");
+    panel.removeAttribute("aria-modal");
+    seal(false);
   };
 
   const setOpen = (open: boolean): void => {
@@ -37,7 +69,10 @@ export function mountConsole(root: ParentNode): void {
   };
 
   const syncLayout = (): void => {
-    project(sheet.matches ? isOpen() : true);
+    const kept = panel.contains(document.activeElement);
+    const open = sheet.matches ? isOpen() : true;
+    project(open);
+    if (!open && kept) dock.focus({ preventScroll: true });
   };
 
   dock.addEventListener("click", () => setOpen(true));

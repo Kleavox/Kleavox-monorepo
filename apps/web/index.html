@@ -48,6 +48,7 @@
           data-machine
           data-access="guest"
           data-status="idle"
+          data-input="selector"
         >
           <section class="cabinet" aria-label="Application inventory">
             <div class="door">
@@ -256,6 +257,10 @@
                 role="group"
                 aria-label="Bay selector and email code keypad"
               >
+                <span class="keypad-mode">
+                  <span data-keypad-mode="selector">BAY SELECT</span>
+                  <span data-keypad-mode="otp">EMAIL CODE</span>
+                </span>
                 <button class="key" type="button" data-key="1">1</button>
                 <button class="key" type="button" data-key="2">2</button>
                 <button class="key" type="button" data-key="3">3</button>
