@@ -41,17 +41,156 @@
       </div>
     </template>
 
-    <main class="kvx-main shell">
-      <h1 data-status-line></h1>
-      <section data-attention hidden>
-        <p class="kvx-section-label">Needs you <b data-attention-count></b></p>
-        <ul class="kvx-rows" data-attention-rows></ul>
+    <main class="machine-room">
+      <section class="stage" aria-label="Kleavox software vending machine">
+        <div
+          class="machine"
+          data-machine
+          data-access="guest"
+          data-status="idle"
+        >
+          <section class="cabinet" aria-label="Application inventory">
+            <div class="door">
+              <div class="inventory">
+                <header class="inventory-header">
+                  <h1 class="machine-wordmark">KLEAVOX</h1>
+                  <span class="cabinet-state" data-cabinet-state
+                    >GUEST MODE</span
+                  >
+                </header>
+
+                <div
+                  class="shelf shelf--primary"
+                  data-shelf
+                  role="group"
+                  aria-label="Bays 1 to 3, three applications"
+                >
+                  <div class="slot" data-bay="1">
+                    <span class="bay-backlight" data-backlight></span>
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <button
+                      class="cartridge cartridge--link"
+                      type="button"
+                      data-cartridge="1"
+                      data-href="{{LINK_HREF}}"
+                      aria-label="Select Link, bay 1"
+                    >
+                      <span class="cartridge__detail"></span>
+                      <span class="cartridge__name">LINK</span>
+                      <span class="cartridge__scope">VISITOR / OWNER</span>
+                    </button>
+                    <span class="slot-code"
+                      >1 &middot; <strong>LINK</strong></span
+                    >
+                  </div>
+
+                  <div class="slot" data-bay="2">
+                    <span class="bay-backlight" data-backlight></span>
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <button
+                      class="cartridge cartridge--pulse"
+                      type="button"
+                      data-cartridge="2"
+                      data-href="{{PULSE_HREF}}"
+                      aria-label="Select Pulse, bay 2"
+                    >
+                      <span class="cartridge__detail"></span>
+                      <span class="cartridge__name">PULSE</span>
+                      <span class="cartridge__scope">OWNER ONLY</span>
+                    </button>
+                    <span class="slot-code"
+                      >2 &middot; <strong>PULSE</strong></span
+                    >
+                  </div>
+
+                  <div class="slot" data-bay="3">
+                    <span class="bay-backlight" data-backlight></span>
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <button
+                      class="cartridge cartridge--portfolio"
+                      type="button"
+                      data-cartridge="3"
+                      data-href="{{PORT_HREF}}"
+                      aria-label="Select Portfolio, bay 3"
+                    >
+                      <span class="cartridge__detail"></span>
+                      <span class="cartridge__name">PORTFOLIO</span>
+                      <span class="cartridge__scope">PUBLIC</span>
+                    </button>
+                    <span class="slot-code"
+                      >3 &middot; <strong>PORT</strong></span
+                    >
+                  </div>
+                </div>
+
+                <div
+                  class="shelf"
+                  data-shelf
+                  role="group"
+                  aria-label="Bays 4 to 6, three empty bays"
+                >
+                  <div class="slot slot--empty" data-bay="4" aria-hidden="true">
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <span class="empty-stop"></span>
+                    <span class="slot-code">4 &middot; EMPTY</span>
+                  </div>
+                  <div class="slot slot--empty" data-bay="5" aria-hidden="true">
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <span class="empty-stop"></span>
+                    <span class="slot-code">5 &middot; EMPTY</span>
+                  </div>
+                  <div class="slot slot--empty" data-bay="6" aria-hidden="true">
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <span class="empty-stop"></span>
+                    <span class="slot-code">6 &middot; EMPTY</span>
+                  </div>
+                </div>
+
+                <div
+                  class="shelf"
+                  data-shelf
+                  role="group"
+                  aria-label="Bays 7 to 9, three empty bays"
+                >
+                  <div class="slot slot--empty" data-bay="7" aria-hidden="true">
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <span class="empty-stop"></span>
+                    <span class="slot-code">7 &middot; EMPTY</span>
+                  </div>
+                  <div class="slot slot--empty" data-bay="8" aria-hidden="true">
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <span class="empty-stop"></span>
+                    <span class="slot-code">8 &middot; EMPTY</span>
+                  </div>
+                  <div class="slot slot--empty" data-bay="9" aria-hidden="true">
+                    <span class="coil"
+                      ><i></i><i></i><i></i><i></i><i></i
+                    ></span>
+                    <span class="empty-stop"></span>
+                    <span class="slot-code">9 &middot; EMPTY</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </section>
-      <section>
-        <p class="kvx-section-label">Tools <b data-tools-count>3</b></p>
-        <ul class="kvx-rows" data-tools></ul>
-      </section>
-      <div data-home-status></div>
     </main>
 
     <footer class="ftr">
