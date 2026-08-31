@@ -14,7 +14,9 @@ describe("machine motion tokens", () => {
   });
 
   it("adds no colour token, which would break portfolio parity", () => {
-    const colours = [...css.matchAll(/--(?:kvx|dt)-[a-z0-9-]+:\s*#[0-9a-fA-F]{3,8}\s*;/g)];
+    const colours = [
+      ...css.matchAll(/--(?:kvx|dt)-[a-z0-9-]+:\s*#[0-9a-fA-F]{3,8}\s*;/g),
+    ];
     expect(colours).toHaveLength(20);
   });
 
