@@ -321,7 +321,9 @@ app.all("/link-assets/*", (context) => {
 
 app.all("/api/auth/*", async (context) => {
   const origin = context.req.header("origin");
-  if (!origin || origin !== context.env.PUBLIC_ORIGIN) {
+  const requestOrigin = new URL(context.req.url).origin;
+  const trustedOrigins = new Set([context.env.PUBLIC_ORIGIN, requestOrigin]);
+  if (!origin || !trustedOrigins.has(origin)) {
     return context.json({ code: "INVALID_ORIGIN" }, 403);
   }
 
