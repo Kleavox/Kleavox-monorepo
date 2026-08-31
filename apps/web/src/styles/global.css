@@ -263,7 +263,7 @@ p {
   min-height: 44px;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   letter-spacing: 0.04em;
   transition: color 150ms ease;
 }
@@ -275,7 +275,7 @@ p {
 .ftr-copy {
   color: var(--quiet);
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.68rem;
 }
 
 .kvx-rows a.kvx-row-compact {

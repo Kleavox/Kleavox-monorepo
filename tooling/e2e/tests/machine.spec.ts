@@ -3,9 +3,27 @@ import { expect, test } from "@playwright/test";
 test("the cabinet holds exactly nine bays, three of them filled", async ({
   page,
 }) => {
+  const session = page.waitForResponse((response) =>
+    response.url().includes("/api/session"),
+  );
   await page.goto("/");
+  await session;
+  await expect(page.locator("main")).not.toHaveClass(/kvx-main/);
   await expect(page.locator("[data-bay]")).toHaveCount(9);
   await expect(page.locator("[data-cartridge]")).toHaveCount(3);
+});
+
+test("each filled bay offers a named button", async ({ page }) => {
+  await page.goto("/");
+  for (const name of [
+    "Select Link, bay 1, visitor pass required",
+    "Select Pulse, bay 2, owner pass required",
+    "Select Portfolio, bay 3, open to everyone",
+  ]) {
+    await expect(page.getByRole("button", { name, exact: true })).toHaveCount(
+      1,
+    );
+  }
 });
 
 test("the six empty bays are not controls", async ({ page }) => {
@@ -13,11 +31,14 @@ test("the six empty bays are not controls", async ({ page }) => {
   const empties = page.locator("[data-bay]:not(:has([data-cartridge]))");
   await expect(empties).toHaveCount(6);
   await expect(empties.locator("button")).toHaveCount(0);
+  await expect(
+    empties.locator("a, [tabindex], button, input, select, textarea"),
+  ).toHaveCount(0);
   const focusable = await empties.evaluateAll(
     (nodes) =>
       nodes.filter(
         (node) =>
-          node.matches("button, a, input, select, textarea") ||
+          node.matches("a, button, input, select, textarea") ||
           node.hasAttribute("tabindex"),
       ).length,
   );
