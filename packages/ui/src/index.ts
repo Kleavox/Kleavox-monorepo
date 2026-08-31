@@ -33,6 +33,7 @@ export {
   type AttentionAge,
   type AttentionItem,
   type AttentionKind,
+  type Indicator,
   type NavCounts,
   type Overview,
   type Severity,

@@ -34,20 +34,30 @@ export interface Overview {
   attention: AttentionItem[];
 }
 
+export type Indicator =
+  "locked" | "unknown" | { count: number; severity: Severity | null };
+
 export interface NavCounts {
   role: "ADMIN" | "USER";
-  pass: number | null;
-  link: number | null;
-  pulse: number | null;
-  attention: {
-    pass: Severity | null;
-    link: Severity | null;
-    pulse: Severity | null;
+  indicators: {
+    pass: Indicator;
+    link: Indicator;
+    pulse: Indicator;
   };
 }
 
 const CACHE_KEY = "kvx:overview";
 const CACHE_MS = 60_000;
+
+function indicatorFor(
+  block: { count: number } | null,
+  severity: Severity | null,
+  permitted: boolean,
+): Indicator {
+  if (!permitted) return "locked";
+  if (block === null) return "unknown";
+  return { count: block.count, severity };
+}
 
 export function navCountsFrom(overview: Overview): NavCounts {
   const pulseDanger =
@@ -58,16 +68,24 @@ export function navCountsFrom(overview: Overview): NavCounts {
     (overview.pulse.openIncidents > 0 || overview.pulse.openReports > 0);
   return {
     role: overview.role,
-    pass: overview.pass?.devices ?? null,
-    link: overview.link?.active ?? null,
-    pulse: overview.pulse?.nodes ?? null,
-    attention: {
-      pass: null,
-      link:
+    indicators: {
+      pass: indicatorFor(
+        overview.pass ? { count: overview.pass.devices } : null,
+        null,
+        true,
+      ),
+      link: indicatorFor(
+        overview.link ? { count: overview.link.active } : null,
         overview.link !== null && overview.link.expiringSoon > 0
           ? "warn"
           : null,
-      pulse: pulseDanger ? "danger" : pulseWarn ? "warn" : null,
+        true,
+      ),
+      pulse: indicatorFor(
+        overview.pulse ? { count: overview.pulse.nodes } : null,
+        pulseDanger ? "danger" : pulseWarn ? "warn" : null,
+        overview.role === "ADMIN",
+      ),
     },
   };
 }

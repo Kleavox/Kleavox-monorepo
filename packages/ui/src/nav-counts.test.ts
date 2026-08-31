@@ -23,23 +23,26 @@ const overview: Overview = {
 };
 
 describe("navCountsFrom", () => {
-  it("reduces the overview to one number per tool", () => {
+  it("reduces the overview to one count per tool", () => {
     const counts = navCountsFrom(overview);
-    expect(counts.pass).toBe(1);
-    expect(counts.link).toBe(12);
-    expect(counts.pulse).toBe(2);
+    expect(counts.indicators.pass).toEqual({ count: 1, severity: null });
+    expect(counts.indicators.link).toEqual({ count: 12, severity: "warn" });
+    expect(counts.indicators.pulse).toEqual({ count: 2, severity: "danger" });
   });
 
   it("marks a tool danger when something is down", () => {
-    expect(navCountsFrom(overview).attention.pulse).toBe("danger");
+    const indicator = navCountsFrom(overview).indicators.pulse;
+    expect(indicator).toEqual({ count: 2, severity: "danger" });
   });
 
   it("marks a tool warn when something merely expires soon", () => {
-    expect(navCountsFrom(overview).attention.link).toBe("warn");
+    const indicator = navCountsFrom(overview).indicators.link;
+    expect(indicator).toEqual({ count: 12, severity: "warn" });
   });
 
   it("leaves a quiet tool unmarked", () => {
-    expect(navCountsFrom(overview).attention.pass).toBeNull();
+    const indicator = navCountsFrom(overview).indicators.pass;
+    expect(indicator).toEqual({ count: 1, severity: null });
   });
 
   it("carries the viewer's role through, so the header can gate Pulse", () => {
@@ -47,19 +50,60 @@ describe("navCountsFrom", () => {
     expect(navCountsFrom({ ...overview, role: "USER" }).role).toBe("USER");
   });
 
-  it("reports a failed tool's count as null, never as zero", () => {
+  it("reports a failed tool's indicator as unknown, never as a zero count", () => {
     const counts = navCountsFrom({ ...overview, pulse: null });
-    expect(counts.pulse).toBeNull();
-    expect(counts.pulse).not.toBe(0);
+    expect(counts.indicators.pulse).toBe("unknown");
+    expect(counts.indicators.pulse).not.toEqual({ count: 0, severity: null });
   });
 
-  it("leaves the attention severity unmarked for a tool whose data is unknown", () => {
-    expect(navCountsFrom({ ...overview, pulse: null }).attention.pulse).toBe(
-      null,
+  it("reports a failed but always-visible tool's indicator as unknown too", () => {
+    expect(navCountsFrom({ ...overview, pulse: null }).indicators.pulse).toBe(
+      "unknown",
     );
-    expect(navCountsFrom({ ...overview, link: null }).attention.link).toBe(
-      null,
+    expect(navCountsFrom({ ...overview, link: null }).indicators.link).toBe(
+      "unknown",
     );
+  });
+});
+
+const base: Overview = {
+  role: "USER",
+  pass: { devices: 2 },
+  link: { active: 5, files: 1, reported: 0, expiringSoon: 0 },
+  pulse: null,
+  attention: [],
+};
+
+describe("indicator states", () => {
+  it("calls pulse locked for a user, not unknown", () => {
+    expect(navCountsFrom(base).indicators.pulse).toBe("locked");
+  });
+
+  it("calls pulse unknown for an admin whose block failed", () => {
+    const counts = navCountsFrom({ ...base, role: "ADMIN" });
+    expect(counts.indicators.pulse).toBe("unknown");
+  });
+
+  it("reports a count when the block is present", () => {
+    const counts = navCountsFrom({
+      ...base,
+      role: "ADMIN",
+      pulse: {
+        nodes: 3,
+        down: 0,
+        checksFailing: 0,
+        openIncidents: 0,
+        openReports: 0,
+      },
+    });
+    expect(counts.indicators.pulse).toEqual({ count: 3, severity: null });
+  });
+
+  it("never calls a user's own link block locked", () => {
+    expect(navCountsFrom(base).indicators.link).toEqual({
+      count: 5,
+      severity: null,
+    });
   });
 });
 

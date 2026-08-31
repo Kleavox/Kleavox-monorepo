@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { LINK_ORIGIN, PASS_ORIGIN, PULSE_ORIGIN } from "./origins";
-import type { NavCounts, Severity } from "./nav-counts";
+import type { Indicator, NavCounts, Severity } from "./nav-counts";
 
 export interface AppHeaderProps {
   product?: string;
@@ -15,12 +15,32 @@ const TOOLS = [
   { key: "pulse", label: "pulse", origin: PULSE_ORIGIN, noun: "nodes" },
 ] as const;
 
-const ADMIN_ONLY = new Set<string>(["pulse"]);
-
 function padClass(severity: Severity | null): string {
   if (severity === "danger") return "kvx-pad kvx-pad-danger";
   if (severity === "warn") return "kvx-pad kvx-pad-warn";
   return "";
+}
+
+function displayFor(indicator: Indicator | undefined): string | null {
+  if (indicator === undefined || indicator === "locked") return null;
+  if (indicator === "unknown") return "--";
+  return String(indicator.count);
+}
+
+function severityFor(indicator: Indicator | undefined): Severity | null {
+  if (indicator === undefined || indicator === "locked") return null;
+  if (indicator === "unknown") return "warn";
+  return indicator.severity;
+}
+
+function nameFor(
+  label: string,
+  noun: string,
+  indicator: Indicator | undefined,
+): string {
+  if (indicator === undefined || indicator === "locked") return label;
+  if (indicator === "unknown") return `${label}, unknown`;
+  return `${label}, ${indicator.count} ${noun}`;
 }
 
 export function AppHeader({
@@ -37,24 +57,14 @@ export function AppHeader({
         {current ? <b>/{current}</b> : null}
       </a>
       <nav className="kvx-nav" aria-label="Kleavox tools">
-        {TOOLS.filter(
-          (tool) =>
-            !ADMIN_ONLY.has(tool.key) ||
-            counts === null ||
-            counts === undefined ||
-            counts.role === "ADMIN",
-        ).map((tool) => {
+        {TOOLS.map((tool) => {
           const active = current === tool.key;
-          const raw = counts ? counts[tool.key] : undefined;
-          const display =
-            raw === undefined ? null : raw === null ? "--" : String(raw);
-          const severity = counts ? counts.attention[tool.key] : null;
-          const name =
-            active || raw === undefined
-              ? tool.label
-              : raw === null
-                ? `${tool.label}, unknown`
-                : `${tool.label}, ${raw} ${tool.noun}`;
+          const indicator = counts ? counts.indicators[tool.key] : undefined;
+          const display = displayFor(indicator);
+          const severity = severityFor(indicator);
+          const name = active
+            ? tool.label
+            : nameFor(tool.label, tool.noun, indicator);
           return (
             <a
               key={tool.key}
