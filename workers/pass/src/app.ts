@@ -6,6 +6,7 @@ import { registerAccountRoutes } from "./routes/account";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerInternalRoutes } from "./routes/internal";
 import { registerOAuthRoutes } from "./routes/oauth";
+import { registerOtpRoutes } from "./routes/otp";
 import { apiError, type AppEnv } from "./routes/shared";
 
 const app = new Hono<AppEnv>();
@@ -106,6 +107,7 @@ app.get("/api/estate", (context) =>
 registerOAuthRoutes(app);
 registerAccountRoutes(app);
 registerAuthRoutes(app);
+registerOtpRoutes(app);
 registerInternalRoutes(app);
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));

@@ -62,6 +62,7 @@ export const registerSchema = registerRequestSchema;
 export const preloginSchema = preloginRequestSchema;
 export const loginSchema = loginRequestSchema;
 export const emailActionSchema = emailActionRequestSchema;
+export const otpStartSchema = emailActionRequestSchema;
 export const tokenActionSchema = tokenActionRequestSchema;
 export const resetPasswordSchema = resetCredentialRequestSchema;
 export const challengeSchema = challengeRequestSchema;
