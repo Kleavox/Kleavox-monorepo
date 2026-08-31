@@ -69,3 +69,78 @@ test("the three mobile shelves share one height", async ({ page }) => {
     );
   expect(new Set(heights).size).toBe(1);
 });
+
+test("every key is reachable and large enough to hit", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator("[data-dock]").click();
+  const keys = page.locator("[data-key]");
+  await expect(keys).toHaveCount(12);
+  for (const key of await keys.all()) {
+    const box = await key.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    await expect(key).toBeVisible();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("the console reports its own open state to assistive tech", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const dock = page.locator("[data-dock]");
+  const panel = page.locator("[data-console]");
+  await expect(dock).toHaveAttribute("aria-expanded", "false");
+  await expect(panel).toHaveAttribute("data-console", "closed");
+  await expect(panel).toHaveAttribute("aria-hidden", "true");
+  expect(await panel.evaluate((node) => node.hasAttribute("inert"))).toBe(true);
+  await dock.click();
+  await expect(dock).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("[data-console]")).toHaveAttribute(
+    "data-console",
+    "open",
+  );
+  await expect(panel).toHaveAttribute("aria-hidden", "false");
+  expect(await panel.evaluate((node) => node.hasAttribute("inert"))).toBe(
+    false,
+  );
+});
+
+test("closing the console returns focus to the dock", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator("[data-dock]").click();
+  await expect(page.locator("[data-dock]")).not.toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("[data-dock]")).toBeFocused();
+  await expect(page.locator("[data-console]")).toHaveAttribute(
+    "data-console",
+    "closed",
+  );
+});
+
+test("the reader stays inside the control column in the DOM", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const inside = await page.evaluate(() =>
+    Boolean(document.querySelector("[data-console] [data-reader]")),
+  );
+  expect(inside).toBe(true);
+  await page.locator("[data-dock]").click();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const reader = document
+          .querySelector("[data-reader]")!
+          .getBoundingClientRect();
+        const panel = document
+          .querySelector("[data-console]")!
+          .getBoundingClientRect();
+        return Math.round(reader.bottom - panel.top);
+      }),
+    )
+    .toBeLessThanOrEqual(0);
+});

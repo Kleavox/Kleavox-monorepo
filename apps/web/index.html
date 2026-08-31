@@ -189,9 +189,223 @@
               </div>
             </div>
           </section>
+
+          <button
+            class="console-dock"
+            type="button"
+            data-dock
+            aria-controls="machine-console"
+            aria-expanded="false"
+          >
+            <span class="console-dock__screen" aria-hidden="true">
+              <span data-dock-screen>INSERT PASS</span>
+              <small data-dock-sub>SELECT A BAY</small>
+            </span>
+            <span class="console-dock__action">
+              <small>ACCESS CONSOLE</small>
+              <strong>OPEN</strong>
+            </span>
+          </button>
+
+          <button
+            class="console-scrim"
+            type="button"
+            data-scrim
+            tabindex="-1"
+            aria-hidden="true"
+            aria-label="Close the control panel"
+          ></button>
+
+          <aside
+            class="control-column"
+            id="machine-console"
+            data-console="closed"
+            aria-label="Machine control panel"
+          >
+            <div class="console-header">
+              <span><i aria-hidden="true"></i> ACCESS CONSOLE</span>
+              <button class="console-close" type="button" data-console-close>
+                CLOSE
+              </button>
+            </div>
+
+            <div class="vent" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+
+            <section class="control-plate" aria-label="Access and selection">
+              <span class="screw screw--tl" aria-hidden="true"></span>
+              <span class="screw screw--tr" aria-hidden="true"></span>
+              <span class="screw screw--bl" aria-hidden="true"></span>
+              <span class="screw screw--br" aria-hidden="true"></span>
+
+              <div class="screen-bezel">
+                <div
+                  class="screen"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <span class="screen-main" data-screen>INSERT PASS</span>
+                  <span class="screen-sub" data-screen-sub>SELECT A BAY</span>
+                </div>
+              </div>
+
+              <div
+                class="keypad"
+                role="group"
+                aria-label="Bay selector and email code keypad"
+              >
+                <button class="key" type="button" data-key="1">1</button>
+                <button class="key" type="button" data-key="2">2</button>
+                <button class="key" type="button" data-key="3">3</button>
+                <button class="key" type="button" data-key="4">4</button>
+                <button class="key" type="button" data-key="5">5</button>
+                <button class="key" type="button" data-key="6">6</button>
+                <button class="key" type="button" data-key="7">7</button>
+                <button class="key" type="button" data-key="8">8</button>
+                <button class="key" type="button" data-key="9">9</button>
+                <button class="key" type="button" data-key="CLR">CLR</button>
+                <button class="key" type="button" data-key="0">0</button>
+                <button class="key key--go" type="button" data-key="GO">
+                  GO
+                </button>
+              </div>
+
+              <div class="pass-module">
+                <button
+                  class="pass-reader"
+                  type="button"
+                  data-reader
+                  aria-label="Tap your Kleavox Pass to sign in"
+                >
+                  <span class="contactless-mark" aria-hidden="true"
+                    ><i></i><i></i><i></i
+                  ></span>
+                  <span class="pass-reader__label">TAP PASS</span>
+                </button>
+              </div>
+
+              <div class="status-bank" aria-hidden="true">
+                <span class="led led--ready" data-led="ready"></span>
+                <span>READY</span>
+                <span class="led led--reading" data-led="reading"></span>
+                <span>READING</span>
+                <span class="led led--denied" data-led="denied"></span>
+                <span>DENIED</span>
+              </div>
+
+              <div class="service-controls">
+                <button
+                  class="service-control"
+                  type="button"
+                  data-terminal-open
+                >
+                  PASS TERMINAL
+                  <span data-terminal-state>SIGN IN</span>
+                </button>
+              </div>
+            </section>
+
+            <div class="service-line" aria-hidden="true">
+              <span class="speaker">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </span>
+              <span class="service-led"></span>
+            </div>
+
+            <div class="serial-plate">
+              KVX-GW-01
+              <small>GATEWAY SERVICE PANEL</small>
+            </div>
+          </aside>
         </div>
       </section>
     </main>
+
+    <dialog class="terminal" data-terminal aria-labelledby="terminal-title">
+      <header class="terminal__header">
+        <span>PASS IDENTITY TERMINAL</span>
+        <button
+          class="terminal__close"
+          type="button"
+          data-terminal-close
+          aria-label="Close the terminal"
+        >
+          CLOSE
+        </button>
+      </header>
+
+      <div class="terminal__body">
+        <section class="terminal__summary" aria-label="Access request">
+          <span class="terminal__kicker">ACCESS REQUEST</span>
+          <h2 id="terminal-title">CABINET ACCESS</h2>
+          <p data-terminal-copy>
+            A Kleavox Pass unlocks the bays your role can take.
+          </p>
+          <dl>
+            <dt>TERMINAL</dt>
+            <dd>KVX-GW-01</dd>
+            <dt>PASS</dt>
+            <dd data-terminal-access>NONE</dd>
+          </dl>
+        </section>
+
+        <section class="terminal__workspace">
+          <h3>Choose an identity method</h3>
+          <p>
+            Google and GitHub open a full page. An email code comes back to the
+            machine keypad.
+          </p>
+
+          <div class="provider-stack">
+            <button
+              class="provider-button"
+              type="button"
+              data-terminal-provider="google"
+            >
+              <span class="provider-mark" aria-hidden="true">G</span>
+              <span>Continue with Google</span>
+            </button>
+            <button
+              class="provider-button"
+              type="button"
+              data-terminal-provider="github"
+            >
+              <span class="provider-mark" aria-hidden="true">GH</span>
+              <span>Continue with GitHub</span>
+            </button>
+          </div>
+
+          <div class="terminal__divider">OR USE EMAIL</div>
+
+          <div class="email-form">
+            <label class="terminal__label" for="terminal-email"
+              >EMAIL ADDRESS</label
+            >
+            <input
+              class="kvx-input"
+              id="terminal-email"
+              type="email"
+              autocomplete="email"
+              placeholder="name@example.com"
+              data-terminal-email
+            />
+            <p class="terminal__error" role="alert" data-terminal-error></p>
+            <button
+              class="kvx-button kvx-button-primary"
+              type="button"
+              data-terminal-send
+            >
+              Send the code
+            </button>
+            <p class="terminal__note">
+              The code is six digits. Enter it on the machine keypad.
+            </p>
+          </div>
+        </section>
+      </div>
+    </dialog>
 
     <footer class="ftr">
       <div class="shell ftr-inner">

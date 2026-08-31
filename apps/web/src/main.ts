@@ -2,6 +2,7 @@ import { displayHandle } from "@kleavox/core";
 import "@kleavox/ui/styles.css";
 import "./styles/global.css";
 import "./styles/machine.css";
+import { mountConsole, mountTerminal } from "./machine/console";
 import {
   formatAge,
   navCountsFrom,
@@ -89,6 +90,8 @@ function paintHeader(counts: NavCounts | null): void {
 }
 
 paintHeader(null);
+mountConsole(document);
+mountTerminal(document);
 
 const account =
   accountNode?.matches("[data-account]") === true
