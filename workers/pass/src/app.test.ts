@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import app from "./app";
 import type { Env } from "./env";
 import { hashToken } from "./lib/crypto";
+import { issueOtp } from "./lib/otp";
 
 const baseEnv = {
   ENVIRONMENT: "production",
@@ -13,6 +14,8 @@ const baseEnv = {
   },
   SESSIONS: {
     get: () => Promise.resolve(null),
+    put: () => Promise.resolve(),
+    delete: () => Promise.resolve(),
   },
 } as unknown as Env;
 
@@ -33,6 +36,28 @@ function otpStartInit(email: string): RequestInit {
       origin: "https://pass.product.test",
     },
     body: JSON.stringify({ email }),
+  };
+}
+
+function otpVerifyInit(email: string, code: string): RequestInit {
+  return {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      origin: "https://pass.product.test",
+    },
+    body: JSON.stringify({ email, code }),
+  };
+}
+
+function dbStub(rows: Record<string, unknown>) {
+  return {
+    prepare: vi.fn((sql: string) => ({
+      bind: (..._args: unknown[]) => ({
+        first: async () => (/select/i.test(sql) ? rows : null),
+        run: async () => undefined,
+      }),
+    })),
   };
 }
 
@@ -263,5 +288,172 @@ describe("POST /api/auth/otp/start", () => {
     );
 
     expect(response.status).toBe(415);
+  });
+});
+
+describe("POST /api/auth/otp/verify", () => {
+  it("rejects a code when none was ever issued, and touches no table", async () => {
+    const prepare = vi.fn();
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit("person@example.com", "000000"),
+      { ...baseEnv, DB: { prepare } } as unknown as Env,
+    );
+
+    expect(response.status).toBe(401);
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it("checks the code before it ever looks the account up", async () => {
+    const prepare = vi.fn();
+    await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit("disabled@example.com", "000000"),
+      { ...baseEnv, DB: { prepare } } as unknown as Env,
+    );
+
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it("refuses a body that is not an email and a six digit code", async () => {
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit("not-an-email", "12"),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects an untrusted origin", async () => {
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://attacker.example",
+        },
+        body: JSON.stringify({ email: "person@example.com", code: "000000" }),
+      },
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it("rejects an issued but wrong code without looking the account up, and reports a different reason than an expired code", async () => {
+    const store = kvStore();
+    const email = "person@example.com";
+    const env = {
+      ...baseEnv,
+      SESSIONS: store,
+      DB: { prepare: vi.fn() },
+    } as unknown as Env;
+    const issued = await issueOtp(env, email);
+    const wrongCode = issued === "111111" ? "222222" : "111111";
+
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit(email, wrongCode),
+      env,
+    );
+    const body = await response.json();
+
+    const expiredResponse = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit("nobody-ever-issued@example.com", "000000"),
+      env,
+    );
+    const expiredBody = await expiredResponse.json();
+
+    expect(response.status).toBe(401);
+    expect(
+      (env.DB as unknown as { prepare: ReturnType<typeof vi.fn> }).prepare,
+    ).not.toHaveBeenCalled();
+    expect(body).not.toEqual(expiredBody);
+  });
+
+  it("signs in a known, verified user and reports no setup is needed", async () => {
+    const store = kvStore();
+    const email = "verified@example.com";
+    const db = dbStub({
+      id: "user-1",
+      email,
+      username: "someone",
+      role: "USER",
+      email_verified_at: "2020-01-01T00:00:00.000Z",
+      auth_version: 1,
+      disabled_at: null,
+      identity_id: null,
+      password_hash: null,
+    });
+    const env = { ...baseEnv, SESSIONS: store, DB: db } as unknown as Env;
+    const code = await issueOtp(env, email);
+
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit(email, code),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({
+      authenticated: true,
+      user: {
+        id: "user-1",
+        email,
+        username: "someone",
+        role: "USER",
+      },
+      needsSetup: false,
+    });
+    expect(response.headers.get("Set-Cookie")).toContain(
+      "__Secure-kleavox_session=",
+    );
+    expect(
+      db.prepare.mock.calls.some((call) =>
+        /auth_events/i.test(call[0] as string),
+      ),
+    ).toBe(true);
+    expect(
+      db.prepare.mock.calls.some((call) =>
+        /email_verified_at\s*=/i.test(call[0] as string),
+      ),
+    ).toBe(false);
+  });
+
+  it("fills email_verified_at for an existing but unverified user, and reports setup is needed", async () => {
+    const store = kvStore();
+    const email = "unverified@example.com";
+    const db = dbStub({
+      id: "user-2",
+      email,
+      username: null,
+      role: "USER",
+      email_verified_at: null,
+      auth_version: 1,
+      disabled_at: null,
+      identity_id: null,
+      password_hash: null,
+    });
+    const env = { ...baseEnv, SESSIONS: store, DB: db } as unknown as Env;
+    const code = await issueOtp(env, email);
+
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit(email, code),
+      env,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ authenticated: true, needsSetup: true });
+    expect(
+      db.prepare.mock.calls.some((call) =>
+        /update users.*email_verified_at/is.test(call[0] as string),
+      ),
+    ).toBe(true);
   });
 });

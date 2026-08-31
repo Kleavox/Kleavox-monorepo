@@ -14,7 +14,7 @@ import {
   tokenActionRequestSchema,
 } from "@kleavox/pass-protocol";
 import type { Context, Hono } from "hono";
-import type { ZodError } from "zod";
+import { z, type ZodError } from "zod";
 
 import type { Env } from "../env";
 import { writeAuditEvent } from "../lib/audit";
@@ -63,6 +63,15 @@ export const preloginSchema = preloginRequestSchema;
 export const loginSchema = loginRequestSchema;
 export const emailActionSchema = emailActionRequestSchema;
 export const otpStartSchema = emailActionRequestSchema;
+export const otpVerifySchema = z
+  .object({
+    email: emailActionRequestSchema.shape.email,
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, "Enter the 6-digit code."),
+  })
+  .strict();
 export const tokenActionSchema = tokenActionRequestSchema;
 export const resetPasswordSchema = resetCredentialRequestSchema;
 export const challengeSchema = challengeRequestSchema;

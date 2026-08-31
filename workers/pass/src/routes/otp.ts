@@ -1,13 +1,20 @@
 import { sendEmail } from "@kleavox/worker";
 
-import { issueOtp } from "../lib/otp";
+import { makeSessionCookie } from "../lib/cookies";
+import { issueOtp, verifyOtp } from "../lib/otp";
 import { rateLimit } from "../lib/rate-limit";
+import { createSession } from "../lib/session";
 import {
   apiError,
   clientIp,
+  findUserByEmail,
   firstIssue,
   otpStartSchema,
+  otpVerifySchema,
   rateLimitError,
+  safeAudit,
+  sessionClient,
+  toIdentity,
   type PassApp,
 } from "./shared";
 
@@ -46,6 +53,105 @@ export function registerOtpRoutes(app: PassApp): void {
     }
 
     return context.json({ ok: true });
+  });
+
+  app.post("/api/auth/otp/verify", async (context) => {
+    const body = otpVerifySchema.safeParse(await context.req.json());
+    if (!body.success) {
+      return apiError(context, 400, "invalid_input", firstIssue(body.error));
+    }
+
+    const ip = clientIp(context.req.raw);
+    const limit = await rateLimit(context.env, "otp-verify-ip", ip, 20, 900);
+    if (!limit.allowed) return rateLimitError(context, limit.retryAfter);
+
+    const result = await verifyOtp(
+      context.env,
+      body.data.email,
+      body.data.code,
+    );
+    if (result === "wrong") {
+      return apiError(context, 401, "invalid_code", "That code is incorrect.");
+    }
+    if (result === "expired") {
+      return apiError(
+        context,
+        401,
+        "code_expired",
+        "That code has expired. Request a new one.",
+      );
+    }
+    if (result === "exhausted") {
+      return apiError(
+        context,
+        401,
+        "too_many_attempts",
+        "Too many incorrect attempts. Request a new code.",
+      );
+    }
+
+    let user = await findUserByEmail(context.env, body.data.email);
+    if (user?.disabled_at) {
+      return apiError(
+        context,
+        403,
+        "account_disabled",
+        "This account has been disabled.",
+      );
+    }
+
+    if (!user) {
+      const userId = crypto.randomUUID();
+      await context.env.DB.prepare(
+        `INSERT INTO users (id, email, email_verified_at)
+         VALUES (?, ?, datetime('now'))`,
+      )
+        .bind(userId, body.data.email)
+        .run();
+      user = {
+        id: userId,
+        email: body.data.email,
+        username: null,
+        role: "USER",
+        email_verified_at: new Date().toISOString(),
+        auth_version: 1,
+        disabled_at: null,
+        identity_id: null,
+        password_hash: null,
+      };
+    } else if (!user.email_verified_at) {
+      await context.env.DB.prepare(
+        `UPDATE users
+         SET email_verified_at = datetime('now'), updated_at = datetime('now')
+         WHERE id = ?`,
+      )
+        .bind(user.id)
+        .run();
+      user = { ...user, email_verified_at: new Date().toISOString() };
+    }
+
+    const identity = toIdentity(user);
+    const created = await createSession(
+      context.env,
+      identity,
+      user.auth_version,
+      sessionClient(context.req.raw),
+    );
+    await safeAudit(context.env, {
+      userId: user.id,
+      type: "otp_login_succeeded",
+      request: context.req.raw,
+    });
+    context.header(
+      "Set-Cookie",
+      makeSessionCookie(context.req.raw, context.env, created.token),
+    );
+
+    return context.json({
+      authenticated: true,
+      user: identity,
+      needsSetup: user.username === null,
+    });
   });
 }
 
