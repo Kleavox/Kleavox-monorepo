@@ -319,6 +319,31 @@ app.all("/link-assets/*", (context) => {
   return context.env.LINK.fetch(new Request(url, context.req.raw));
 });
 
+app.all("/api/auth/*", async (context) => {
+  const origin = context.req.header("origin");
+  if (!origin || origin !== context.env.PUBLIC_ORIGIN) {
+    return context.json({ code: "INVALID_ORIGIN" }, 403);
+  }
+
+  const url = new URL(context.req.url);
+  url.protocol = "http:";
+  url.hostname = INTERNAL_HOSTS.PASS;
+  const headers = new Headers(context.req.raw.headers);
+  headers.set("origin", url.origin);
+  headers.delete("referer");
+
+  return context.env.PASS.fetch(
+    new Request(url, {
+      method: context.req.method,
+      headers,
+      body: ["GET", "HEAD"].includes(context.req.method)
+        ? undefined
+        : context.req.raw.body,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" }),
+  );
+});
+
 app.all("*", async (context) => {
   const url = new URL(context.req.url);
   const rootOrigin = new URL(context.env.PUBLIC_ORIGIN);
