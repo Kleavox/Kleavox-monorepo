@@ -673,7 +673,7 @@ describe("Gateway auth proxy", () => {
     expect(seen[0]!.body).toBe('{"code":"123456"}');
   });
 
-  it("forwards a same-origin GET with no body", async () => {
+  it("forwards a same-origin GET request with its method intact and no body", async () => {
     const seen: { method: string; body: string }[] = [];
     const env = {
       ...baseEnv,
@@ -696,6 +696,32 @@ describe("Gateway auth proxy", () => {
     );
 
     expect(seen[0]!.method).toBe("GET");
+    expect(seen[0]!.body).toBe("");
+  });
+
+  it("forwards a same-origin HEAD request with its method intact and no body", async () => {
+    const seen: { method: string; body: string }[] = [];
+    const env = {
+      ...baseEnv,
+      PUBLIC_ORIGIN: "https://kleavox.xyz",
+      PASS: {
+        fetch: async (input: Request) => {
+          seen.push({ method: input.method, body: await input.text() });
+          return new Response("{}", { status: 200 });
+        },
+      },
+    } as unknown as Env;
+
+    await app.request(
+      "https://kleavox.xyz/api/auth/otp/status",
+      {
+        method: "HEAD",
+        headers: { origin: "https://kleavox.xyz" },
+      },
+      env,
+    );
+
+    expect(seen[0]!.method).toBe("HEAD");
     expect(seen[0]!.body).toBe("");
   });
 });
