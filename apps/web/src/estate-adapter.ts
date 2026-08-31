@@ -22,7 +22,9 @@ function accessFor(session: Session): AccessRole {
   if (!session.authenticated || session.identity?.role === undefined) {
     return "guest";
   }
-  return session.identity.role === "ADMIN" ? "owner" : "visitor";
+  if (session.identity.role === "ADMIN") return "owner";
+  if (session.identity.role === "USER") return "visitor";
+  return "guest";
 }
 
 function itemsFor(access: AccessRole): { code: BayCode; lit: boolean }[] {
@@ -31,9 +33,9 @@ function itemsFor(access: AccessRole): { code: BayCode; lit: boolean }[] {
 
 function indicatorsFor(
   access: AccessRole,
-  overview: Overview | null,
+  counts: NavCounts | null,
 ): NavCounts["indicators"] {
-  if (overview !== null) return navCountsFrom(overview).indicators;
+  if (counts !== null) return counts.indicators;
   if (access === "guest") {
     return { pass: "locked", link: "locked", pulse: "locked" };
   }
@@ -48,13 +50,17 @@ function estateFullyRead(indicators: NavCounts["indicators"]): boolean {
   return INDICATOR_KEYS.every((key) => indicators[key] !== "unknown");
 }
 
-function screenFor(access: AccessRole, overview: Overview | null): string {
+function screenFor(
+  access: AccessRole,
+  overview: Overview | null,
+  counts: NavCounts | null,
+): string {
   if (access === "guest") return "INSERT PASS";
-  if (overview === null) return "ESTATE UNREADABLE";
+  if (overview === null || counts === null) return "ESTATE UNREADABLE";
   if (overview.attention.length > 0) {
     return `${overview.attention.length} NEED ATTENTION`;
   }
-  return estateFullyRead(navCountsFrom(overview).indicators)
+  return estateFullyRead(counts.indicators)
     ? "NOTHING NEEDS YOU"
     : "ESTATE UNREADABLE";
 }
@@ -64,10 +70,11 @@ export function toMachineModel(
   overview: Overview | null,
 ): MachineModel {
   const access = accessFor(session);
+  const counts = overview !== null ? navCountsFrom(overview) : null;
   return {
     access,
     items: itemsFor(access),
-    screen: screenFor(access, overview),
-    indicators: indicatorsFor(access, overview),
+    screen: screenFor(access, overview, counts),
+    indicators: indicatorsFor(access, counts),
   };
 }

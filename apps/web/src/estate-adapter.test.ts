@@ -150,3 +150,59 @@ describe("a session with no overview at all still tells the truth about pulse", 
     expect(model.indicators.pulse).toBe("locked");
   });
 });
+
+describe("the known indicator state carries the real numbers, not just presence", () => {
+  it("returns the exact count and severity for blocks that are actually there", () => {
+    const model = toMachineModel(
+      { authenticated: true, identity: { role: "ADMIN" } },
+      {
+        role: "ADMIN",
+        pass: { devices: 4 },
+        link: { active: 9, files: 2, reported: 0, expiringSoon: 3 },
+        pulse: {
+          nodes: 5,
+          down: 1,
+          checksFailing: 0,
+          openIncidents: 0,
+          openReports: 0,
+        },
+        attention: [],
+      } as never,
+    );
+    expect(model.indicators.pass).toEqual({ count: 4, severity: null });
+    expect(model.indicators.link).toEqual({ count: 9, severity: "warn" });
+    expect(model.indicators.pulse).toEqual({ count: 5, severity: "danger" });
+  });
+
+  it("leaves a locked block locked even when its sibling blocks carry real numbers", () => {
+    const model = toMachineModel(
+      { authenticated: true, identity: { role: "USER" } },
+      {
+        role: "USER",
+        pass: { devices: 2 },
+        link: { active: 7, files: 0, reported: 0, expiringSoon: 0 },
+        pulse: {
+          nodes: 3,
+          down: 0,
+          checksFailing: 0,
+          openIncidents: 0,
+          openReports: 0,
+        },
+        attention: [],
+      } as never,
+    );
+    expect(model.indicators.pass).toEqual({ count: 2, severity: null });
+    expect(model.indicators.link).toEqual({ count: 7, severity: null });
+    expect(model.indicators.pulse).toBe("locked");
+  });
+});
+
+describe("an unrecognized role defaults to guest, not to visitor", () => {
+  it("treats a role that is neither ADMIN nor USER as guest, not as a quiet visitor grant", () => {
+    const model = toMachineModel(
+      { authenticated: true, identity: { role: "SOMETHING_ELSE" } },
+      null,
+    );
+    expect(model.access).toBe("guest");
+  });
+});
