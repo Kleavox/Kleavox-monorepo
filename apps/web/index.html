@@ -189,6 +189,35 @@
                 </div>
               </div>
             </div>
+
+            <div class="dispense-zone">
+              <span
+                class="falling-cartridge"
+                data-falling="none"
+                aria-hidden="true"
+              >
+                <span class="falling-cartridge__hardware"
+                  ><i></i><i></i><i></i
+                ></span>
+                <strong data-falling-name></strong>
+              </span>
+
+              <div class="tray" data-tray="none">
+                <span class="tray-shutter" aria-hidden="true"
+                  ><i></i><i></i
+                ></span>
+                <span class="tray-label">DELIVERY BAY</span>
+                <div class="tray-result">
+                  <span class="tray-item" aria-hidden="true">
+                    <strong data-tray-code></strong>
+                    <small data-tray-name></small>
+                  </span>
+                  <button class="tray-action" type="button" data-tray-action>
+                    TAKE <span data-tray-target>DELIVERY</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </section>
 
           <button
@@ -289,6 +318,10 @@
                   ></span>
                   <span class="pass-reader__label">TAP PASS</span>
                 </button>
+                <div class="pass-card" aria-hidden="true">
+                  <span class="pass-card__brand">KLEAVOX</span>
+                  <span class="pass-card__role">ACCESS PASS</span>
+                </div>
               </div>
 
               <div class="status-bank" aria-hidden="true">
@@ -327,6 +360,27 @@
         </div>
       </section>
     </main>
+
+    <section class="screen-transfer" data-transfer="none">
+      <span class="screen-transfer__grid" aria-hidden="true"></span>
+      <div class="screen-transfer__cartridge">
+        <div class="screen-transfer__copy">
+          <span data-transfer-kicker>ROUTE ESTABLISHED</span>
+          <strong data-transfer-name>KLEAVOX</strong>
+          <small data-transfer-status>DECODING INTERFACE, KVX-GW-01</small>
+        </div>
+        <span class="screen-transfer__rail" aria-hidden="true"
+          ><i></i><i></i><i></i
+        ></span>
+      </div>
+      <button
+        class="screen-transfer__cancel"
+        type="button"
+        data-transfer-cancel
+      >
+        CANCEL
+      </button>
+    </section>
 
     <dialog class="terminal" data-terminal aria-labelledby="terminal-title">
       <header class="terminal__header">

@@ -1,4 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { localViteOrigin, localWorkerOrigin } from "@kleavox/topology";
+
+function seconds(value: string): number {
+  return Number.parseFloat(value);
+}
 
 test("the cabinet holds exactly nine bays, three of them filled", async ({
   page,
@@ -307,4 +312,291 @@ test("the keypad says which mode it is in, not only what colour", async ({
   await expect(legend).toHaveText("BAY SELECT", { useInnerText: true });
   await expect(selector).toBeVisible();
   await expect(otp).toBeHidden();
+});
+
+test("the tray offers nothing to press until something is delivered", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator("[data-tray]")).toHaveAttribute(
+    "data-tray",
+    "none",
+  );
+  await expect(page.locator("[data-tray-action]")).toBeHidden();
+  await expect(page.locator(".tray-label")).toBeVisible();
+  const reachable = await page.evaluate(() => {
+    const action = document.querySelector<HTMLElement>("[data-tray-action]")!;
+    action.focus();
+    return document.activeElement === action;
+  });
+  expect(reachable).toBe(false);
+});
+
+test("a delivered cartridge gives the tray a real control", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1100, height: 620 },
+    { width: 900, height: 520 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await page.evaluate(async () => {
+      document.querySelector<HTMLElement>("[data-tray]")!.dataset.tray = "3";
+      const result = document.querySelector<HTMLElement>(".tray-result")!;
+      await Promise.all(
+        result.getAnimations().map((animation) => animation.finished),
+      );
+    });
+    const action = page.locator("[data-tray-action]");
+    await expect(action).toBeVisible();
+    await expect(action).toHaveAccessibleName("TAKE DELIVERY");
+    await expect(page.locator(".tray-label")).toBeHidden();
+    const box = await action.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("the tray keeps the three products apart by shape", async ({ page }) => {
+  await page.goto("/");
+  const widths: number[] = [];
+  for (const bay of ["1", "2", "3"]) {
+    await page.evaluate(async (code) => {
+      document.querySelector<HTMLElement>("[data-tray]")!.dataset.tray = code;
+      const result = document.querySelector<HTMLElement>(".tray-result")!;
+      await Promise.all(
+        result.getAnimations().map((animation) => animation.finished),
+      );
+    }, bay);
+    const box = await page.locator(".tray-item").boundingBox();
+    widths.push(Math.round(box!.width));
+  }
+  expect(new Set(widths).size).toBe(3);
+});
+
+test("each product leaves its bay by its own motion", async ({ page }) => {
+  await page.goto("/");
+  const seen = await page.evaluate(() => {
+    const falling = document.querySelector<HTMLElement>("[data-falling]")!;
+    const root = getComputedStyle(document.documentElement);
+    const sequence = root.getPropertyValue("--kvx-t6").trim();
+    const rows: { name: string; duration: string; count: string }[] = [];
+    for (const bay of ["1", "2", "3"]) {
+      falling.dataset.falling = bay;
+      const style = getComputedStyle(falling);
+      rows.push({
+        name: style.animationName,
+        duration: style.animationDuration,
+        count: style.animationIterationCount,
+      });
+    }
+    falling.dataset.falling = "none";
+    return { rows, sequence, resting: getComputedStyle(falling).animationName };
+  });
+  expect(new Set(seen.rows.map((row) => row.name)).size).toBe(3);
+  for (const row of seen.rows) {
+    expect(seconds(row.duration)).toBe(seconds(seen.sequence));
+    expect(row.count).toBe("1");
+  }
+  expect(seen.resting).toBe("none");
+});
+
+test("nothing on the machine animates forever", async ({ page }) => {
+  await page.goto("/");
+  const forever = await page.evaluate(() => {
+    const machine = document.querySelector<HTMLElement>("[data-machine]")!;
+    const tray = document.querySelector<HTMLElement>("[data-tray]")!;
+    const falling = document.querySelector<HTMLElement>("[data-falling]")!;
+    const transfer = document.querySelector<HTMLElement>("[data-transfer]")!;
+    const offenders: string[] = [];
+    const sweep = (): void => {
+      for (const node of document.querySelectorAll("*")) {
+        for (const pseudo of [null, "::before", "::after"]) {
+          const style = getComputedStyle(node, pseudo);
+          if (style.animationName === "none") continue;
+          if (style.animationIterationCount === "1") continue;
+          offenders.push(
+            [
+              node.tagName,
+              node.className,
+              pseudo ?? "",
+              style.animationName,
+              style.animationIterationCount,
+            ].join(" "),
+          );
+        }
+      }
+    };
+    machine.dataset.access = "owner";
+    machine.dataset.status = "dispensing";
+    tray.dataset.tray = "2";
+    falling.dataset.falling = "2";
+    transfer.dataset.transfer = "2";
+    sweep();
+    machine.dataset.status = "reading";
+    sweep();
+    machine.dataset.status = "denied";
+    sweep();
+    return offenders;
+  });
+  expect(forever).toEqual([]);
+});
+
+test("the pass card is off the machine until the reader is reading", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const card = page.locator(".pass-card");
+  await expect(card).toBeHidden();
+
+  const reading = await page.evaluate(() => {
+    const machine = document.querySelector<HTMLElement>("[data-machine]")!;
+    machine.dataset.status = "reading";
+    const style = getComputedStyle(
+      document.querySelector<HTMLElement>(".pass-card")!,
+    );
+    return {
+      name: style.animationName,
+      duration: style.animationDuration,
+      count: style.animationIterationCount,
+      move: getComputedStyle(document.documentElement)
+        .getPropertyValue("--kvx-t5")
+        .trim(),
+    };
+  });
+  await expect(card).toBeVisible();
+  expect(reading.name).toBe("pass-card-return");
+  expect(seconds(reading.duration)).toBe(seconds(reading.move));
+  expect(reading.count).toBe("1");
+
+  await page.evaluate(() => {
+    document.querySelector<HTMLElement>("[data-machine]")!.dataset.status =
+      "idle";
+  });
+  await expect(card).toBeHidden();
+});
+
+test("the bridge stays out of the way until a cartridge is taken", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const cancel = page.locator("[data-transfer-cancel]");
+  await expect(page.locator("[data-transfer]")).toBeHidden();
+  await expect(cancel).toBeHidden();
+
+  await page.evaluate(() => {
+    document.querySelector<HTMLElement>("[data-transfer]")!.dataset.transfer =
+      "3";
+  });
+  await expect(page.locator("[data-transfer]")).toBeVisible();
+  await expect(cancel).toBeVisible();
+  const box = await cancel.boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+});
+
+test("reduced motion shortens the bridge, it does not skip it", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.goto("/");
+  await page.evaluate(() => {
+    document.querySelector<HTMLElement>("[data-transfer]")!.dataset.transfer =
+      "1";
+  });
+  await expect(page.locator("[data-transfer]")).toBeVisible();
+  const cancel = page.locator("[data-transfer-cancel]");
+  await expect(cancel).toBeVisible();
+  await expect(cancel).toHaveCSS("opacity", "1");
+  const box = await cancel.boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+  await context.close();
+});
+
+test("a full tray does not push the machine sideways at 320px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto("/");
+  await page.evaluate(() => {
+    document.querySelector<HTMLElement>("[data-tray]")!.dataset.tray = "3";
+    document.querySelector<HTMLElement>("[data-falling]")!.dataset.falling =
+      "3";
+    document.querySelector<HTMLElement>("[data-machine]")!.dataset.status =
+      "reading";
+  });
+  const width = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(width).toBe(320);
+});
+
+test("every route the machine offers is reachable from here", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const links = await page.evaluate(() => {
+    const hrefs = [
+      ...document.querySelectorAll<HTMLElement>("[data-href]"),
+    ].map((node) => node.dataset.href ?? "");
+    const footer = [
+      ...document.querySelectorAll<HTMLAnchorElement>(".ftr-links a"),
+    ].map((node) => node.getAttribute("href") ?? "");
+    return { hrefs, footer, host: location.hostname };
+  });
+
+  expect(links.hrefs).toHaveLength(3);
+  for (const href of [...links.hrefs, ...links.footer]) {
+    if (!href.includes("://")) continue;
+    const url = new URL(href);
+    expect(url.hostname).toBe(links.host);
+    expect(url.protocol).toBe("http:");
+  }
+
+  expect(links.hrefs).toEqual([
+    localWorkerOrigin("link", links.host),
+    localWorkerOrigin("pulse", links.host),
+    localViteOrigin("portfolio", links.host),
+  ]);
+});
+
+test("the returning pass card never widens the page", async ({ page }) => {
+  for (const width of [761, 800, 900, 1000, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const measured = await page.evaluate(() => {
+      document.querySelector<HTMLElement>("[data-machine]")!.dataset.status =
+        "reading";
+      return document.documentElement.scrollWidth;
+    });
+    expect(measured).toBe(width);
+  }
+});
+
+test("the cabinet still wears its cap and its side rails", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const protrusions = await page.evaluate(() => {
+    const machine = document
+      .querySelector<HTMLElement>("[data-machine]")!
+      .getBoundingClientRect();
+    const cap = getComputedStyle(
+      document.querySelector<HTMLElement>("[data-machine]")!,
+      "::after",
+    );
+    const cabinet = document.querySelector<HTMLElement>(".cabinet")!;
+    const rail = getComputedStyle(cabinet, "::before");
+    return {
+      capTop: cap.top,
+      railLeft: rail.left,
+      clipMargin: getComputedStyle(
+        document.querySelector<HTMLElement>("[data-machine]")!,
+      ).overflowClipMargin,
+      machineWidth: Math.round(machine.width),
+    };
+  });
+  expect(protrusions.capTop).toBe("-7px");
+  expect(protrusions.railLeft).toBe("-7px");
+  expect(Number.parseFloat(protrusions.clipMargin)).toBeGreaterThan(7);
 });

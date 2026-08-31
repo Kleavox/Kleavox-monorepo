@@ -1,9 +1,46 @@
-import { applicationForSubdomain, localViteOrigin } from "@kleavox/topology";
+import {
+  LOCAL_VITE_PORTS,
+  LOCAL_WORKER_PORTS,
+  applicationForSubdomain,
+  localViteOrigin,
+  localWorkerOrigin,
+  type PublicApplication,
+  type WorkerApplication,
+} from "@kleavox/topology";
 
 export { INTERNAL_HOSTS, INTERNAL_URLS } from "@kleavox/topology";
 
 export const SESSION_COOKIE = "__Secure-kleavox_session";
 export const VERIFICATION_COOKIE = "__Secure-kleavox_verified";
+
+const LOOPBACK_IPV4 = /^127(?:\.\d{1,3}){3}$/u;
+
+function isLoopbackHost(hostname: string): boolean {
+  if (hostname === "localhost" || hostname.endsWith(".localhost")) return true;
+  if (hostname === "[::1]" || hostname === "::1") return true;
+  return LOOPBACK_IPV4.test(hostname);
+}
+
+function hasWorker(
+  application: PublicApplication,
+): application is WorkerApplication {
+  return application in LOCAL_WORKER_PORTS;
+}
+
+function localOrigin(
+  url: URL,
+  application: PublicApplication,
+): string | undefined {
+  if (url.port === String(LOCAL_WORKER_PORTS.gateway)) {
+    return hasWorker(application)
+      ? localWorkerOrigin(application, url.hostname)
+      : localViteOrigin(application, url.hostname);
+  }
+  if (url.port === String(LOCAL_VITE_PORTS.gateway)) {
+    return localViteOrigin(application, url.hostname);
+  }
+  return undefined;
+}
 
 export function getPublicOrigin(
   rootOrigin: string,
@@ -12,9 +49,10 @@ export function getPublicOrigin(
   const url = new URL(rootOrigin);
   if (!subdomain) return url.origin;
 
-  if (url.hostname === "localhost") {
+  if (isLoopbackHost(url.hostname)) {
     const application = applicationForSubdomain(subdomain);
-    return application ? localViteOrigin(application) : url.origin;
+    if (application === undefined) return url.origin;
+    return localOrigin(url, application) ?? url.origin;
   }
 
   return `https://${subdomain}.${url.host}`;
