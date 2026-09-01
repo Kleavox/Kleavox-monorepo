@@ -53,10 +53,12 @@ const PRESSABLE = new Set([
 ]);
 const TYPING = "input, textarea, select, button, a, [contenteditable]";
 const FAULT_HOLD_MS = 2000;
+const OTP_LENGTH = 6;
 
 let model: MachineModel = toMachineModel({ authenticated: false }, null);
 let state: MachineState = initialState("guest");
 let otpEmail = "";
+let checking = false;
 let bridging: AbortController | null = null;
 
 const keypad = createKeypad();
@@ -198,7 +200,9 @@ function paintAccount(session: GatewaySession): void {
 
 async function readSession(): Promise<GatewaySession> {
   const response = await fetch("/api/session", { credentials: "include" });
-  if (!response.ok) return { authenticated: false };
+  if (!response.ok) {
+    throw new Error(`The pass office answered ${response.status}.`);
+  }
   return (await response.json()) as GatewaySession;
 }
 
@@ -241,7 +245,12 @@ async function takeDelivery(): Promise<void> {
 }
 
 function cancelBridge(): void {
-  bridging?.abort();
+  if (bridging !== null) {
+    bridging.abort();
+    return;
+  }
+  dispatch({ type: "cancel" });
+  trayAction?.focus({ preventScroll: true });
 }
 
 function openMethods(): void {
@@ -272,7 +281,9 @@ async function adoptPass(role: string | undefined): Promise<void> {
   const issued = dispatch({ type: "pass-issued", access: model.access });
   if (issued.status === "dispensing" && issued.selection !== null) {
     await dispense(issued.selection);
+    return;
   }
+  dispatch({ type: "reset" });
 }
 
 async function sendCode(): Promise<void> {
@@ -300,12 +311,21 @@ async function sendCode(): Promise<void> {
 }
 
 async function submitCode(code: string): Promise<void> {
+  if (checking) return;
+  checking = true;
   let verified;
   try {
     verified = await verifyOtpCode(otpEmail, code);
   } catch (error) {
-    const attemptsLeft =
-      error instanceof OtpVerifyError ? error.attemptsLeft : undefined;
+    if (!(error instanceof OtpVerifyError)) {
+      showTerminalError(
+        `The machine could not reach the pass office (${messageOf(error)}). ` +
+          "Your code is still good, close this and press GO to send it again.",
+      );
+      if (terminal && !terminal.open) terminal.showModal();
+      return;
+    }
+    const attemptsLeft = error.attemptsLeft;
     if (attemptsLeft === undefined) {
       keypad.reset();
       keypad.setMode("selector");
@@ -315,6 +335,8 @@ async function submitCode(code: string): Promise<void> {
     dispatch({ type: "otp-rejected", attemptsLeft });
     keypad.reset();
     return;
+  } finally {
+    checking = false;
   }
 
   keypad.reset();
@@ -330,7 +352,11 @@ async function submitCode(code: string): Promise<void> {
 async function startProvider(provider: string): Promise<void> {
   const wanted = state.authRequest;
   if (wanted !== null && !rememberRequest(wanted)) {
-    fault("REQUEST NOT SAVED, PICK THE BAY AGAIN");
+    showTerminalError(
+      "This browser will not hold your bay request, so the machine cannot " +
+        "open it for you when you come back. Sign in, then pick the bay again.",
+    );
+    if (terminal && !terminal.open) terminal.showModal();
     await hold(FAULT_HOLD_MS);
   } else {
     dispatch({ type: "oauth-started" });
@@ -346,6 +372,10 @@ async function pressKey(key: string): Promise<void> {
   const result = keypad.press(key);
   if (otp) dispatch({ type: "otp-digits", digits: keypad.digits() });
 
+  if (otp && key === "GO" && keypad.digits().length === OTP_LENGTH) {
+    await submitCode(keypad.digits());
+    return;
+  }
   if (result.kind === "selected") {
     dispatch({ type: "preselect", bay: result.bay });
     return;

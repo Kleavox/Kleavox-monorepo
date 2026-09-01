@@ -107,12 +107,18 @@ function write(root: ParentNode, selector: string, value: string): void {
 function outside(root: ParentNode, panel: HTMLElement): HTMLElement[] {
   const scrim = root.querySelector("[data-scrim]");
   const terminal = root.querySelector("[data-terminal]");
+  const bridge = root.querySelector("[data-transfer]");
   const found: HTMLElement[] = [];
   let node: Element = panel;
   while (node.parentElement !== null) {
     const parent: HTMLElement = node.parentElement;
     for (const sibling of parent.children) {
-      if (sibling === node || sibling === scrim || sibling === terminal) {
+      if (
+        sibling === node ||
+        sibling === scrim ||
+        sibling === terminal ||
+        sibling === bridge
+      ) {
         continue;
       }
       if (sibling instanceof HTMLElement) found.push(sibling);

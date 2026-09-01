@@ -381,7 +381,7 @@ describe("render owns the console", () => {
     );
     expect(
       element.querySelector("[data-transfer]")?.hasAttribute("inert"),
-    ).toBe(true);
+    ).toBe(false);
     expect(element.querySelector("[data-scrim]")?.hasAttribute("inert")).toBe(
       false,
     );

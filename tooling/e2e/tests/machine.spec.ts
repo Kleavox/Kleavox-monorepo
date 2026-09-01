@@ -941,7 +941,16 @@ test("a blocked sessionStorage says so instead of forgetting in silence", async 
 
   await page.locator("[data-terminal-open]").click();
   await page.locator("[data-terminal-provider='google']").click();
-  await expect(page.locator("[data-screen]")).toContainText("NOT SAVED");
+
+  const said = page.locator("[data-terminal-error]");
+  await expect(said).toBeVisible();
+  await expect(said).toContainText(/pick the bay again/i);
+  expect(
+    await said.evaluate((node) => {
+      const dialog = node.closest("dialog");
+      return dialog !== null && dialog.matches("dialog:modal");
+    }),
+  ).toBe(true);
 });
 
 test.describe("with a real pass in the machine", () => {
@@ -1071,4 +1080,147 @@ test("a rejected code says so, and a new code can be typed at once", async ({
 
   await page.locator("[data-key='7']").click();
   await expect(page.locator("[data-screen]")).toHaveText("EMAIL CODE 1/6");
+});
+
+test("a broken session endpoint is a fault, not a calm guest", async ({
+  page,
+}) => {
+  await page.route("**/api/session", (route) =>
+    route.fulfill({ status: 500, body: "{}" }),
+  );
+  await page.goto(GATEWAY);
+  const screen = page.locator("[data-screen]");
+  await expect(screen).toContainText("UNREADABLE");
+  await expect(screen).toBeVisible();
+});
+
+async function reachOtpMode(page: Page): Promise<void> {
+  await page.locator("[data-reader]").click();
+  await expect(page.locator("[data-terminal]")).toBeVisible();
+  await page
+    .locator("[data-terminal-email]")
+    .fill(`otpprobe-${Date.now().toString().slice(-6)}@example.com`);
+  await page.locator("[data-terminal-send]").click();
+  await expect(page.locator("[data-terminal]")).toBeHidden();
+  await expect(page.locator("[data-machine]")).toHaveAttribute(
+    "data-input",
+    "otp",
+  );
+}
+
+async function typeCode(page: Page, code: string): Promise<void> {
+  for (const digit of code) await page.locator(`[data-key='${digit}']`).click();
+}
+
+test("signing in while the estate is down says so, it does not stop at PASS ACCEPTED", async ({
+  page,
+}) => {
+  await page.route("**/api/auth/otp/verify", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        authenticated: true,
+        user: {
+          id: "probe",
+          email: "probe@example.com",
+          username: "probe",
+          role: "USER",
+        },
+        needsSetup: false,
+      }),
+    }),
+  );
+  await page.route("**/api/estate", (route) =>
+    route.fulfill({ status: 500, body: "{}" }),
+  );
+
+  await page.goto(GATEWAY);
+  await reachOtpMode(page);
+  await typeCode(page, "123456");
+
+  await expect(page.locator("[data-cabinet-state]")).toHaveText("VISITOR MODE");
+  await expect(page.locator("[data-screen]")).toHaveText("ESTATE UNREADABLE");
+});
+
+test("a dropped packet during verify keeps the code, it does not end the sign-in", async ({
+  page,
+}) => {
+  await page.goto(GATEWAY);
+  await reachOtpMode(page);
+  await page.route("**/api/auth/otp/verify", (route) => route.abort());
+  await typeCode(page, "123456");
+
+  const error = page.locator("[data-terminal-error]");
+  await expect(error).toBeVisible();
+  await expect(error).toContainText(/could not reach/i);
+  await expect(page.locator("[data-machine]")).toHaveAttribute(
+    "data-input",
+    "otp",
+  );
+
+  await page.locator("[data-terminal-close]").click();
+  await expect(page.locator("[data-screen]")).toHaveText("EMAIL CODE 6/6");
+
+  let verifies = 0;
+  await page.unroute("**/api/auth/otp/verify");
+  await page.route("**/api/auth/otp/verify", async (route) => {
+    verifies += 1;
+    await route.continue();
+  });
+  await page.locator("[data-key='GO']").click();
+  await expect(page.locator("[data-screen]")).toHaveText("CODE REJECTED");
+  expect(verifies).toBe(1);
+});
+
+test("a second code cannot race the first one being checked", async ({
+  page,
+}) => {
+  await page.goto(GATEWAY);
+  await reachOtpMode(page);
+
+  let verifies = 0;
+  await page.route("**/api/auth/otp/verify", async (route) => {
+    verifies += 1;
+    await new Promise((settled) => setTimeout(settled, 1500));
+    await route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({
+        code: "invalid_code",
+        message: "That code is incorrect.",
+        attemptsLeft: 4,
+      }),
+    });
+  });
+
+  await typeCode(page, "123456");
+  await page.locator("[data-key='CLR']").click();
+  await page.locator("[data-key='9']").click();
+  await expect(page.locator("[data-screen]")).toHaveText("CODE REJECTED", {
+    timeout: 10_000,
+  });
+  expect(verifies).toBe(1);
+});
+
+test("cancel still leaves the bridge after the transfer has resolved", async ({
+  page,
+}) => {
+  await page.goto(GATEWAY);
+  await page.evaluate(() => {
+    document.querySelector<HTMLElement>("[data-cartridge='3']")!.dataset.href =
+      "#stay";
+  });
+
+  await page.locator("[data-cartridge='3']").click();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+  await page.locator("[data-tray-action]").click();
+  const bridge = page.locator("[data-transfer]");
+  await expect(bridge).toHaveAttribute("data-transfer", "3");
+
+  await expect(page).toHaveURL(/#stay$/, { timeout: 10_000 });
+
+  await page.locator("[data-transfer-cancel]").click();
+  await expect(bridge).toHaveAttribute("data-transfer", "none");
+  await expect(page.locator("[data-tray-action]")).toBeFocused();
 });

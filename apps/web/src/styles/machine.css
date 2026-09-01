@@ -2850,7 +2850,7 @@
   visibility: hidden;
   transition:
     opacity var(--kvx-t3) var(--kvx-ease),
-    visibility var(--kvx-t3);
+    visibility 0s linear var(--kvx-t3);
 }
 
 .screen-transfer::backdrop {

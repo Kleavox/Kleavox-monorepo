@@ -8,6 +8,12 @@ export type MachineHost = {
 };
 
 export function mountConsole(root: ParentNode, machine: MachineHost): void {
+  const sheet = window.matchMedia(SHEET_QUERY);
+  machine.dispatch({
+    type: "console-layout",
+    layout: sheet.matches ? "sheet" : "column",
+  });
+
   const panel = root.querySelector<HTMLElement>("[data-console]");
   const dock = root.querySelector<HTMLButtonElement>("[data-dock]");
   if (!panel || !dock) return;
@@ -16,7 +22,6 @@ export function mountConsole(root: ParentNode, machine: MachineHost): void {
   const closer = root.querySelector<HTMLButtonElement>("[data-console-close]");
   const reader = root.querySelector<HTMLElement>("[data-reader]");
   const terminal = root.querySelector<HTMLDialogElement>("[data-terminal]");
-  const sheet = window.matchMedia(SHEET_QUERY);
 
   const setOpen = (open: boolean): void => {
     const next = machine.dispatch({ type: "console", open });
