@@ -48,6 +48,11 @@ describe("selector mode", () => {
     keypad.press("2");
     expect(keypad.digits()).toBe("");
   });
+
+  it("ignores an unrecognised key", () => {
+    const keypad = createKeypad();
+    expect(keypad.press("x")).toEqual({ kind: "ignored" });
+  });
 });
 
 describe("otp mode", () => {
@@ -105,6 +110,16 @@ describe("otp mode", () => {
     expect(keypad.digits()).toBe("123456");
   });
 
+  it("lets CLR walk the buffer back down after the six-digit lock, so a user can never get stuck", () => {
+    const keypad = createKeypad();
+    keypad.setMode("otp");
+    for (const digit of "123456") keypad.press(digit);
+    expect(keypad.press("7")).toEqual({ kind: "ignored" });
+    expect(keypad.digits()).toBe("123456");
+    expect(keypad.press("CLR")).toEqual({ kind: "cleared" });
+    expect(keypad.digits()).toBe("12345");
+  });
+
   it("accepts a fresh code after reset without changing mode", () => {
     const keypad = createKeypad();
     keypad.setMode("otp");
@@ -127,9 +142,19 @@ describe("otp mode", () => {
     expect(keypad.digits()).toBe("1");
   });
 
-  it("starts each otp session with an empty buffer, even after a prior selector pick", () => {
+  it("ignores an unrecognised key without touching the buffer", () => {
     const keypad = createKeypad();
+    keypad.setMode("otp");
+    expect(keypad.press("x")).toEqual({ kind: "ignored" });
+    expect(keypad.digits()).toBe("");
+  });
+
+  it("starts each otp session with an empty buffer, even after a prior otp session left digits behind", () => {
+    const keypad = createKeypad();
+    keypad.setMode("otp");
+    keypad.press("1");
     keypad.press("2");
+    keypad.setMode("selector");
     keypad.setMode("otp");
     expect(keypad.digits()).toBe("");
   });
