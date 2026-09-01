@@ -1,8 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { localViteOrigin, localWorkerOrigin } from "@kleavox/topology";
+import { signedInAs } from "./pass-account";
+
+const GATEWAY = localWorkerOrigin("gateway", "localhost");
 
 function seconds(value: string): number {
   return Number.parseFloat(value);
+}
+
+async function lampColour(target: Page): Promise<string> {
+  return target.evaluate(
+    () =>
+      getComputedStyle(
+        document.querySelector<HTMLElement>("[data-cabinet-state]")!,
+        "::before",
+      ).backgroundColor,
+  );
 }
 
 test("the cabinet holds exactly nine bays, three of them filled", async ({
@@ -811,4 +824,251 @@ test("the cabinet still wears its cap and its side rails", async ({ page }) => {
   expect(protrusions.capTop).toBe("-7px");
   expect(protrusions.railLeft).toBe("-7px");
   expect(Number.parseFloat(protrusions.clipMargin)).toBeGreaterThan(7);
+});
+
+test("a guest is told to insert a pass and cannot take LINK", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator("[data-screen]")).toHaveText("INSERT PASS");
+  await page.locator("[data-cartridge='1']").click();
+  await expect(page.locator("[data-screen]")).toContainText("PASS REQUIRED");
+  await expect(page.locator("[data-tray]")).toHaveAttribute(
+    "data-tray",
+    "none",
+  );
+});
+
+test("a guest can take PORTFOLIO without a pass", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("[data-cartridge='3']").click();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+  await expect(page.locator("[data-screen]")).toContainText("DELIVERED");
+});
+
+test("number entry and GO reach the same place as tapping", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.keyboard.press("Digit3");
+  await expect(page.locator("[data-screen]")).toContainText("3 SELECTED");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+});
+
+test("the keypad keys dispense the same way the physical keys do", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator("[data-key='3']").click();
+  await page.locator("[data-key='GO']").click();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+});
+
+test("taking the delivery opens a real modal bridge that escape can leave", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator("[data-cartridge='3']").click();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+
+  await page.locator("[data-tray-action]").click();
+  const bridge = page.locator("[data-transfer]");
+  await expect(bridge).toHaveAttribute("data-transfer", "3");
+  const sealed = await page.evaluate(() => {
+    const overlay = document.querySelector("[data-transfer]");
+    const cartridge = document.querySelector<HTMLElement>(
+      "[data-cartridge='3']",
+    )!;
+    cartridge.focus();
+    return {
+      modal: overlay === document.querySelector("dialog:modal"),
+      reachedBehind: document.activeElement === cartridge,
+      focusInside: overlay?.contains(document.activeElement) ?? false,
+    };
+  });
+  expect(sealed.modal).toBe(true);
+  expect(sealed.reachedBehind).toBe(false);
+  expect(sealed.focusInside).toBe(true);
+
+  await page.keyboard.press("Escape");
+  await expect(bridge).toHaveAttribute("data-transfer", "none");
+  await expect(page.locator("[data-tray-action]")).toBeFocused();
+  await expect(page).toHaveURL(/:\d+\/$/);
+});
+
+test("the cancel button leaves the bridge the same way escape does", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator("[data-cartridge='3']").click();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+  await page.locator("[data-tray-action]").click();
+  await expect(page.locator("[data-transfer]")).toHaveAttribute(
+    "data-transfer",
+    "3",
+  );
+  await page.locator("[data-transfer-cancel]").click();
+  await expect(page.locator("[data-transfer]")).toHaveAttribute(
+    "data-transfer",
+    "none",
+  );
+  await expect(page.locator("[data-tray-action]")).toBeFocused();
+});
+
+test("a blocked sessionStorage says so instead of forgetting in silence", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "sessionStorage", {
+      configurable: true,
+      value: {
+        getItem: () => {
+          throw new Error("storage is blocked");
+        },
+        setItem: () => {
+          throw new Error("storage is blocked");
+        },
+        removeItem: () => {
+          throw new Error("storage is blocked");
+        },
+      },
+    });
+  });
+  await page.goto("/");
+  await page.locator("[data-cartridge='1']").click();
+  await expect(page.locator("[data-screen]")).toContainText("PASS REQUIRED");
+
+  await page.locator("[data-terminal-open]").click();
+  await page.locator("[data-terminal-provider='google']").click();
+  await expect(page.locator("[data-screen]")).toContainText("NOT SAVED");
+});
+
+test.describe("with a real pass in the machine", () => {
+  test.describe.configure({ mode: "serial" });
+
+  let context: BrowserContext;
+  let signedIn: Page;
+
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(180_000);
+    context = await browser.newContext();
+    signedIn = await context.newPage();
+    await signedInAs(signedIn, "probemachine", "ADMIN");
+  });
+
+  test.afterAll(async () => {
+    await context?.close();
+  });
+
+  test("the machine says the estate is unreadable rather than looking calm", async () => {
+    await signedIn.route("**/api/estate", (route) =>
+      route.fulfill({ status: 500, body: "{}" }),
+    );
+    await signedIn.goto(GATEWAY);
+    await expect(signedIn.locator("[data-screen]")).toContainText("UNREADABLE");
+    await signedIn.unroute("**/api/estate");
+  });
+
+  test("a real pass drives the cabinet plate, not a hand-set attribute", async ({
+    browser,
+  }) => {
+    const guestContext = await browser.newContext();
+    const guest = await guestContext.newPage();
+    await guest.goto(GATEWAY);
+    await expect(guest.locator("[data-cabinet-state]")).toHaveText(
+      "GUEST MODE",
+    );
+    const guestLamp = await lampColour(guest);
+    const guestBays = await guest.evaluate(() =>
+      ["1", "2", "3"].map(
+        (bay) =>
+          document.querySelector<HTMLElement>(
+            `[data-bay="${bay}"] [data-backlight]`,
+          )!.dataset.lit,
+      ),
+    );
+    await guestContext.close();
+
+    await signedIn.goto(GATEWAY);
+    const plate = signedIn.locator("[data-cabinet-state]");
+    await expect(plate).toHaveText("OWNER MODE");
+    await expect(plate).toHaveAttribute("data-cabinet-state", "owner");
+    await expect(signedIn.locator("[data-machine]")).toHaveAttribute(
+      "data-access",
+      "owner",
+    );
+    const ownerLamp = await lampColour(signedIn);
+    const ownerBays = await signedIn.evaluate(() =>
+      ["1", "2", "3"].map(
+        (bay) =>
+          document.querySelector<HTMLElement>(
+            `[data-bay="${bay}"] [data-backlight]`,
+          )!.dataset.lit,
+      ),
+    );
+
+    expect(guestBays).toEqual(["false", "false", "true"]);
+    expect(ownerBays).toEqual(["true", "true", "true"]);
+    expect(ownerLamp).not.toBe(guestLamp);
+  });
+
+  test("an owner can take the bay a guest was refused", async () => {
+    await signedIn.goto(GATEWAY);
+    await expect(signedIn.locator("[data-cabinet-state]")).toHaveText(
+      "OWNER MODE",
+    );
+    await signedIn.locator("[data-cartridge='1']").click();
+    await expect(signedIn.locator("[data-tray]")).toHaveAttribute(
+      "data-tray",
+      "1",
+    );
+    await expect(signedIn.locator("[data-screen]")).toContainText("LINK");
+  });
+
+  test("Pulse is public in the footer, signed in or not", async ({
+    browser,
+  }) => {
+    const guestContext = await browser.newContext();
+    const guest = await guestContext.newPage();
+    await guest.goto(GATEWAY);
+    await expect(
+      guest.locator(".ftr-links a", { hasText: "Pulse" }),
+    ).toBeVisible();
+    await guestContext.close();
+
+    await signedIn.goto(GATEWAY);
+    await expect(
+      signedIn.locator(".ftr-links a", { hasText: "Pulse" }),
+    ).toBeVisible();
+  });
+});
+
+test("a rejected code says so, and a new code can be typed at once", async ({
+  page,
+}) => {
+  await page.goto(GATEWAY);
+  await page.locator("[data-reader]").click();
+  await expect(page.locator("[data-terminal]")).toBeVisible();
+  await page
+    .locator("[data-terminal-email]")
+    .fill(`otpprobe-${Date.now().toString().slice(-6)}@example.com`);
+  await page.locator("[data-terminal-send]").click();
+  await expect(page.locator("[data-terminal]")).toBeHidden();
+  await expect(page.locator("[data-machine]")).toHaveAttribute(
+    "data-input",
+    "otp",
+  );
+
+  for (const digit of ["1", "2", "3", "4", "5"]) {
+    await page.locator(`[data-key='${digit}']`).click();
+  }
+  await expect(page.locator("[data-screen]")).toHaveText("EMAIL CODE 5/6");
+
+  await page.locator("[data-key='6']").click();
+  await expect(page.locator("[data-screen]")).toHaveText("CODE REJECTED");
+  await expect(page.locator("[data-screen-sub]")).toContainText("TRIES LEFT");
+
+  await page.locator("[data-key='7']").click();
+  await expect(page.locator("[data-screen]")).toHaveText("EMAIL CODE 1/6");
 });

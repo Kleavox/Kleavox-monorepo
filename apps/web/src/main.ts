@@ -2,75 +2,120 @@ import { displayHandle } from "@kleavox/core";
 import "@kleavox/ui/styles.css";
 import "./styles/global.css";
 import "./styles/machine.css";
-import { mountConsole, mountTerminal } from "./machine/console";
 import {
-  formatAge,
   navCountsFrom,
-  plural,
   renderAppHeader,
-  renderStatusLine,
-  LINK_ORIGIN,
   PASS_ORIGIN,
-  PULSE_ORIGIN,
-  type AttentionItem,
   type NavCounts,
   type Overview,
-  type StatusField,
-  type StatusLineModel,
 } from "@kleavox/ui";
+import { OtpVerifyError, startOtp, verifyOtpCode } from "./auth-client";
+import { toMachineModel, type MachineModel } from "./estate-adapter";
+import {
+  mountConsole,
+  mountTerminal,
+  type MachineHost,
+} from "./machine/console";
+import { createKeypad } from "./machine/keypad";
+import { render } from "./machine/render";
+import {
+  rememberRequest,
+  runDispense,
+  runReaderScan,
+  runScreenTransfer,
+  takeRememberedRequest,
+} from "./machine/sequence";
+import {
+  initialState,
+  reduce,
+  type BayCode,
+  type MachineEvent,
+  type MachineState,
+} from "./machine/state";
 
-const STATE_WORD: Record<AttentionItem["kind"], string> = {
-  "node-down": "down",
-  "check-failing": "failing",
-  "abuse-report": "open",
-  "link-expiring": "expiring",
-};
+type Identified = { username?: string; email?: string; role?: string };
+type GatewaySession = { authenticated: boolean; identity?: Identified };
 
-const TOOL_OF: Record<AttentionItem["kind"], string> = {
-  "node-down": "pulse",
-  "check-failing": "pulse",
-  "abuse-report": "pulse",
-  "link-expiring": "link",
-};
+const BAY_CODES: readonly BayCode[] = ["1", "2", "3"];
+const PRESSABLE = new Set([
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "GO",
+  "CLR",
+]);
+const TYPING = "input, textarea, select, button, a, [contenteditable]";
+const FAULT_HOLD_MS = 2000;
 
-interface ToolDef {
-  key: "pass" | "link" | "pulse";
-  label: string;
-  href: string;
-  detail: (overview: Overview) => string;
+let model: MachineModel = toMachineModel({ authenticated: false }, null);
+let state: MachineState = initialState("guest");
+let otpEmail = "";
+let bridging: AbortController | null = null;
+
+const keypad = createKeypad();
+
+const terminal = document.querySelector<HTMLDialogElement>("[data-terminal]");
+const bridge = document.querySelector<HTMLDialogElement>("[data-transfer]");
+const trayAction = document.querySelector<HTMLElement>("[data-tray-action]");
+const emailField = document.querySelector<HTMLInputElement>(
+  "[data-terminal-email]",
+);
+const terminalError = document.querySelector<HTMLElement>(
+  "[data-terminal-error]",
+);
+
+function paint(): void {
+  render(document, state, model);
 }
 
-function passDetail(overview: Overview): string {
-  if (overview.pass === null) return "--";
-  const { devices } = overview.pass;
-  return `${devices} ${plural(devices, "device", "devices")}`;
+function dispatch(event: MachineEvent): MachineState {
+  state = reduce(state, event);
+  paint();
+  return state;
 }
 
-function linkDetail(overview: Overview): string {
-  if (overview.link === null) return "--";
-  const { active, files, reported } = overview.link;
-  return [
-    `${active} ${plural(active, "route", "routes")}`,
-    `${files} ${plural(files, "file", "files")}`,
-    `${reported} reported`,
-  ].join(" · ");
+const host: MachineHost = { read: () => state, dispatch };
+
+function fault(words: string): void {
+  model = { ...model, screen: words };
+  dispatch({ type: "reset" });
 }
 
-function pulseDetail(overview: Overview): string {
-  if (overview.pulse === null) return "--";
-  const { nodes, checksFailing, openIncidents } = overview.pulse;
-  return [
-    `${nodes} ${plural(nodes, "node", "nodes")}`,
-    `${checksFailing} ${plural(checksFailing, "check failing", "checks failing")}`,
-    `${openIncidents} ${plural(openIncidents, "incident", "incidents")}`,
-  ].join(" · ");
+function messageOf(error: unknown): string {
+  return error instanceof Error && error.message.length > 0
+    ? error.message
+    : "The machine could not complete that.";
 }
 
-const TOOLS: ToolDef[] = [
-  { key: "pass", label: "Pass", href: PASS_ORIGIN, detail: passDetail },
-  { key: "link", label: "Link", href: LINK_ORIGIN, detail: linkDetail },
-  { key: "pulse", label: "Pulse", href: PULSE_ORIGIN, detail: pulseDetail },
-];
+function screenWords(message: string): string {
+  return message.replace(/[.]+$/u, "").toUpperCase();
+}
+
+function hold(ms: number): Promise<void> {
+  return new Promise((settled) => setTimeout(settled, ms));
+}
+
+function isBay(value: string | undefined): value is BayCode {
+  return (BAY_CODES as readonly string[]).includes(value ?? "");
+}
+
+function hrefFor(bay: BayCode): string {
+  const cartridge = document.querySelector<HTMLElement>(
+    `[data-cartridge="${bay}"]`,
+  );
+  return cartridge?.dataset.href ?? "/";
+}
+
+function showTerminalError(message: string): void {
+  if (terminalError) terminalError.textContent = message;
+}
 
 const headerTarget = document.querySelector<HTMLElement>("[data-app-header]");
 const headerAccountTemplate = document.querySelector<HTMLTemplateElement>(
@@ -89,10 +134,6 @@ function paintHeader(counts: NavCounts | null): void {
   if (accountNode) headerTarget.append(accountNode);
 }
 
-paintHeader(null);
-mountConsole(document);
-mountTerminal(document);
-
 const account =
   accountNode?.matches("[data-account]") === true
     ? accountNode
@@ -110,7 +151,7 @@ const name =
 const logout =
   accountNode?.querySelector<HTMLButtonElement>("[data-logout]") ?? null;
 
-const closeMenu = () => {
+const closeMenu = (): void => {
   dropdown?.setAttribute("hidden", "");
   trigger?.setAttribute("aria-expanded", "false");
 };
@@ -120,10 +161,10 @@ trigger?.addEventListener("click", (event) => {
   const open = trigger.getAttribute("aria-expanded") === "true";
   if (open) {
     closeMenu();
-  } else {
-    dropdown?.removeAttribute("hidden");
-    trigger.setAttribute("aria-expanded", "true");
+    return;
   }
+  dropdown?.removeAttribute("hidden");
+  trigger.setAttribute("aria-expanded", "true");
 });
 
 dropdown?.addEventListener("click", (event) => event.stopPropagation());
@@ -137,206 +178,281 @@ logout?.addEventListener("click", async () => {
   }
 });
 
-function renderSignedOut(): void {
-  const main = document.querySelector<HTMLElement>("main.kvx-main");
-  if (!main) return;
-  main.replaceChildren();
-  const link = document.createElement("a");
-  link.className = "kvx-button kvx-button-primary";
-  link.href = signIn?.getAttribute("href") ?? "/";
-  link.textContent = "Sign in to Kleavox";
-  main.append(link);
+function paintAccount(session: GatewaySession): void {
+  if (!session.authenticated || !session.identity) {
+    signIn?.removeAttribute("hidden");
+    menu?.setAttribute("hidden", "");
+    account?.classList.remove("is-authenticated");
+    return;
+  }
+  if (name) {
+    name.textContent = displayHandle(
+      session.identity.username,
+      session.identity.email,
+    );
+  }
+  signIn?.setAttribute("hidden", "");
+  menu?.removeAttribute("hidden");
+  account?.classList.add("is-authenticated");
 }
 
-function knownField(
-  value: number | null,
-  singular: string,
-  pluralLabel: string,
-): StatusField {
-  return value === null
-    ? { value: "--", label: pluralLabel }
-    : { value: String(value), label: plural(value, singular, pluralLabel) };
+async function readSession(): Promise<GatewaySession> {
+  const response = await fetch("/api/session", { credentials: "include" });
+  if (!response.ok) return { authenticated: false };
+  return (await response.json()) as GatewaySession;
 }
 
-function homeModel(overview: Overview): StatusLineModel {
-  const waiting = overview.attention.length;
-  const unknown =
-    overview.pass === null || overview.link === null || overview.pulse === null;
-  const lead =
-    waiting > 0
-      ? {
-          value: String(waiting),
-          label: plural(waiting, "needs attention", "need attention"),
-          attention: true,
-        }
-      : unknown
-        ? { value: "status", label: "unknown", attention: true }
-        : { value: "nothing", label: "needs you" };
-  return {
-    tool: "kleavox",
-    fields: [
-      lead,
-      knownField(overview.link?.active ?? null, "route", "routes"),
-      knownField(overview.pulse?.nodes ?? null, "node", "nodes"),
-      knownField(overview.pass?.devices ?? null, "device", "devices"),
-    ],
-  };
+async function readEstate(): Promise<Overview | null> {
+  try {
+    const response = await fetch("/api/estate", { credentials: "include" });
+    if (!response.ok) return null;
+    return (await response.json()) as Overview;
+  } catch {
+    return null;
+  }
 }
 
-function attentionRow(item: AttentionItem): HTMLLIElement {
-  const row = document.createElement("li");
-  const link = document.createElement("a");
-  link.href = item.href;
-
-  const pad = document.createElement("span");
-  pad.className =
-    item.severity === "danger"
-      ? "kvx-pad kvx-pad-danger"
-      : "kvx-pad kvx-pad-warn";
-  pad.setAttribute("aria-hidden", "true");
-
-  const state = document.createElement("span");
-  state.className = "kvx-row-state";
-  state.textContent = STATE_WORD[item.kind];
-
-  const title = document.createElement("span");
-  title.className = "kvx-row-title";
-  title.textContent = item.title;
-  const detail = document.createElement("small");
-  detail.className = "kvx-row-detail";
-  detail.textContent = item.detail;
-  title.append(detail);
-
-  const age = document.createElement("span");
-  age.className = "kvx-row-age";
-  age.textContent = formatAge(item.since, new Date(), item.age);
-
-  const tool = document.createElement("span");
-  tool.className = "kvx-row-tool";
-  tool.textContent = TOOL_OF[item.kind];
-
-  link.append(pad, state, title, age, tool);
-  row.append(link);
-  return row;
+async function dispense(bay: BayCode): Promise<void> {
+  try {
+    await runDispense(dispatch, bay);
+  } catch {
+    fault("RELEASE FAILED, TRY AGAIN");
+  }
 }
 
-function toolRow(tool: ToolDef, overview: Overview): HTMLLIElement {
-  const row = document.createElement("li");
-  const link = document.createElement("a");
-  link.href = tool.href;
-  link.className = "kvx-row-compact";
-
-  const title = document.createElement("span");
-  title.className = "kvx-row-title";
-  title.textContent = tool.label;
-  const detail = document.createElement("small");
-  detail.className = "kvx-row-detail";
-  detail.textContent = tool.detail(overview);
-  title.append(detail);
-
-  link.append(title);
-  row.append(link);
-  return row;
+async function takeDelivery(): Promise<void> {
+  bridging?.abort();
+  const controller = new AbortController();
+  bridging = controller;
+  try {
+    await runScreenTransfer(
+      dispatch,
+      (bay) => window.location.assign(hrefFor(bay)),
+      controller.signal,
+    );
+  } catch {
+    fault("BRIDGE FAILED, TRY AGAIN");
+  } finally {
+    if (bridging === controller) bridging = null;
+  }
+  if (state.screenTransfer === null) {
+    trayAction?.focus({ preventScroll: true });
+  }
 }
 
-function renderTools(overview: Overview): void {
-  const target = document.querySelector<HTMLElement>("[data-tools]");
-  const count = document.querySelector<HTMLElement>("[data-tools-count]");
-  if (!target) return;
-  const counts = navCountsFrom(overview);
-  const rows = TOOLS.filter(
-    (tool) => tool.key !== "pulse" || counts.role === "ADMIN",
-  ).map((tool) => toolRow(tool, overview));
-  target.replaceChildren(...rows);
-  if (count) count.textContent = String(rows.length);
+function cancelBridge(): void {
+  bridging?.abort();
 }
 
-function renderHome(overview: Overview): void {
-  const statusTarget =
-    document.querySelector<HTMLElement>("[data-status-line]");
-  if (statusTarget) renderStatusLine(statusTarget, homeModel(overview));
+function openMethods(): void {
+  if (state.access !== "guest") return;
+  if (state.authStep !== "closed" || state.status === "reading") return;
+  const reading = dispatch({ type: "pass-tap" });
+  if (reading.status === "reading") dispatch({ type: "reader-scanned" });
+}
 
-  const section = document.querySelector<HTMLElement>("[data-attention]");
-  const rows = document.querySelector<HTMLElement>("[data-attention-rows]");
-  const count = document.querySelector<HTMLElement>("[data-attention-count]");
-  if (!section || !rows || !count) return;
+async function tapPass(): Promise<void> {
+  try {
+    await runReaderScan(dispatch);
+  } catch {
+    fault("PASS READER FAULT");
+    return;
+  }
+  if (state.authStep === "methods" && terminal && !terminal.open) {
+    terminal.showModal();
+  }
+}
 
-  if (overview.attention.length === 0) {
-    section.setAttribute("hidden", "");
+async function adoptPass(role: string | undefined): Promise<void> {
+  const session: GatewaySession = { authenticated: true, identity: { role } };
+  const overview = await readEstate();
+  model = toMachineModel(session, overview);
+  paintHeader(overview === null ? null : navCountsFrom(overview));
+  paintAccount(session);
+  const issued = dispatch({ type: "pass-issued", access: model.access });
+  if (issued.status === "dispensing" && issued.selection !== null) {
+    await dispense(issued.selection);
+  }
+}
+
+async function sendCode(): Promise<void> {
+  const email = emailField?.value.trim() ?? "";
+  if (email === "") {
+    showTerminalError("Enter the email address your code should go to.");
+    return;
+  }
+  showTerminalError("");
+  openMethods();
+  try {
+    await startOtp(email);
+  } catch (error) {
+    showTerminalError(messageOf(error));
+    return;
+  }
+  otpEmail = email;
+  const next = dispatch({ type: "otp-sent" });
+  if (next.authStep !== "otp-machine") {
+    showTerminalError("Tap your pass on the machine, then send the code.");
+    return;
+  }
+  keypad.setMode("otp");
+  terminal?.close();
+}
+
+async function submitCode(code: string): Promise<void> {
+  let verified;
+  try {
+    verified = await verifyOtpCode(otpEmail, code);
+  } catch (error) {
+    const attemptsLeft =
+      error instanceof OtpVerifyError ? error.attemptsLeft : undefined;
+    if (attemptsLeft === undefined) {
+      keypad.reset();
+      keypad.setMode("selector");
+      fault(screenWords(messageOf(error)));
+      return;
+    }
+    dispatch({ type: "otp-rejected", attemptsLeft });
+    keypad.reset();
     return;
   }
 
-  count.textContent = String(overview.attention.length);
-  rows.replaceChildren(...overview.attention.map(attentionRow));
-  section.removeAttribute("hidden");
-}
-
-function reportHomeFailure(reason: string): void {
-  const status = document.querySelector<HTMLElement>("[data-home-status]");
-  const section = document.querySelector<HTMLElement>("[data-attention]");
-  section?.setAttribute("hidden", "");
-  if (!status) return;
-  status.className = "kvx-error-state";
-  status.replaceChildren();
-  const message = document.createElement("p");
-  message.textContent = `Kleavox could not read your estate: ${reason}`;
-  const retry = document.createElement("button");
-  retry.type = "button";
-  retry.className = "kvx-button kvx-button-secondary";
-  retry.textContent = "Try again";
-  retry.addEventListener("click", () => {
-    void loadHome();
-  });
-  status.append(message, retry);
-}
-
-async function loadHome(): Promise<void> {
+  keypad.reset();
+  keypad.setMode("selector");
+  dispatch({ type: "verifying" });
   try {
-    const response = await fetch("/api/estate", { credentials: "include" });
-    if (!response.ok) {
-      reportHomeFailure(`the server answered ${response.status}`);
-      return;
-    }
-    const overview = (await response.json()) as Overview;
-    document.querySelector("[data-home-status]")?.replaceChildren();
-    renderHome(overview);
-    renderTools(overview);
-    paintHeader(navCountsFrom(overview));
+    await adoptPass(verified.user.role);
   } catch {
-    reportHomeFailure("the request did not complete");
+    fault("PASS ACCEPTED, MACHINE DID NOT WAKE");
   }
 }
 
-fetch("/api/session", { credentials: "include" })
-  .then((response) =>
-    response.ok ? response.json() : { authenticated: false },
-  )
-  .then(
-    (data: {
-      authenticated: boolean;
-      identity?: { username?: string; email?: string; role?: string };
-    }) => {
-      if (!data.authenticated || !data.identity) {
-        renderSignedOut();
-        return;
-      }
-      if (name) {
-        name.textContent = displayHandle(
-          data.identity.username,
-          data.identity.email,
-        );
-      }
-      signIn?.setAttribute("hidden", "");
-      menu?.removeAttribute("hidden");
-      account?.classList.add("is-authenticated");
-      if (data.identity.role === "ADMIN") {
-        document
-          .querySelectorAll("[data-pulse-only]")
-          .forEach((element) => element.removeAttribute("hidden"));
-      }
-      void loadHome();
-    },
-  )
-  .catch(() => {
-    renderSignedOut();
-  });
+async function startProvider(provider: string): Promise<void> {
+  const wanted = state.authRequest;
+  if (wanted !== null && !rememberRequest(wanted)) {
+    fault("REQUEST NOT SAVED, PICK THE BAY AGAIN");
+    await hold(FAULT_HOLD_MS);
+  } else {
+    dispatch({ type: "oauth-started" });
+  }
+  const url = new URL(`/api/oauth/${provider}`, PASS_ORIGIN);
+  url.searchParams.set("returnTo", window.location.href);
+  window.location.assign(url.toString());
+}
+
+async function pressKey(key: string): Promise<void> {
+  const otp = state.authStep === "otp-machine";
+  keypad.setMode(otp ? "otp" : "selector");
+  const result = keypad.press(key);
+  if (otp) dispatch({ type: "otp-digits", digits: keypad.digits() });
+
+  if (result.kind === "selected") {
+    dispatch({ type: "preselect", bay: result.bay });
+    return;
+  }
+  if (result.kind === "confirm") {
+    await dispense(result.bay);
+    return;
+  }
+  if (result.kind === "code-complete") {
+    await submitCode(result.code);
+    return;
+  }
+  if (result.kind === "cancelled") {
+    dispatch({ type: "cancel" });
+  }
+}
+
+paintHeader(null);
+mountConsole(document, host);
+mountTerminal(document);
+
+for (const cartridge of document.querySelectorAll<HTMLButtonElement>(
+  "[data-cartridge]",
+)) {
+  const bay = cartridge.dataset.cartridge;
+  if (!isBay(bay)) continue;
+  cartridge.addEventListener("click", () => void dispense(bay));
+}
+
+for (const key of document.querySelectorAll<HTMLButtonElement>("[data-key]")) {
+  const label = key.dataset.key;
+  if (label === undefined) continue;
+  key.addEventListener("click", () => void pressKey(label));
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.defaultPrevented) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.target instanceof Element && event.target.closest(TYPING)) return;
+  const pressed =
+    event.key === "Enter"
+      ? "GO"
+      : event.key === "Backspace"
+        ? "CLR"
+        : event.key;
+  if (!PRESSABLE.has(pressed)) return;
+  event.preventDefault();
+  void pressKey(pressed);
+});
+
+document
+  .querySelector<HTMLButtonElement>("[data-reader]")
+  ?.addEventListener("click", () => void tapPass());
+
+trayAction?.addEventListener("click", () => void takeDelivery());
+
+document
+  .querySelector<HTMLButtonElement>("[data-transfer-cancel]")
+  ?.addEventListener("click", cancelBridge);
+
+bridge?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  cancelBridge();
+});
+
+for (const opener of document.querySelectorAll<HTMLButtonElement>(
+  "[data-terminal-open]",
+)) {
+  opener.addEventListener("click", openMethods);
+}
+
+document
+  .querySelector<HTMLButtonElement>("[data-terminal-send]")
+  ?.addEventListener("click", () => void sendCode());
+
+for (const provider of document.querySelectorAll<HTMLButtonElement>(
+  "[data-terminal-provider]",
+)) {
+  const which = provider.dataset.terminalProvider;
+  if (which === undefined) continue;
+  provider.addEventListener("click", () => void startProvider(which));
+}
+
+async function boot(): Promise<void> {
+  let session: GatewaySession = { authenticated: false };
+  let unread = false;
+  try {
+    session = await readSession();
+  } catch {
+    unread = true;
+  }
+
+  const overview = session.authenticated ? await readEstate() : null;
+  model = toMachineModel(session, overview);
+  if (unread) model = { ...model, screen: "SESSION UNREADABLE" };
+  paintHeader(overview === null ? null : navCountsFrom(overview));
+  paintAccount(session);
+
+  const remembered = takeRememberedRequest();
+  if (model.access === "guest") {
+    paint();
+    return;
+  }
+
+  dispatch({ type: "pass-issued", access: model.access });
+  dispatch({ type: "reset" });
+  if (remembered !== null) await dispense(remembered);
+}
+
+boot().catch(() => fault("MACHINE DID NOT START"));

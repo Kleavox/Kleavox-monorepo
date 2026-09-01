@@ -120,4 +120,46 @@ describe("verifyOtpCode", () => {
     expect(rejection).toBeInstanceOf(OtpVerifyError);
     expect((rejection as OtpVerifyError).attemptsLeft).toBeUndefined();
   });
+
+  it.each([
+    ["null", "null"],
+    ["a fraction", "2.5"],
+    ["a negative count", "-1"],
+  ])(
+    "refuses to put %s on the machine screen as an attempt count",
+    async (_label, attemptsLeft) => {
+      vi.stubGlobal(
+        "fetch",
+        async () =>
+          new Response(
+            `{"code":"invalid_code","message":"That code is incorrect.","attemptsLeft":${attemptsLeft}}`,
+            { status: 401 },
+          ),
+      );
+      const rejection = await verifyOtpCode("a@example.com", "000000").catch(
+        (error: unknown) => error,
+      );
+      expect(rejection).toBeInstanceOf(OtpVerifyError);
+      expect((rejection as OtpVerifyError).attemptsLeft).toBeUndefined();
+    },
+  );
+
+  it("still trusts a real remaining count of zero", async () => {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response(
+          JSON.stringify({
+            code: "invalid_code",
+            message: "That code is incorrect.",
+            attemptsLeft: 0,
+          }),
+          { status: 401 },
+        ),
+    );
+    const rejection = await verifyOtpCode("a@example.com", "000000").catch(
+      (error: unknown) => error,
+    );
+    expect((rejection as OtpVerifyError).attemptsLeft).toBe(0);
+  });
 });

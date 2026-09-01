@@ -19,7 +19,9 @@ function readAttemptsLeft(
   details: Record<string, unknown> | undefined,
 ): number | undefined {
   const value = details?.attemptsLeft;
-  return typeof value === "number" ? value : undefined;
+  if (typeof value !== "number") return undefined;
+  if (!Number.isInteger(value) || value < 0) return undefined;
+  return value;
 }
 
 export async function startOtp(email: string): Promise<void> {

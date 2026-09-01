@@ -1,29 +1,13 @@
-import { toMachineModel } from "../estate-adapter";
-import { render } from "./render";
-import { initialState, reduce } from "./state";
 import type { MachineEvent, MachineState } from "./state";
 
 const SHEET_QUERY = "(max-width: 760px)";
 
-type MachineHost = {
+export type MachineHost = {
   read: () => MachineState;
   dispatch: (event: MachineEvent) => MachineState;
 };
 
-function guestHost(root: ParentNode): MachineHost {
-  const model = toMachineModel({ authenticated: false }, null);
-  let current = initialState("guest");
-  return {
-    read: () => current,
-    dispatch: (event) => {
-      current = reduce(current, event);
-      render(root, current, model);
-      return current;
-    },
-  };
-}
-
-export function mountConsole(root: ParentNode, host?: MachineHost): void {
+export function mountConsole(root: ParentNode, machine: MachineHost): void {
   const panel = root.querySelector<HTMLElement>("[data-console]");
   const dock = root.querySelector<HTMLButtonElement>("[data-dock]");
   if (!panel || !dock) return;
@@ -33,7 +17,6 @@ export function mountConsole(root: ParentNode, host?: MachineHost): void {
   const reader = root.querySelector<HTMLElement>("[data-reader]");
   const terminal = root.querySelector<HTMLDialogElement>("[data-terminal]");
   const sheet = window.matchMedia(SHEET_QUERY);
-  const machine = host ?? guestHost(root);
 
   const setOpen = (open: boolean): void => {
     const next = machine.dispatch({ type: "console", open });

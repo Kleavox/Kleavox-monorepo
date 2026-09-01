@@ -1,8 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "./render";
 import { initialState, reduce } from "./state";
 import type { MachineState } from "./state";
 import type { MachineModel } from "../estate-adapter";
+
+if (typeof HTMLDialogElement.prototype.showModal !== "function") {
+  HTMLDialogElement.prototype.showModal = function showModal(
+    this: HTMLDialogElement,
+  ): void {
+    if (this.open)
+      throw new Error("showModal on a dialog that is already open");
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.show = function show(
+    this: HTMLDialogElement,
+  ): void {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close(
+    this: HTMLDialogElement,
+  ): void {
+    this.removeAttribute("open");
+  };
+}
 
 function root(): HTMLElement {
   const element = document.createElement("div");
@@ -31,10 +51,18 @@ function root(): HTMLElement {
         <span data-terminal-state></span>
       </aside>
     </div>
-    <section data-transfer="none"><strong data-transfer-name></strong></section>
+    <dialog data-transfer="none"><strong data-transfer-name></strong><button data-transfer-cancel></button></dialog>
     <dialog data-terminal><dd data-terminal-access></dd></dialog>`;
+  document.body.append(element);
   return element;
 }
+
+afterEach(() => {
+  for (const open of document.querySelectorAll("dialog[open]")) {
+    (open as HTMLDialogElement).close();
+  }
+  document.body.replaceChildren();
+});
 
 const model: MachineModel = {
   access: "guest",
@@ -256,6 +284,63 @@ describe("render", () => {
     const once = first.innerHTML;
     render(first, state, ownerModel);
     expect(first.innerHTML).toBe(once);
+  });
+});
+
+describe("render owns the bridge", () => {
+  function delivered(): MachineState {
+    return reduce(reduce(initialState("owner"), { type: "select", bay: "1" }), {
+      type: "tray-ready",
+    });
+  }
+
+  it("opens the bridge with showModal, never as an ordinary panel", () => {
+    const element = root();
+    const bridge = element.querySelector<HTMLDialogElement>("[data-transfer]")!;
+    const modal = vi.spyOn(bridge, "showModal");
+    const plain = vi.spyOn(bridge, "show");
+
+    const resting = delivered();
+    render(element, resting, ownerModel);
+    expect(bridge.open).toBe(false);
+    expect(modal).not.toHaveBeenCalled();
+
+    render(element, reduce(resting, { type: "activate-tray" }), ownerModel);
+    expect(bridge.open).toBe(true);
+    expect(modal).toHaveBeenCalledTimes(1);
+    expect(plain).not.toHaveBeenCalled();
+  });
+
+  it("closes the bridge when the transfer is cancelled", () => {
+    const element = root();
+    const bridge = element.querySelector<HTMLDialogElement>("[data-transfer]")!;
+    const bridging = reduce(delivered(), { type: "activate-tray" });
+    render(element, bridging, ownerModel);
+    expect(bridge.open).toBe(true);
+
+    render(element, reduce(bridging, { type: "cancel" }), ownerModel);
+    expect(bridge.open).toBe(false);
+    expect(bridge.getAttribute("data-transfer")).toBe("none");
+  });
+
+  it("does not open a bridge that is already open", () => {
+    const element = root();
+    const bridge = element.querySelector<HTMLDialogElement>("[data-transfer]")!;
+    const modal = vi.spyOn(bridge, "showModal");
+    const bridging = reduce(delivered(), { type: "activate-tray" });
+    render(element, bridging, ownerModel);
+    render(element, bridging, ownerModel);
+    expect(modal).toHaveBeenCalledTimes(1);
+    expect(bridge.open).toBe(true);
+  });
+
+  it("does not close a bridge that was never open", () => {
+    const element = root();
+    const bridge = element.querySelector<HTMLDialogElement>("[data-transfer]")!;
+    const closed = vi.spyOn(bridge, "close");
+    render(element, initialState("guest"), model);
+    render(element, initialState("guest"), model);
+    expect(closed).not.toHaveBeenCalled();
   });
 });
 

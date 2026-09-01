@@ -204,6 +204,11 @@ export function render(
   const transfer = root.querySelector<HTMLElement>("[data-transfer]");
   if (transfer !== null) {
     transfer.dataset.transfer = state.screenTransfer ?? "none";
+    if (transfer instanceof HTMLDialogElement) {
+      const bridging = state.screenTransfer !== null;
+      if (bridging && !transfer.open) transfer.showModal();
+      if (!bridging && transfer.open) transfer.close();
+    }
   }
   write(
     root,
