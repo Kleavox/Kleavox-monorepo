@@ -29,6 +29,7 @@ export {
   navCountsFrom,
   readCache,
   writeCache,
+  UNREADABLE_COUNTS,
   type AttentionAge,
   type AttentionItem,
   type AttentionKind,

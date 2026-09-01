@@ -834,6 +834,7 @@ test("otp: an unknown email becomes an account that still needs setup", async ()
     needsSetup: true,
   });
 
+  passSql(`DELETE FROM users WHERE email = '${email}'`);
   await fresh.close();
 });
 
@@ -1033,10 +1034,23 @@ test("the machine says a failed estate call out loud instead of an all-clear", a
     muted: false,
   });
 
+  const navCounts = page.locator(".kvx-nav-count");
+  await expect(navCounts).toHaveCount(3);
   await expect(
-    page.locator(".kvx-nav-count"),
-    "a header that cannot read the estate must not print a count it does not have",
-  ).toHaveCount(0);
+    navCounts,
+    "an unmeasured count is written --, never nothing",
+  ).toHaveText(["--", "--", "--"]);
+  for (const index of [0, 1, 2]) {
+    await expect(navCounts.nth(index)).toBeVisible();
+  }
+  expect(
+    await navCounts.allTextContents(),
+    "an unmeasured count is written --, never 0",
+  ).not.toContain("0");
+  await expect(
+    page.locator(".kvx-nav-tool .kvx-pad-warn"),
+    "a tool whose count could not be read carries the alarm, not silence",
+  ).toHaveCount(3);
 
   await page.unroute("**/api/estate");
   expectFailure = false;

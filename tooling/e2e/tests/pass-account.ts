@@ -59,6 +59,7 @@ export function clearRateLimits(): void {
 export async function freshAccount(
   target: Page,
   label: string,
+  role: "USER" | "ADMIN" = "USER",
 ): Promise<PassAccount> {
   clearRateLimits();
   const stamp = Date.now().toString().slice(-6);
@@ -79,7 +80,8 @@ export async function freshAccount(
     timeout: 20000,
   });
   passSql(
-    `UPDATE users SET email_verified_at = datetime('now') WHERE email = '${account.email}'`,
+    `UPDATE users SET email_verified_at = datetime('now'), role = '${role}' ` +
+      `WHERE email = '${account.email}'`,
   );
   return account;
 }
@@ -103,8 +105,7 @@ export async function signedInAs(
   label: string,
   role: "USER" | "ADMIN",
 ): Promise<PassAccount> {
-  const account = await freshAccount(target, label);
-  passSql(`UPDATE users SET role = '${role}' WHERE email = '${account.email}'`);
+  const account = await freshAccount(target, label, role);
   await signIn(target, account);
   return account;
 }

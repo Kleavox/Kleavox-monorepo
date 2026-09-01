@@ -12,7 +12,6 @@ export type MachineModel = {
   access: AccessRole;
   items: { code: BayCode; lit: boolean }[];
   screen: string;
-  indicators: NavCounts["indicators"];
 };
 
 const CATALOG: BayCode[] = ["1", "2", "3"];
@@ -29,21 +28,6 @@ function accessFor(session: Session): AccessRole {
 
 function itemsFor(access: AccessRole): { code: BayCode; lit: boolean }[] {
   return CATALOG.map((code) => ({ code, lit: permits(access, code) }));
-}
-
-function indicatorsFor(
-  access: AccessRole,
-  counts: NavCounts | null,
-): NavCounts["indicators"] {
-  if (counts !== null) return counts.indicators;
-  if (access === "guest") {
-    return { pass: "locked", link: "locked", pulse: "locked" };
-  }
-  return {
-    pass: "unknown",
-    link: "unknown",
-    pulse: access === "owner" ? "unknown" : "locked",
-  };
 }
 
 function estateFullyRead(indicators: NavCounts["indicators"]): boolean {
@@ -75,6 +59,5 @@ export function toMachineModel(
     access,
     items: itemsFor(access),
     screen: screenFor(access, overview, counts),
-    indicators: indicatorsFor(access, counts),
   };
 }

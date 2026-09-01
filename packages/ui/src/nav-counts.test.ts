@@ -5,8 +5,10 @@ import {
   navCountsFrom,
   readCache,
   writeCache,
+  UNREADABLE_COUNTS,
 } from "./nav-counts";
 import type { Overview } from "./nav-counts";
+import { displayFor, nameFor, padClass, severityFor } from "./indicator-view";
 
 const overview: Overview = {
   role: "ADMIN",
@@ -193,28 +195,94 @@ describe("loadNavCounts", () => {
     vi.unstubAllGlobals();
   });
 
-  it("resolves to null rather than throwing when a 200 body is missing pulse", async () => {
+  const noCache = (): void => {
     vi.stubGlobal("sessionStorage", {
       getItem: () => null,
       setItem: () => {},
       removeItem: () => {},
     });
+  };
+
+  const answers = (body: unknown, status = 200): void => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              role: "ADMIN",
-              attention: [],
-              pass: { devices: 1 },
-              link: { active: 1, files: 0, reported: 0, expiringSoon: 0 },
-            }),
-            { status: 200 },
-          ),
-      ),
+      vi.fn(async () => new Response(JSON.stringify(body), { status })),
     );
-    await expect(loadNavCounts()).resolves.toBeNull();
+  };
+
+  it("reports an unreadable estate rather than throwing when a 200 body is missing pulse", async () => {
+    noCache();
+    answers({
+      role: "ADMIN",
+      attention: [],
+      pass: { devices: 1 },
+      link: { active: 1, files: 0, reported: 0, expiringSoon: 0 },
+    });
+    await expect(loadNavCounts()).resolves.toEqual(UNREADABLE_COUNTS);
+  });
+
+  it("reports an unreadable estate when the call fails outright", async () => {
+    noCache();
+    answers({ code: "UNAUTHENTICATED" }, 500);
+    await expect(loadNavCounts()).resolves.toEqual(UNREADABLE_COUNTS);
+  });
+
+  it("reports an unreadable estate when the network refuses the call", async () => {
+    noCache();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("offline");
+      }),
+    );
+    await expect(loadNavCounts()).resolves.toEqual(UNREADABLE_COUNTS);
+  });
+
+  it("never resolves to the not-loaded state, which a header draws as silence", async () => {
+    noCache();
+    answers({ code: "UNAUTHENTICATED" }, 500);
+    await expect(loadNavCounts()).resolves.not.toBeNull();
+  });
+});
+
+describe("a header that cannot read the estate", () => {
+  const TOOLS = ["pass", "link", "pulse"] as const;
+
+  it("draws every tool differently from a header that has not loaded yet", () => {
+    for (const tool of TOOLS) {
+      const unreadable = UNREADABLE_COUNTS.indicators[tool];
+      const notLoaded = undefined;
+
+      expect(displayFor(unreadable)).toBe("--");
+      expect(displayFor(notLoaded)).toBeNull();
+      expect(displayFor(unreadable)).not.toBe(displayFor(notLoaded));
+
+      expect(severityFor(unreadable)).toBe("warn");
+      expect(padClass(severityFor(unreadable))).toContain("kvx-pad-warn");
+      expect(padClass(severityFor(notLoaded))).toBe("");
+
+      expect(nameFor(tool, "items", unreadable)).toBe(`${tool}, unknown`);
+      expect(nameFor(tool, "items", unreadable)).not.toBe(
+        nameFor(tool, "items", notLoaded),
+      );
+    }
+  });
+
+  it("never prints a count it did not measure", () => {
+    for (const tool of TOOLS) {
+      const printed = displayFor(UNREADABLE_COUNTS.indicators[tool]);
+      expect(printed).not.toBe("0");
+      expect(printed).not.toBeNull();
+    }
+  });
+
+  it("alarms on every tool, because a total failure hides which are locked", () => {
+    expect(Object.values(UNREADABLE_COUNTS.indicators)).toEqual([
+      "unknown",
+      "unknown",
+      "unknown",
+    ]);
+    expect(UNREADABLE_COUNTS.role).toBeNull();
   });
 });
 

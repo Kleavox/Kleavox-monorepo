@@ -358,7 +358,7 @@ test("the keypad says which mode it is in, not only what colour", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await openBooted(page);
   await page.locator("[data-dock]").click();
   const legend = page.locator(".keypad-mode");
   const selector = page.locator("[data-keypad-mode='selector']");
@@ -588,7 +588,7 @@ test("the pass card is off the machine until the reader is reading", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await openBooted(page);
   const card = page.locator(".pass-card");
   await expect(card).toBeHidden();
 
@@ -622,7 +622,7 @@ test("the pass card is off the machine until the reader is reading", async ({
 test("the bridge stays out of the way until a cartridge is taken", async ({
   page,
 }) => {
-  await page.goto("/");
+  await openBooted(page);
   const cancel = page.locator("[data-transfer-cancel]");
   await expect(page.locator("[data-transfer]")).toBeHidden();
   await expect(cancel).toBeHidden();
@@ -668,7 +668,7 @@ async function openTheBridge(
     reduced ? { reducedMotion: "reduce" } : {},
   );
   const page = await context.newPage();
-  await page.goto("/");
+  await openBooted(page);
   const seen = await page.evaluate(async () => {
     const overlay = document.querySelector<HTMLElement>("[data-transfer]")!;
     overlay.dataset.transfer = "1";
@@ -798,7 +798,7 @@ test("every route the machine offers is reachable from here", async ({
 test("the returning pass card never widens the page", async ({ page }) => {
   for (const width of [761, 800, 900, 1000, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
+    await openBooted(page);
     const measured = await page.evaluate(() => {
       document.querySelector<HTMLElement>("[data-machine]")!.dataset.status =
         "reading";

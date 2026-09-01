@@ -6,6 +6,7 @@ import {
   navCountsFrom,
   renderAppHeader,
   PASS_ORIGIN,
+  UNREADABLE_COUNTS,
   type NavCounts,
   type Overview,
 } from "@kleavox/ui";
@@ -134,6 +135,14 @@ function paintHeader(counts: NavCounts | null): void {
   if (!headerTarget) return;
   renderAppHeader(headerTarget, { counts });
   if (accountNode) headerTarget.append(accountNode);
+}
+
+function headerCounts(
+  session: GatewaySession,
+  overview: Overview | null,
+): NavCounts | null {
+  if (!session.authenticated) return null;
+  return overview === null ? UNREADABLE_COUNTS : navCountsFrom(overview);
 }
 
 const account =
@@ -276,7 +285,7 @@ async function adoptPass(role: string | undefined): Promise<void> {
   const session: GatewaySession = { authenticated: true, identity: { role } };
   const overview = await readEstate();
   model = toMachineModel(session, overview);
-  paintHeader(overview === null ? null : navCountsFrom(overview));
+  paintHeader(headerCounts(session, overview));
   paintAccount(session);
   const issued = dispatch({ type: "pass-issued", access: model.access });
   if (issued.status === "dispensing" && issued.selection !== null) {
@@ -471,7 +480,7 @@ async function boot(): Promise<void> {
   const overview = session.authenticated ? await readEstate() : null;
   model = toMachineModel(session, overview);
   if (unread) model = { ...model, screen: "SESSION UNREADABLE" };
-  paintHeader(overview === null ? null : navCountsFrom(overview));
+  paintHeader(headerCounts(session, overview));
   paintAccount(session);
 
   const remembered = takeRememberedRequest();

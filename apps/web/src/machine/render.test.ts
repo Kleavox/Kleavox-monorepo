@@ -72,7 +72,6 @@ const model: MachineModel = {
     { code: "3", lit: true },
   ],
   screen: "INSERT PASS",
-  indicators: { pass: "locked", link: "locked", pulse: "locked" },
 };
 
 const ownerModel: MachineModel = {
@@ -83,11 +82,6 @@ const ownerModel: MachineModel = {
     { code: "3", lit: true },
   ],
   screen: "2 NEED ATTENTION",
-  indicators: {
-    pass: { count: 3, severity: null },
-    link: { count: 4, severity: null },
-    pulse: { count: 1, severity: "warn" },
-  },
 };
 
 function attr(element: HTMLElement, selector: string, name: string): string {

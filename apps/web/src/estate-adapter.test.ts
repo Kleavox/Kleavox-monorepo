@@ -53,7 +53,7 @@ describe("machine model", () => {
     expect(model.screen).toBe("ESTATE UNREADABLE");
   });
 
-  it("never reports zero for a block it could not read", () => {
+  it("does not call an estate of all-silent blocks a readable one", () => {
     const model = toMachineModel(
       { authenticated: true, identity: { role: "ADMIN" } },
       {
@@ -64,8 +64,7 @@ describe("machine model", () => {
         attention: [],
       } as never,
     );
-    expect(model.indicators.pulse).toBe("unknown");
-    expect(JSON.stringify(model.indicators)).not.toContain('"count":0');
+    expect(model.screen).toBe("ESTATE UNREADABLE");
   });
 });
 
@@ -119,81 +118,6 @@ describe("a partially unreadable estate is never mistaken for a quiet one", () =
       } as never,
     );
     expect(model.screen).toBe("NOTHING NEEDS YOU");
-  });
-});
-
-describe("a session with no overview at all still tells the truth about pulse", () => {
-  it("keeps pulse locked, not unknown, for a visitor whose estate could not be read", () => {
-    const model = toMachineModel(
-      { authenticated: true, identity: { role: "USER" } },
-      null,
-    );
-    expect(model.indicators.pulse).toBe("locked");
-    expect(model.indicators.pass).toBe("unknown");
-    expect(model.indicators.link).toBe("unknown");
-  });
-
-  it("marks every indicator unknown for an owner whose estate could not be read", () => {
-    const model = toMachineModel(
-      { authenticated: true, identity: { role: "ADMIN" } },
-      null,
-    );
-    expect(model.indicators.pass).toBe("unknown");
-    expect(model.indicators.link).toBe("unknown");
-    expect(model.indicators.pulse).toBe("unknown");
-  });
-
-  it("locks every indicator for a guest, since that is a calm refusal, not an alarm", () => {
-    const model = toMachineModel({ authenticated: false }, null);
-    expect(model.indicators.pass).toBe("locked");
-    expect(model.indicators.link).toBe("locked");
-    expect(model.indicators.pulse).toBe("locked");
-  });
-});
-
-describe("the known indicator state carries the real numbers, not just presence", () => {
-  it("returns the exact count and severity for blocks that are actually there", () => {
-    const model = toMachineModel(
-      { authenticated: true, identity: { role: "ADMIN" } },
-      {
-        role: "ADMIN",
-        pass: { devices: 4 },
-        link: { active: 9, files: 2, reported: 0, expiringSoon: 3 },
-        pulse: {
-          nodes: 5,
-          down: 1,
-          checksFailing: 0,
-          openIncidents: 0,
-          openReports: 0,
-        },
-        attention: [],
-      } as never,
-    );
-    expect(model.indicators.pass).toEqual({ count: 4, severity: null });
-    expect(model.indicators.link).toEqual({ count: 9, severity: "warn" });
-    expect(model.indicators.pulse).toEqual({ count: 5, severity: "danger" });
-  });
-
-  it("leaves a locked block locked even when its sibling blocks carry real numbers", () => {
-    const model = toMachineModel(
-      { authenticated: true, identity: { role: "USER" } },
-      {
-        role: "USER",
-        pass: { devices: 2 },
-        link: { active: 7, files: 0, reported: 0, expiringSoon: 0 },
-        pulse: {
-          nodes: 3,
-          down: 0,
-          checksFailing: 0,
-          openIncidents: 0,
-          openReports: 0,
-        },
-        attention: [],
-      } as never,
-    );
-    expect(model.indicators.pass).toEqual({ count: 2, severity: null });
-    expect(model.indicators.link).toEqual({ count: 7, severity: null });
-    expect(model.indicators.pulse).toBe("locked");
   });
 });
 

@@ -38,13 +38,18 @@ export type Indicator =
   "locked" | "unknown" | { count: number; severity: Severity | null };
 
 export interface NavCounts {
-  role: "ADMIN" | "USER";
+  role: "ADMIN" | "USER" | null;
   indicators: {
     pass: Indicator;
     link: Indicator;
     pulse: Indicator;
   };
 }
+
+export const UNREADABLE_COUNTS: NavCounts = {
+  role: null,
+  indicators: { pass: "unknown", link: "unknown", pulse: "unknown" },
+};
 
 const CACHE_KEY = "kvx:overview";
 const CACHE_MS = 60_000;
@@ -156,7 +161,7 @@ export async function loadOverview(): Promise<Overview | null> {
   }
 }
 
-export async function loadNavCounts(): Promise<NavCounts | null> {
+export async function loadNavCounts(): Promise<NavCounts> {
   const overview = await loadOverview();
-  return overview ? navCountsFrom(overview) : null;
+  return overview ? navCountsFrom(overview) : UNREADABLE_COUNTS;
 }
