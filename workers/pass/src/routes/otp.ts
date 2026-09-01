@@ -70,10 +70,12 @@ export function registerOtpRoutes(app: PassApp): void {
       body.data.email,
       body.data.code,
     );
-    if (result === "wrong") {
-      return apiError(context, 401, "invalid_code", "That code is incorrect.");
+    if (result.status === "wrong") {
+      return apiError(context, 401, "invalid_code", "That code is incorrect.", {
+        attemptsLeft: result.attemptsLeft,
+      });
     }
-    if (result === "expired") {
+    if (result.status === "expired") {
       return apiError(
         context,
         401,
@@ -81,7 +83,7 @@ export function registerOtpRoutes(app: PassApp): void {
         "That code has expired. Request a new one.",
       );
     }
-    if (result === "exhausted") {
+    if (result.status === "exhausted") {
       return apiError(
         context,
         401,

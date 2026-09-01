@@ -1,11 +1,18 @@
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
+  readonly details?: Record<string, unknown>;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    details?: Record<string, unknown>,
+  ) {
     super(message);
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -13,7 +20,10 @@ export async function readApiResponse<T = unknown>(
   response: Response,
 ): Promise<T> {
   if (response.status === 204) return undefined as T;
-  const payload = (await response.json().catch(() => ({}))) as {
+  const payload = (await response.json().catch(() => ({}))) as Record<
+    string,
+    unknown
+  > & {
     code?: string;
     message?: string;
   };
@@ -22,6 +32,7 @@ export async function readApiResponse<T = unknown>(
       payload.message || "The request could not be completed.",
       response.status,
       payload.code,
+      payload,
     );
   }
   return payload as T;

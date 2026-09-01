@@ -372,6 +372,47 @@ describe("POST /api/auth/otp/verify", () => {
       (env.DB as unknown as { prepare: ReturnType<typeof vi.fn> }).prepare,
     ).not.toHaveBeenCalled();
     expect(body).not.toEqual(expiredBody);
+    expect(body).toMatchObject({ code: "invalid_code", attemptsLeft: 4 });
+    expect(expiredBody).not.toHaveProperty("attemptsLeft");
+  });
+
+  it("counts down the attempts left in the body, then stops sending a count once they run out", async () => {
+    const store = kvStore();
+    const email = "counting@example.com";
+    const env = {
+      ...baseEnv,
+      SESSIONS: store,
+      DB: { prepare: vi.fn() },
+    } as unknown as Env;
+    const issued = await issueOtp(env, email);
+    const wrongCode = issued === "111111" ? "222222" : "111111";
+
+    const bodies: Array<{ code: string; attemptsLeft?: number }> = [];
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await app.request(
+        "https://pass.product.test/api/auth/otp/verify",
+        otpVerifyInit(email, wrongCode),
+        env,
+      );
+      bodies.push(
+        (await response.json()) as { code: string; attemptsLeft?: number },
+      );
+    }
+
+    expect(bodies.map((body) => body.attemptsLeft)).toEqual([
+      4,
+      3,
+      2,
+      1,
+      undefined,
+    ]);
+    expect(bodies.map((body) => body.code)).toEqual([
+      "invalid_code",
+      "invalid_code",
+      "invalid_code",
+      "invalid_code",
+      "too_many_attempts",
+    ]);
   });
 
   it("signs in a known, verified user and reports no setup is needed", async () => {

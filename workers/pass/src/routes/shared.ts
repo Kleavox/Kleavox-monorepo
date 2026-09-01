@@ -86,8 +86,9 @@ export function apiError(
   status: 400 | 401 | 403 | 404 | 409 | 415 | 429 | 500 | 502 | 503,
   code: string,
   message: string,
+  extra?: Record<string, unknown>,
 ) {
-  return context.json({ code, message }, status);
+  return context.json({ code, message, ...extra }, status);
 }
 
 export function clientIp(request: Request): string {

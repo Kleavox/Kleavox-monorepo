@@ -24,33 +24,60 @@ describe("otp", () => {
   it("accepts the code it issued", async () => {
     const { env } = fakeEnv();
     const code = await issueOtp(env, "a@example.com");
-    expect(await verifyOtp(env, "a@example.com", code)).toBe("ok");
+    expect(await verifyOtp(env, "a@example.com", code)).toEqual({
+      status: "ok",
+    });
   });
 
   it("ignores case and padding in the email", async () => {
     const { env } = fakeEnv();
     const code = await issueOtp(env, "a@example.com");
-    expect(await verifyOtp(env, "  A@Example.com ", code)).toBe("ok");
+    expect(await verifyOtp(env, "  A@Example.com ", code)).toEqual({
+      status: "ok",
+    });
   });
 
-  it("rejects a wrong code and consumes an attempt", async () => {
+  it("rejects a wrong code, consumes an attempt, and reports the four left", async () => {
     const { env } = fakeEnv();
     await issueOtp(env, "a@example.com");
-    expect(await verifyOtp(env, "a@example.com", "000000")).toBe("wrong");
+    expect(await verifyOtp(env, "a@example.com", "000000")).toEqual({
+      status: "wrong",
+      attemptsLeft: 4,
+    });
   });
 
-  it("stops after five wrong attempts", async () => {
+  it("stops after five wrong attempts, counting the real number down each time", async () => {
     const { env } = fakeEnv();
     await issueOtp(env, "a@example.com");
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      expect(await verifyOtp(env, "a@example.com", "000000")).toBe("wrong");
+    for (const attemptsLeft of [4, 3, 2, 1]) {
+      expect(await verifyOtp(env, "a@example.com", "000000")).toEqual({
+        status: "wrong",
+        attemptsLeft,
+      });
     }
-    expect(await verifyOtp(env, "a@example.com", "000000")).toBe("exhausted");
+    expect(await verifyOtp(env, "a@example.com", "000000")).toEqual({
+      status: "exhausted",
+    });
   });
 
   it("reports expired when no code was issued", async () => {
     const { env } = fakeEnv();
-    expect(await verifyOtp(env, "a@example.com", "123456")).toBe("expired");
+    expect(await verifyOtp(env, "a@example.com", "123456")).toEqual({
+      status: "expired",
+    });
+  });
+
+  it("never invents an attempt count for an expired or exhausted result", async () => {
+    const { env } = fakeEnv();
+    const expired = await verifyOtp(env, "a@example.com", "123456");
+    expect(expired).not.toHaveProperty("attemptsLeft");
+
+    await issueOtp(env, "b@example.com");
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await verifyOtp(env, "b@example.com", "000000");
+    }
+    const exhausted = await verifyOtp(env, "b@example.com", "000000");
+    expect(exhausted).toEqual({ status: "exhausted" });
   });
 
   it("does not store the code in readable form", async () => {
@@ -69,6 +96,8 @@ describe("otp", () => {
     const { env } = fakeEnv();
     const code = await issueOtp(env, "a@example.com");
     await verifyOtp(env, "a@example.com", code);
-    expect(await verifyOtp(env, "a@example.com", code)).toBe("expired");
+    expect(await verifyOtp(env, "a@example.com", code)).toEqual({
+      status: "expired",
+    });
   });
 });

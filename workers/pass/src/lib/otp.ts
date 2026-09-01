@@ -23,26 +23,34 @@ export async function issueOtp(env: Env, email: string): Promise<string> {
   return code;
 }
 
+export interface OtpVerification {
+  status: "ok" | "wrong" | "expired" | "exhausted";
+  attemptsLeft?: number;
+}
+
 export async function verifyOtp(
   env: Env,
   email: string,
   code: string,
-): Promise<"ok" | "wrong" | "expired" | "exhausted"> {
+): Promise<OtpVerification> {
   const key = await keyFor(email);
   const raw = await env.SESSIONS.get(key);
-  if (!raw) return "expired";
+  if (!raw) return { status: "expired" };
 
   const record = JSON.parse(raw) as OtpRecord;
-  if (record.attempts >= MAX_ATTEMPTS) return "exhausted";
+  if (record.attempts >= MAX_ATTEMPTS) return { status: "exhausted" };
 
   if ((await hashToken(code)) === record.codeHash) {
     await env.SESSIONS.delete(key);
-    return "ok";
+    return { status: "ok" };
   }
 
   const next: OtpRecord = { ...record, attempts: record.attempts + 1 };
   await env.SESSIONS.put(key, JSON.stringify(next), {
     expirationTtl: TTL_SECONDS,
   });
-  return next.attempts >= MAX_ATTEMPTS ? "exhausted" : "wrong";
+  const attemptsLeft = MAX_ATTEMPTS - next.attempts;
+  return attemptsLeft <= 0
+    ? { status: "exhausted" }
+    : { status: "wrong", attemptsLeft };
 }
