@@ -302,16 +302,25 @@ describe("the console is machine state, not a private boolean", () => {
   });
 
   it("does not slam the console shut when the pass is removed", () => {
-    const owner = reduce(
-      reduce(initialState("owner"), {
-        type: "console-layout",
-        layout: "column",
-      }),
-      { type: "console", open: true },
-    );
-    const out = reduce(owner, { type: "pass-removed" });
-    expect(out.access).toBe("guest");
-    expect(out.consoleLayout).toBe("column");
+    const opened = reduce(initialState("owner"), {
+      type: "console",
+      open: true,
+    });
+    expect(opened.consoleOpen).toBe(true);
+
+    const outOfSheet = reduce(opened, { type: "pass-removed" });
+    expect(outOfSheet.access).toBe("guest");
+    expect(outOfSheet.consoleOpen).toBe(true);
+    expect(outOfSheet.consoleLayout).toBe("sheet");
+
+    const widened = reduce(opened, {
+      type: "console-layout",
+      layout: "column",
+    });
+    const outOfColumn = reduce(widened, { type: "pass-removed" });
+    expect(outOfColumn.access).toBe("guest");
+    expect(outOfColumn.consoleOpen).toBe(true);
+    expect(outOfColumn.consoleLayout).toBe("column");
   });
 });
 

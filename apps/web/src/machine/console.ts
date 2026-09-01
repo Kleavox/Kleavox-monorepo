@@ -54,7 +54,12 @@ export function mountConsole(root: ParentNode, host?: MachineHost): void {
       layout: sheet.matches ? "sheet" : "column",
     });
     const open = next.consoleLayout === "column" || next.consoleOpen;
-    if (!open && kept) dock.focus({ preventScroll: true });
+    const sealed = next.consoleLayout === "sheet" && open;
+    if (!open && kept) {
+      dock.focus({ preventScroll: true });
+      return;
+    }
+    if (sealed && !kept) reader?.focus({ preventScroll: true });
   };
 
   dock.addEventListener("click", () => setOpen(true));

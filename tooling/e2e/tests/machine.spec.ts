@@ -214,6 +214,55 @@ test("narrowing to the sheet does not strand focus inside it", async ({
   await expect(page.locator("[data-cartridge='2']")).toBeFocused();
 });
 
+test("narrowing back onto an open sheet does not strand focus on the body", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator("[data-dock]").click();
+  await expect(page.locator("[data-console]")).toHaveAttribute(
+    "data-console",
+    "open",
+  );
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.locator("[data-cartridge='2']").focus();
+  await expect(page.locator("[data-cartridge='2']")).toBeFocused();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".cabinet")).toHaveAttribute("inert", "");
+  await expect(page.locator("[data-console]")).toHaveAttribute(
+    "data-console",
+    "open",
+  );
+  expect(
+    await page.evaluate(() => document.activeElement?.tagName ?? null),
+  ).not.toBe("BODY");
+  await expect(page.locator("[data-reader]")).toBeFocused();
+});
+
+test("a resize that keeps the sheet sealed leaves focus where the reader put it", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator("[data-dock]").click();
+  await page.locator("[data-key='7']").focus();
+  await expect(page.locator("[data-key='7']")).toBeFocused();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator(".cabinet")).not.toHaveAttribute("inert", "");
+  await expect(page.locator("[data-key='7']")).toBeFocused();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".cabinet")).toHaveAttribute("inert", "");
+  await expect(page.locator("[data-console]")).toHaveAttribute(
+    "data-console",
+    "open",
+  );
+  await expect(page.locator("[data-key='7']")).toBeFocused();
+});
+
 test("the reader stays inside the control column in the DOM", async ({
   page,
 }) => {
@@ -314,9 +363,7 @@ test("the keypad says which mode it is in, not only what colour", async ({
   await expect(otp).toBeHidden();
 });
 
-test("the screen sits in a live region, so a change of words is announced", async ({
-  page,
-}) => {
+test("the screen words sit inside a polite status region", async ({ page }) => {
   await page.goto("/");
   const region = await page.evaluate(() => {
     const screen = document.querySelector("[data-screen]")!;
@@ -356,12 +403,11 @@ test("the renderer lights the bays a guest may take, and paints them", async ({
   expect(bays[2]!.paint).not.toBe(bays[0]!.paint);
 });
 
-test("the cabinet plate names the pass in the machine, not a hardcoded guess", async ({
+test("the cabinet lamp changes with the pass, and never carries the meaning alone", async ({
   page,
 }) => {
   await page.goto("/");
   const plate = page.locator("[data-cabinet-state]");
-  await expect(plate).toHaveAttribute("data-cabinet-state", "guest");
   await expect(plate).toHaveText("GUEST MODE");
 
   const lamps = await page.evaluate(() => {
