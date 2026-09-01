@@ -52,7 +52,12 @@ export function getPublicOrigin(
   if (isLoopbackHost(url.hostname)) {
     const application = applicationForSubdomain(subdomain);
     if (application === undefined) return url.origin;
-    return localOrigin(url, application) ?? url.origin;
+    const local = localOrigin(url, application);
+    if (local !== undefined) return local;
+    console.warn(
+      `getPublicOrigin: ${rootOrigin} is on no known local port family, so "${subdomain}" resolves to the root origin and its link will point at the wrong app`,
+    );
+    return url.origin;
   }
 
   return `https://${subdomain}.${url.host}`;

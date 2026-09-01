@@ -362,18 +362,27 @@ test("a delivered cartridge gives the tray a real control", async ({
 test("the tray keeps the three products apart by shape", async ({ page }) => {
   await page.goto("/");
   const widths: number[] = [];
+  const silhouettes: string[] = [];
   for (const bay of ["1", "2", "3"]) {
-    await page.evaluate(async (code) => {
+    const shape = await page.evaluate(async (code) => {
       document.querySelector<HTMLElement>("[data-tray]")!.dataset.tray = code;
       const result = document.querySelector<HTMLElement>(".tray-result")!;
       await Promise.all(
         result.getAnimations().map((animation) => animation.finished),
       );
+      const style = getComputedStyle(
+        document.querySelector<HTMLElement>(".tray-item")!,
+      );
+      return [style.borderRadius, style.backgroundImage, style.boxShadow].join(
+        " | ",
+      );
     }, bay);
+    silhouettes.push(shape);
     const box = await page.locator(".tray-item").boundingBox();
     widths.push(Math.round(box!.width));
   }
   expect(new Set(widths).size).toBe(3);
+  expect(new Set(silhouettes).size).toBe(3);
 });
 
 test("each product leaves its bay by its own motion", async ({ page }) => {
@@ -495,41 +504,135 @@ test("the bridge stays out of the way until a cartridge is taken", async ({
   await expect(cancel).toBeVisible();
   const box = await cancel.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
+
+  const painted = await page.evaluate(() => {
+    const overlay = document.querySelector<HTMLElement>("[data-transfer]")!;
+    const card = document.querySelector<HTMLElement>(
+      ".screen-transfer__cartridge",
+    )!;
+    return {
+      overlay: getComputedStyle(overlay).backgroundColor,
+      cardFill: getComputedStyle(card).backgroundColor,
+      cardRim: getComputedStyle(card).borderTopColor,
+      name: overlay.getAttribute("aria-label"),
+    };
+  });
+  expect(painted.overlay).not.toBe("rgba(0, 0, 0, 0)");
+  expect(painted.cardFill).not.toBe("rgba(0, 0, 0, 0)");
+  expect(painted.cardRim).not.toBe("rgba(0, 0, 0, 0)");
+  expect(painted.name).toBe("Opening the selected application");
 });
+
+async function openTheBridge(
+  browser: import("@playwright/test").Browser,
+  reduced: boolean,
+): Promise<{
+  visible: string;
+  slowest: number;
+  opacity: string;
+  hits: string;
+  height: number;
+}> {
+  const context = await browser.newContext(
+    reduced ? { reducedMotion: "reduce" } : {},
+  );
+  const page = await context.newPage();
+  await page.goto("/");
+  const seen = await page.evaluate(async () => {
+    const overlay = document.querySelector<HTMLElement>("[data-transfer]")!;
+    overlay.dataset.transfer = "1";
+    await new Promise((settled) => {
+      requestAnimationFrame(() => requestAnimationFrame(settled));
+    });
+    let slowest = 0;
+    for (const node of [overlay, ...overlay.querySelectorAll("*")]) {
+      for (const pseudo of [null, "::before", "::after"]) {
+        const style = getComputedStyle(node, pseudo);
+        if (style.animationName === "none") continue;
+        const delays = style.animationDelay.split(",");
+        const durations = style.animationDuration.split(",");
+        for (const [index, delay] of delays.entries()) {
+          const ends =
+            (Number.parseFloat(delay) +
+              Number.parseFloat(
+                durations[index % durations.length] ?? durations[0] ?? "0",
+              )) *
+            1000;
+          if (ends > slowest) slowest = ends;
+        }
+      }
+    }
+    const cancel = document.querySelector<HTMLElement>(
+      "[data-transfer-cancel]",
+    )!;
+    const style = getComputedStyle(cancel);
+    return {
+      visible: getComputedStyle(overlay).visibility,
+      slowest,
+      opacity: style.opacity,
+      hits: style.pointerEvents,
+      height: cancel.getBoundingClientRect().height,
+    };
+  });
+  await context.close();
+  return seen;
+}
 
 test("reduced motion shortens the bridge, it does not skip it", async ({
   browser,
 }) => {
-  const context = await browser.newContext({ reducedMotion: "reduce" });
-  const page = await context.newPage();
-  await page.goto("/");
-  await page.evaluate(() => {
-    document.querySelector<HTMLElement>("[data-transfer]")!.dataset.transfer =
-      "1";
-  });
-  await expect(page.locator("[data-transfer]")).toBeVisible();
-  const cancel = page.locator("[data-transfer-cancel]");
-  await expect(cancel).toBeVisible();
-  await expect(cancel).toHaveCSS("opacity", "1");
-  const box = await cancel.boundingBox();
-  expect(box!.height).toBeGreaterThanOrEqual(44);
-  await context.close();
+  const full = await openTheBridge(browser, false);
+  const reduced = await openTheBridge(browser, true);
+
+  expect(full.visible).toBe("visible");
+  expect(reduced.visible).toBe("visible");
+
+  expect(full.slowest).toBeGreaterThan(600);
+  expect(reduced.slowest).toBeLessThanOrEqual(40);
+
+  expect(reduced.opacity).toBe("1");
+  expect(reduced.hits).toBe("auto");
+  expect(reduced.height).toBeGreaterThanOrEqual(44);
 });
 
-test("a full tray does not push the machine sideways at 320px", async ({
+test("a full tray stays inside the cabinet it is bolted to", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 320, height: 700 });
-  await page.goto("/");
-  await page.evaluate(() => {
-    document.querySelector<HTMLElement>("[data-tray]")!.dataset.tray = "3";
-    document.querySelector<HTMLElement>("[data-falling]")!.dataset.falling =
-      "3";
-    document.querySelector<HTMLElement>("[data-machine]")!.dataset.status =
-      "reading";
-  });
-  const width = await page.evaluate(() => document.documentElement.scrollWidth);
-  expect(width).toBe(320);
+  for (const viewport of [
+    { width: 320, height: 700 },
+    { width: 390, height: 844 },
+    { width: 900, height: 520 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const fit = await page.evaluate(async () => {
+      document.querySelector<HTMLElement>("[data-tray]")!.dataset.tray = "3";
+      const result = document.querySelector<HTMLElement>(".tray-result")!;
+      await Promise.all(
+        result.getAnimations().map((animation) => animation.finished),
+      );
+      const tray = document
+        .querySelector<HTMLElement>("[data-tray]")!
+        .getBoundingClientRect();
+      const action = document
+        .querySelector<HTMLElement>("[data-tray-action]")!
+        .getBoundingClientRect();
+      const cabinet = document
+        .querySelector<HTMLElement>(".cabinet")!
+        .getBoundingClientRect();
+      return {
+        overhangRight: tray.right - cabinet.right,
+        overhangLeft: cabinet.left - tray.left,
+        actionRight: action.right - cabinet.right,
+        actionLeft: cabinet.left - action.left,
+      };
+    });
+    expect(fit.overhangRight).toBeLessThanOrEqual(0);
+    expect(fit.overhangLeft).toBeLessThanOrEqual(0);
+    expect(fit.actionRight).toBeLessThanOrEqual(0);
+    expect(fit.actionLeft).toBeLessThanOrEqual(0);
+  }
 });
 
 test("every route the machine offers is reachable from here", async ({

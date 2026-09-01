@@ -105,7 +105,11 @@ describe("remembering a locked request across a redirect", () => {
     expect(sessionStorage.getItem(REQUEST_KEY)).toBeNull();
   });
 
-  it("stays quiet when storage itself throws", () => {
+  it("says the request was kept when storage takes it", () => {
+    expect(rememberRequest("1")).toBe(true);
+  });
+
+  it("says the request was lost, rather than throwing, when storage refuses", () => {
     vi.stubGlobal("sessionStorage", {
       getItem: () => {
         throw new Error("storage is blocked");
@@ -117,7 +121,7 @@ describe("remembering a locked request across a redirect", () => {
         throw new Error("storage is blocked");
       },
     });
-    expect(() => rememberRequest("1")).not.toThrow();
+    expect(rememberRequest("1")).toBe(false);
     expect(takeRememberedRequest()).toBeNull();
   });
 });

@@ -38,11 +38,12 @@ export function motionDelay(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-export function rememberRequest(bay: BayCode): void {
+export function rememberRequest(bay: BayCode): boolean {
   try {
     globalThis.sessionStorage.setItem(REQUEST_KEY, bay);
+    return true;
   } catch {
-    return;
+    return false;
   }
 }
 

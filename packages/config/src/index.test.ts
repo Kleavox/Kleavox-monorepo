@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { getPublicOrigin } from "./index";
 
@@ -67,10 +67,16 @@ describe("local origins", () => {
     );
   });
 
-  it("stays on the root origin when the port belongs to no known family", () => {
+  it("stays on the root origin when the port belongs to no known family, and says so", () => {
+    const warned = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     expect(getPublicOrigin("http://127.0.0.1:4321", "link")).toBe(
       "http://127.0.0.1:4321",
     );
+    expect(warned).toHaveBeenCalledOnce();
+    expect(warned.mock.calls[0]?.[0]).toContain("wrong app");
+    warned.mockRestore();
   });
 
   it("stays on the root origin for a subdomain it does not know", () => {
