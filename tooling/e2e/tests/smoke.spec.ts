@@ -55,22 +55,24 @@ test("web home loads through the gateway", async ({ page }) => {
   await expect(page.locator("[data-signin]")).toBeVisible();
 });
 
-test("no horizontal overflow at 360px", async ({ browser }) => {
-  const context = await browser.newContext({
-    viewport: { width: 360, height: 740 },
-  });
-  const page = await context.newPage();
-  for (const url of [`${GATEWAY}/`, `${LINK}/`, `${PASS}/`]) {
-    await page.goto(url);
-    await page.waitForLoadState("networkidle");
-    const overflow = await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth,
-    );
-    expect(overflow, url).toBeLessThanOrEqual(0);
+test("no horizontal overflow at 320px or 360px", async ({ browser }) => {
+  for (const width of [320, 360]) {
+    const context = await browser.newContext({
+      viewport: { width, height: 740 },
+    });
+    const page = await context.newPage();
+    for (const url of [`${GATEWAY}/`, `${LINK}/`, `${PASS}/`]) {
+      await page.goto(url);
+      await page.waitForLoadState("networkidle");
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      );
+      expect(overflow, `${url} at ${width}px`).toBeLessThanOrEqual(0);
+    }
+    await context.close();
   }
-  await context.close();
 });
 
 test("auth journey: register, sign in, account page, link header", async ({

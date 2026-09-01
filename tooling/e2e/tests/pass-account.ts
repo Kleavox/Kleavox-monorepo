@@ -78,6 +78,9 @@ export async function freshAccount(
   await expect(target.getByText("Check your email")).toBeVisible({
     timeout: 20000,
   });
+  passSql(
+    `UPDATE users SET email_verified_at = datetime('now') WHERE email = '${account.email}'`,
+  );
   return account;
 }
 
@@ -101,10 +104,7 @@ export async function signedInAs(
   role: "USER" | "ADMIN",
 ): Promise<PassAccount> {
   const account = await freshAccount(target, label);
-  passSql(
-    `UPDATE users SET email_verified_at = datetime('now'), role = '${role}' ` +
-      `WHERE email = '${account.email}'`,
-  );
+  passSql(`UPDATE users SET role = '${role}' WHERE email = '${account.email}'`);
   await signIn(target, account);
   return account;
 }

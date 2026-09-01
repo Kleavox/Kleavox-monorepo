@@ -57,8 +57,9 @@ describe("mountConsole", () => {
     media(true);
     const root = document.createElement("div");
     root.innerHTML = `<aside data-console="closed"></aside>`;
-    const { host } = store();
+    const { host, seen } = store();
     mountConsole(root, host);
+    expect(seen).toContainEqual({ type: "console-layout", layout: "sheet" });
     expect(host.read().consoleLayout).toBe("sheet");
   });
 });

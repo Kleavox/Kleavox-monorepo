@@ -3,6 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { localWorkerOrigin } from "@kleavox/topology";
+import {
+  clearRateLimits,
+  freshAccount,
+  passSql,
+  PROBE_PASSWORD,
+} from "./pass-account";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -16,7 +22,6 @@ const LINK = localWorkerOrigin("link", "localhost");
 const PULSE = localWorkerOrigin("pulse", "localhost");
 const GATEWAY = localWorkerOrigin("gateway", "localhost");
 
-const password = "probe-password-1";
 const run = Date.now().toString().slice(-6);
 const admin = { user: "probeops", email: "probeops@example.com" };
 
@@ -27,75 +32,10 @@ let expectFailure = false;
 
 const passDir = path.join(repoRoot, "workers", "pass");
 
-function passSql(command: string): void {
-  execSync(
-    `pnpm exec wrangler d1 execute local-pass --local --command "${command}"`,
-    { cwd: passDir, stdio: "pipe" },
-  );
-}
-
-function clearRateLimits(): void {
-  let listed = "";
-  try {
-    listed = execSync(
-      "pnpm exec wrangler kv key list --binding SESSIONS --local",
-      { cwd: passDir, stdio: "pipe" },
-    ).toString();
-  } catch {
-    return;
-  }
-  const start = listed.indexOf("[");
-  if (start < 0) return;
-  let keys: Array<{ name: string }> = [];
-  try {
-    keys = JSON.parse(listed.slice(start)) as Array<{ name: string }>;
-  } catch {
-    return;
-  }
-  for (const key of keys) {
-    if (!key.name.startsWith("rate:")) continue;
-    try {
-      execSync(
-        `pnpm exec wrangler kv key delete --binding SESSIONS --local "${key.name}"`,
-        { cwd: passDir, stdio: "pipe" },
-      );
-    } catch {
-      // a key that expired between listing and deleting is not a problem
-    }
-  }
-}
-
-async function freshAccount(
-  target: Page,
-  label: string,
-): Promise<{ user: string; email: string }> {
-  clearRateLimits();
-  const account = {
-    user: `${label}${run}`.slice(0, 20),
-    email: `${label}-${run}@example.com`,
-  };
-  await target.goto(`${PASS}/`);
-  await target.getByRole("button", { name: "Create an account" }).click();
-  await target.locator('input[name="username"]').fill(account.user);
-  await target.locator('input[name="email"]').fill(account.email);
-  await target.locator('input[name="password"]').fill(password);
-  await target.locator('input[name="confirm-password"]').fill(password);
-  await target
-    .getByRole("button", { name: "Create account", exact: true })
-    .click();
-  await expect(target.getByText("Check your email")).toBeVisible({
-    timeout: 20000,
-  });
-  passSql(
-    `UPDATE users SET email_verified_at = datetime('now') WHERE email = '${account.email}'`,
-  );
-  return account;
-}
-
 async function attempt(): Promise<string | null> {
   await page.goto(`${PASS}/`);
   await page.locator('input[name="email"]').fill(admin.email);
-  await page.locator('input[name="password"]').fill(password);
+  await page.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   const landed = page.getByRole("heading", { name: admin.user });
   const failed = page.locator(".pass-status-error");
@@ -135,8 +75,8 @@ test.beforeAll(async ({ browser }) => {
   await page.getByRole("button", { name: "Create an account" }).click();
   await page.locator('input[name="username"]').fill(admin.user);
   await page.locator('input[name="email"]').fill(admin.email);
-  await page.locator('input[name="password"]').fill(password);
-  await page.locator('input[name="confirm-password"]').fill(password);
+  await page.locator('input[name="password"]').fill(PROBE_PASSWORD);
+  await page.locator('input[name="confirm-password"]').fill(PROBE_PASSWORD);
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
@@ -777,29 +717,29 @@ test("pass: the username can be changed and changed back", async () => {
   });
 });
 
+function base64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
+}
+
+async function hashOf(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return base64Url(new Uint8Array(digest));
+}
+
 async function mintToken(
   email: string,
   purpose: "EMAIL" | "PASSWORD_RESET",
 ): Promise<string> {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  let raw = "";
-  for (const byte of bytes) raw += String.fromCharCode(byte);
-  const token = btoa(raw)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
-
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(token),
-  );
-  let binary = "";
-  for (const byte of new Uint8Array(digest))
-    binary += String.fromCharCode(byte);
-  const hash = btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
+  const token = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+  const hash = await hashOf(token);
 
   passSql(
     `INSERT INTO verification_tokens (id, user_id, purpose, token_hash, expires_at) ` +
@@ -808,6 +748,18 @@ async function mintToken(
       `FROM users WHERE email = '${email}'`,
   );
   return token;
+}
+
+async function mintOtp(email: string, code: string): Promise<void> {
+  const key = `otp:${await hashOf(email.trim().toLowerCase())}`;
+  const record = JSON.stringify({
+    codeHash: await hashOf(code),
+    attempts: 0,
+  }).replaceAll('"', '\\"');
+  execSync(
+    `pnpm exec wrangler kv key put --binding SESSIONS --local "${key}" "${record}"`,
+    { cwd: passDir, stdio: "pipe" },
+  );
 }
 
 test("pass: an emailed verification token activates the account", async () => {
@@ -825,7 +777,7 @@ test("pass: an emailed verification token activates the account", async () => {
 
   await worker.goto(`${PASS}/`);
   await worker.locator('input[name="email"]').fill(account.email);
-  await worker.locator('input[name="password"]').fill(password);
+  await worker.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await worker.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(worker.getByRole("heading", { name: account.user })).toBeVisible(
     { timeout: 20000 },
@@ -858,6 +810,53 @@ test("pass: a password reset token sets a new password", async () => {
   await expect(worker.getByRole("heading", { name: account.user })).toBeVisible(
     { timeout: 20000 },
   );
+  await fresh.close();
+});
+
+test("otp: an unknown email becomes an account that still needs setup", async () => {
+  test.setTimeout(180_000);
+  clearRateLimits();
+  const email = `otp-new-${run}@example.com`;
+  const fresh = await context.browser()!.newContext();
+  const worker = await fresh.newPage();
+
+  await worker.goto(GATEWAY);
+  await mintOtp(email, "246810");
+
+  const response = await worker.request.post(`${GATEWAY}/api/auth/otp/verify`, {
+    headers: { origin: GATEWAY },
+    data: { email, code: "246810" },
+  });
+
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toMatchObject({
+    authenticated: true,
+    needsSetup: true,
+  });
+
+  await fresh.close();
+});
+
+test("otp: a disabled account is refused after the code is accepted", async () => {
+  test.setTimeout(180_000);
+  clearRateLimits();
+  const fresh = await context.browser()!.newContext();
+  const worker = await fresh.newPage();
+  const account = await freshAccount(worker, "otpoff");
+
+  passSql(
+    `UPDATE users SET disabled_at = datetime('now') WHERE email = '${account.email}'`,
+  );
+  await mintOtp(account.email, "135791");
+
+  const response = await worker.request.post(`${GATEWAY}/api/auth/otp/verify`, {
+    headers: { origin: GATEWAY },
+    data: { email: account.email, code: "135791" },
+  });
+
+  expect(response.status()).toBe(403);
+  expect(JSON.stringify(await response.json())).toMatch(/disabled/i);
+
   await fresh.close();
 });
 
@@ -913,7 +912,7 @@ test("pass: an account can delete itself", async () => {
   clearRateLimits();
   await worker.goto(`${PASS}/`);
   await worker.locator('input[name="email"]').fill(account.email);
-  await worker.locator('input[name="password"]').fill(password);
+  await worker.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await worker.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(worker.getByRole("heading", { name: account.user })).toBeVisible(
     { timeout: 20000 },
@@ -934,7 +933,7 @@ test("pass: an account can delete itself", async () => {
   clearRateLimits();
   await worker.goto(`${PASS}/`);
   await worker.locator('input[name="email"]').fill(account.email);
-  await worker.locator('input[name="password"]').fill(password);
+  await worker.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await worker.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(worker.locator(".pass-status-error")).toBeVisible({
     timeout: 20000,
@@ -955,7 +954,7 @@ test("the header appears on every origin and marks the right tool", async () => 
   }
 });
 
-test("the operator home lists an attention item and navigates to it", async () => {
+test("the machine counts what needs attention and marks the tool it sits in", async () => {
   const slug = `probeexpiring${run}`;
   await page.goto(`${LINK}/`);
   await page.getByRole("tab", { name: "Send a file", exact: true }).click();
@@ -969,15 +968,27 @@ test("the operator home lists an attention item and navigates to it", async () =
   await page.getByRole("button", { name: "Create transfer" }).click();
   await expect(page.getByLabel("Share URL")).toBeVisible({ timeout: 40000 });
 
-  await page.goto(GATEWAY);
-  const rows = page.locator("[data-attention-rows] a");
-  await expect(rows.first()).toBeVisible({ timeout: 20000 });
-  const href = await rows.first().getAttribute("href");
-  expect(href).toBeTruthy();
-  await rows.first().click();
-  await expect(page).toHaveURL(
-    new RegExp(href!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+  const estate = await page.request.get(`${GATEWAY}/api/estate`);
+  expect(estate.status()).toBe(200);
+  const overview = (await estate.json()) as {
+    attention: { kind: string }[];
+    link: { expiringSoon: number };
+  };
+  expect(overview.link.expiringSoon).toBeGreaterThan(0);
+  expect(overview.attention.map((item) => item.kind)).toContain(
+    "link-expiring",
   );
+
+  await page.goto(GATEWAY);
+  const screen = page.locator("[data-screen]");
+  await expect(screen).toBeVisible();
+  await expect(screen).toHaveText(
+    `${overview.attention.length} NEED ATTENTION`,
+  );
+
+  const linkTool = page.locator('.kvx-nav-tool[aria-label^="link,"]');
+  await expect(linkTool).toHaveCount(1);
+  await expect(linkTool.locator(".kvx-pad-warn")).toBeVisible();
 
   await page.goto(`${LINK}/`);
   const expiringRow = page.locator(".link-activity-row", {
@@ -992,14 +1003,41 @@ test("the operator home lists an attention item and navigates to it", async () =
   });
 });
 
-test("the operator home reports a failed estate call instead of rendering empty", async () => {
+test("the machine says a failed estate call out loud instead of an all-clear", async () => {
   await page.route("**/api/estate", (route) => route.fulfill({ status: 500 }));
   expectFailure = true;
   await page.goto(GATEWAY);
-  await expect(page.locator("[data-home-status]")).toContainText(
-    /could not|failed|unavailable/i,
-  );
-  await expect(page.locator("[data-attention]")).toBeHidden();
+
+  const screen = page.locator("[data-screen]");
+  await expect(page.locator("[data-cabinet-state]")).toHaveText("OWNER MODE");
+  await expect(screen).toBeVisible();
+  await expect(screen).toHaveText("ESTATE UNREADABLE");
+
+  const read = await screen.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    const onTop = document.elementFromPoint(
+      box.left + box.width / 2,
+      box.top + box.height / 2,
+    );
+    return {
+      words: (node.textContent ?? "").trim(),
+      covered: onTop === null || !node.contains(onTop),
+      inert: node.closest("[inert]") !== null,
+      muted: node.closest('[aria-hidden="true"]') !== null,
+    };
+  });
+  expect(read).toEqual({
+    words: "ESTATE UNREADABLE",
+    covered: false,
+    inert: false,
+    muted: false,
+  });
+
+  await expect(
+    page.locator(".kvx-nav-count"),
+    "a header that cannot read the estate must not print a count it does not have",
+  ).toHaveCount(0);
+
   await page.unroute("**/api/estate");
   expectFailure = false;
 });
