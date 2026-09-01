@@ -261,6 +261,99 @@ describe("the otp buffer belongs to the reducer", () => {
   });
 });
 
+describe("the console is machine state, not a private boolean", () => {
+  it("starts as a closed sheet", () => {
+    const guest = initialState("guest");
+    expect(guest.consoleOpen).toBe(false);
+    expect(guest.consoleLayout).toBe("sheet");
+  });
+
+  it("opens and closes the sheet", () => {
+    const opened = reduce(initialState("guest"), {
+      type: "console",
+      open: true,
+    });
+    expect(opened.consoleOpen).toBe(true);
+    expect(reduce(opened, { type: "console", open: false }).consoleOpen).toBe(
+      false,
+    );
+  });
+
+  it("ignores an open request while the console is a column", () => {
+    const column = reduce(initialState("guest"), {
+      type: "console-layout",
+      layout: "column",
+    });
+    expect(reduce(column, { type: "console", open: true })).toEqual(column);
+  });
+
+  it("keeps the sheet intent across a trip through the column", () => {
+    const opened = reduce(initialState("guest"), {
+      type: "console",
+      open: true,
+    });
+    const column = reduce(opened, {
+      type: "console-layout",
+      layout: "column",
+    });
+    const back = reduce(column, { type: "console-layout", layout: "sheet" });
+    expect(column.consoleOpen).toBe(true);
+    expect(back.consoleOpen).toBe(true);
+  });
+
+  it("does not slam the console shut when the pass is removed", () => {
+    const owner = reduce(
+      reduce(initialState("owner"), {
+        type: "console-layout",
+        layout: "column",
+      }),
+      { type: "console", open: true },
+    );
+    const out = reduce(owner, { type: "pass-removed" });
+    expect(out.access).toBe("guest");
+    expect(out.consoleLayout).toBe("column");
+  });
+});
+
+describe("a rejected email code", () => {
+  it("records how many tries are left and empties the buffer", () => {
+    const sent = reduce(
+      reduce(reduce(initialState("guest"), { type: "pass-tap" }), {
+        type: "reader-scanned",
+      }),
+      { type: "otp-sent" },
+    );
+    const typed = reduce(sent, { type: "otp-digits", digits: "123456" });
+    const rejected = reduce(typed, { type: "otp-rejected", attemptsLeft: 2 });
+    expect(rejected.authAttemptsLeft).toBe(2);
+    expect(rejected.authDigits).toBe("");
+    expect(rejected.authStep).toBe("otp-machine");
+  });
+
+  it("is ignored when the keypad is not taking a code", () => {
+    const guest = initialState("guest");
+    expect(reduce(guest, { type: "otp-rejected", attemptsLeft: 2 })).toEqual(
+      guest,
+    );
+  });
+
+  it("is forgotten once the pass is issued", () => {
+    const sent = reduce(
+      reduce(reduce(initialState("guest"), { type: "pass-tap" }), {
+        type: "reader-scanned",
+      }),
+      { type: "otp-sent" },
+    );
+    const rejected = reduce(sent, { type: "otp-rejected", attemptsLeft: 1 });
+    const issued = reduce(rejected, {
+      type: "pass-issued",
+      access: "visitor",
+    });
+    expect(issued.authAttemptsLeft).toBeNull();
+    expect(reduce(rejected, { type: "cancel" }).authAttemptsLeft).toBeNull();
+  });
+});
+
 type Status = MachineState["status"];
 type AuthStep = MachineState["authStep"];
 

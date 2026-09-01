@@ -321,6 +321,8 @@
 }
 
 .cabinet-state {
+  --mach-state-lamp: var(--kvx-ok);
+
   display: inline-flex;
   align-items: center;
   gap: var(--kvx-s2);
@@ -333,12 +335,17 @@
   text-transform: uppercase;
 }
 
+.cabinet-state[data-cabinet-state="guest"] {
+  --mach-state-lamp: var(--kvx-warn);
+}
+
 .cabinet-state::before {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--kvx-warn);
-  box-shadow: 0 0 7px color-mix(in srgb, var(--kvx-warn) 65%, transparent);
+  background: var(--mach-state-lamp);
+  box-shadow: 0 0 7px
+    color-mix(in srgb, var(--mach-state-lamp) 65%, transparent);
   content: "";
 }
 
@@ -438,7 +445,7 @@
   right: 8%;
 }
 
-.slot.is-lit .bay-backlight {
+.bay-backlight[data-lit="true"] {
   border-color: var(--mach-lit-edge);
   background:
     radial-gradient(
@@ -453,8 +460,8 @@
     0 0 13px color-mix(in srgb, var(--kvx-accent) 11%, transparent);
 }
 
-.slot.is-lit .bay-backlight::before,
-.slot.is-lit .bay-backlight::after {
+.bay-backlight[data-lit="true"]::before,
+.bay-backlight[data-lit="true"]::after {
   border-color: var(--mach-lamp-edge);
   background: var(--mach-lamp);
   box-shadow:
@@ -462,7 +469,7 @@
     0 0 16px color-mix(in srgb, var(--kvx-accent) 25%, transparent);
 }
 
-.slot.is-lit .cartridge {
+.slot:has([data-lit="true"]) .cartridge {
   --mach-cartridge-shadow:
     inset 0 0 0 5px rgb(0 0 0 / 25%),
     inset 0 0 0 6px color-mix(in srgb, var(--mach-lamp) 5.5%, transparent),
@@ -472,7 +479,7 @@
   box-shadow: var(--mach-cartridge-shadow);
 }
 
-.slot.is-lit .cartridge__name {
+.slot:has([data-lit="true"]) .cartridge__name {
   text-shadow: 0 0 9px color-mix(in srgb, var(--kvx-ink) 18%, transparent);
 }
 

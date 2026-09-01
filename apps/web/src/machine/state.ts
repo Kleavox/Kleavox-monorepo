@@ -2,6 +2,8 @@ export type BayCode = "1" | "2" | "3";
 
 export type AccessRole = "guest" | "visitor" | "owner";
 
+type ConsoleLayout = "sheet" | "column";
+
 export type MachineState = {
   access: AccessRole;
   status: "idle" | "reading" | "granted" | "selected" | "denied" | "dispensing";
@@ -12,6 +14,9 @@ export type MachineState = {
   authRequest: BayCode | null;
   screenTransfer: BayCode | null;
   authDigits: string;
+  authAttemptsLeft: number | null;
+  consoleLayout: ConsoleLayout;
+  consoleOpen: boolean;
 };
 
 export type MachineEvent =
@@ -25,6 +30,9 @@ export type MachineEvent =
   | { type: "pass-issued"; access: AccessRole }
   | { type: "pass-removed" }
   | { type: "otp-digits"; digits: string }
+  | { type: "otp-rejected"; attemptsLeft: number }
+  | { type: "console"; open: boolean }
+  | { type: "console-layout"; layout: ConsoleLayout }
   | { type: "tray-ready" }
   | { type: "activate-tray" }
   | { type: "cancel" }
@@ -52,6 +60,9 @@ export function initialState(access: AccessRole): MachineState {
     authRequest: null,
     screenTransfer: null,
     authDigits: "",
+    authAttemptsLeft: null,
+    consoleLayout: "sheet",
+    consoleOpen: false,
   };
 }
 
@@ -121,6 +132,7 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
           busy: true,
           authStep: "closed",
           authDigits: "",
+          authAttemptsLeft: null,
         };
       }
       return {
@@ -131,15 +143,38 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
         busy: false,
         authStep: "closed",
         authDigits: "",
+        authAttemptsLeft: null,
       };
     }
 
     case "pass-removed": {
-      return initialState("guest");
+      return {
+        ...initialState("guest"),
+        consoleLayout: state.consoleLayout,
+        consoleOpen: state.consoleOpen,
+      };
     }
 
     case "otp-digits": {
       return { ...state, authDigits: event.digits };
+    }
+
+    case "otp-rejected": {
+      if (state.authStep !== "otp-machine") return state;
+      return {
+        ...state,
+        authDigits: "",
+        authAttemptsLeft: event.attemptsLeft,
+      };
+    }
+
+    case "console": {
+      if (state.consoleLayout !== "sheet") return state;
+      return { ...state, consoleOpen: event.open };
+    }
+
+    case "console-layout": {
+      return { ...state, consoleLayout: event.layout };
     }
 
     case "tray-ready": {
@@ -163,6 +198,7 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
         screenTransfer: null,
         authStep: "closed",
         authDigits: "",
+        authAttemptsLeft: null,
         busy: false,
       };
     }
@@ -188,6 +224,7 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
         authRequest: null,
         screenTransfer: null,
         authDigits: "",
+        authAttemptsLeft: null,
       };
     }
   }

@@ -314,6 +314,69 @@ test("the keypad says which mode it is in, not only what colour", async ({
   await expect(otp).toBeHidden();
 });
 
+test("the screen sits in a live region, so a change of words is announced", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const region = await page.evaluate(() => {
+    const screen = document.querySelector("[data-screen]")!;
+    const live = screen.closest("[aria-live]");
+    return {
+      live: live?.getAttribute("aria-live") ?? null,
+      role: live?.getAttribute("role") ?? null,
+      text: (screen.textContent ?? "").trim(),
+    };
+  });
+  expect(region.live).toBe("polite");
+  expect(region.role).toBe("status");
+  expect(region.text.length).toBeGreaterThan(0);
+});
+
+test("the renderer lights the bays a guest may take, and paints them", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const bays = await page.evaluate(() =>
+    ["1", "2", "3"].map((bay) => {
+      const light = document.querySelector<HTMLElement>(
+        `[data-bay="${bay}"] [data-backlight]`,
+      )!;
+      const style = getComputedStyle(light);
+      return {
+        bay,
+        lit: light.dataset.lit ?? null,
+        paint: [style.backgroundImage, style.borderColor, style.boxShadow].join(
+          " | ",
+        ),
+      };
+    }),
+  );
+  expect(bays.map((entry) => entry.lit)).toEqual(["false", "false", "true"]);
+  expect(bays[0]!.paint).toBe(bays[1]!.paint);
+  expect(bays[2]!.paint).not.toBe(bays[0]!.paint);
+});
+
+test("the cabinet plate names the pass in the machine, not a hardcoded guess", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const plate = page.locator("[data-cabinet-state]");
+  await expect(plate).toHaveAttribute("data-cabinet-state", "guest");
+  await expect(plate).toHaveText("GUEST MODE");
+
+  const lamps = await page.evaluate(() => {
+    const node = document.querySelector<HTMLElement>("[data-cabinet-state]")!;
+    const read = (): string =>
+      getComputedStyle(node, "::before").backgroundColor;
+    const guest = read();
+    node.dataset.cabinetState = "owner";
+    node.textContent = "OWNER MODE";
+    return { guest, owner: read(), word: node.textContent };
+  });
+  expect(lamps.guest).not.toBe(lamps.owner);
+  expect(lamps.word).toBe("OWNER MODE");
+});
+
 test("the tray offers nothing to press until something is delivered", async ({
   page,
 }) => {
