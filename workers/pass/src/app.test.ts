@@ -376,6 +376,43 @@ describe("POST /api/auth/otp/verify", () => {
     expect(expiredBody).not.toHaveProperty("attemptsLeft");
   });
 
+  it("answers an email with an account and one without byte-identically on a wrong code", async () => {
+    const store = kvStore();
+    const prepare = vi.fn((_sql: string) => ({
+      bind: (...args: unknown[]) => ({
+        first: async () =>
+          args[0] === "known@example.com" ? { id: "user-1" } : null,
+      }),
+    }));
+    const env = {
+      ...baseEnv,
+      SESSIONS: store,
+      DB: { prepare },
+    } as unknown as Env;
+
+    const knownIssued = await issueOtp(env, "known@example.com");
+    const knownWrong = knownIssued === "111111" ? "222222" : "111111";
+    const unknownIssued = await issueOtp(env, "unknown@example.com");
+    const unknownWrong = unknownIssued === "111111" ? "222222" : "111111";
+
+    const knownResponse = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit("known@example.com", knownWrong),
+      env,
+    );
+    const knownText = await knownResponse.text();
+
+    const unknownResponse = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit("unknown@example.com", unknownWrong),
+      env,
+    );
+    const unknownText = await unknownResponse.text();
+
+    expect(unknownResponse.status).toBe(knownResponse.status);
+    expect(unknownText).toBe(knownText);
+  });
+
   it("counts down the attempts left in the body, then stops sending a count once they run out", async () => {
     const store = kvStore();
     const email = "counting@example.com";

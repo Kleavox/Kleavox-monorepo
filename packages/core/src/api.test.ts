@@ -80,12 +80,15 @@ describe("apiFetch", () => {
     });
   });
 
-  it("leaves details unset when the server sent nothing extra", async () => {
+  it("carries exactly the payload the server sent, inventing no extra keys", async () => {
     capture(500, { code: "internal_error", message: "Something broke." });
     const error = await apiFetch("/api/thing").catch(
       (thrown: unknown) => thrown,
     );
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).details?.attemptsLeft).toBeUndefined();
+    expect((error as ApiError).details).toEqual({
+      code: "internal_error",
+      message: "Something broke.",
+    });
   });
 });

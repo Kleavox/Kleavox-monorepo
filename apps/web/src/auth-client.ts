@@ -1,9 +1,25 @@
-import { apiFetch, type Identity } from "@kleavox/core";
+import { apiFetch, ApiError, type Identity } from "@kleavox/core";
 
 export interface VerifiedOtp {
   authenticated: true;
   user: Identity;
   needsSetup: boolean;
+}
+
+export class OtpVerifyError extends ApiError {
+  readonly attemptsLeft?: number;
+
+  constructor(source: ApiError, attemptsLeft: number | undefined) {
+    super(source.message, source.status, source.code, source.details);
+    this.attemptsLeft = attemptsLeft;
+  }
+}
+
+function readAttemptsLeft(
+  details: Record<string, unknown> | undefined,
+): number | undefined {
+  const value = details?.attemptsLeft;
+  return typeof value === "number" ? value : undefined;
 }
 
 export async function startOtp(email: string): Promise<void> {
@@ -17,8 +33,15 @@ export async function verifyOtpCode(
   email: string,
   code: string,
 ): Promise<VerifiedOtp> {
-  return apiFetch<VerifiedOtp>("/api/auth/otp/verify", {
-    method: "POST",
-    body: JSON.stringify({ email, code }),
-  });
+  try {
+    return await apiFetch<VerifiedOtp>("/api/auth/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ email, code }),
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new OtpVerifyError(error, readAttemptsLeft(error.details));
+    }
+    throw error;
+  }
 }

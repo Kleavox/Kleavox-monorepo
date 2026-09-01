@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiError } from "@kleavox/core";
-import { startOtp, verifyOtpCode } from "./auth-client";
+import { startOtp, verifyOtpCode, OtpVerifyError } from "./auth-client";
 
 describe("startOtp", () => {
   it("calls its own origin, never the pass host", async () => {
@@ -79,8 +78,8 @@ describe("verifyOtpCode", () => {
     const rejection = await verifyOtpCode("a@example.com", "000000").catch(
       (error: unknown) => error,
     );
-    expect(rejection).toBeInstanceOf(ApiError);
-    expect((rejection as ApiError).details?.attemptsLeft).toBe(3);
+    expect(rejection).toBeInstanceOf(OtpVerifyError);
+    expect((rejection as OtpVerifyError).attemptsLeft).toBe(3);
   });
 
   it("carries no attempt count when the server did not send one", async () => {
@@ -98,7 +97,27 @@ describe("verifyOtpCode", () => {
     const rejection = await verifyOtpCode("a@example.com", "000000").catch(
       (error: unknown) => error,
     );
-    expect(rejection).toBeInstanceOf(ApiError);
-    expect((rejection as ApiError).details?.attemptsLeft).toBeUndefined();
+    expect(rejection).toBeInstanceOf(OtpVerifyError);
+    expect((rejection as OtpVerifyError).attemptsLeft).toBeUndefined();
+  });
+
+  it("does not trust an attempt count the server sent in the wrong shape", async () => {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response(
+          JSON.stringify({
+            code: "invalid_code",
+            message: "That code is incorrect.",
+            attemptsLeft: "3",
+          }),
+          { status: 401 },
+        ),
+    );
+    const rejection = await verifyOtpCode("a@example.com", "000000").catch(
+      (error: unknown) => error,
+    );
+    expect(rejection).toBeInstanceOf(OtpVerifyError);
+    expect((rejection as OtpVerifyError).attemptsLeft).toBeUndefined();
   });
 });
