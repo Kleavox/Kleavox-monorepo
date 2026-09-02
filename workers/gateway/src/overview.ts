@@ -49,6 +49,7 @@ export interface OverviewParts {
   link: LinkSummary | null;
   pulse: PulseSummary | null;
   reports: OpenReport[];
+  reportsRead: boolean;
 }
 
 type ViewerRole = "ADMIN" | "USER";
@@ -94,6 +95,7 @@ export function buildOverview(
   origins: OverviewOrigins,
 ): Overview {
   const { link: linkOrigin, pulse: pulseOrigin } = origins;
+  const reportsMissing = role === "ADMIN" && !parts.reportsRead;
   const attention: AttentionItem[] = [];
 
   for (const node of parts.pulse?.down ?? []) {
@@ -142,23 +144,25 @@ export function buildOverview(
   return {
     role,
     pass: parts.pass ? { devices: parts.pass.devices } : null,
-    link: parts.link
-      ? {
-          active: parts.link.active,
-          files: parts.link.files,
-          reported: parts.link.reported,
-          expiringSoon: parts.link.expiring.length,
-        }
-      : null,
-    pulse: parts.pulse
-      ? {
-          nodes: parts.pulse.nodes,
-          down: parts.pulse.down.length,
-          checksFailing: parts.pulse.checksFailing,
-          openIncidents: parts.pulse.openIncidents,
-          openReports: parts.reports.length,
-        }
-      : null,
+    link:
+      parts.link && !reportsMissing
+        ? {
+            active: parts.link.active,
+            files: parts.link.files,
+            reported: parts.link.reported,
+            expiringSoon: parts.link.expiring.length,
+          }
+        : null,
+    pulse:
+      parts.pulse && !reportsMissing
+        ? {
+            nodes: parts.pulse.nodes,
+            down: parts.pulse.down.length,
+            checksFailing: parts.pulse.checksFailing,
+            openIncidents: parts.pulse.openIncidents,
+            openReports: parts.reports.length,
+          }
+        : null,
     attention,
   };
 }
@@ -342,5 +346,6 @@ export function toOverviewParts(raw: RawOverviewParts): OverviewParts {
     link,
     pulse,
     reports,
+    reportsRead: raw.reports !== null && raw.fileReports !== null,
   };
 }

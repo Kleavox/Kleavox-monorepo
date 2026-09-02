@@ -1109,6 +1109,48 @@ test.describe("with a real pass in the machine", () => {
     await signedIn.unroute("**/api/estate");
   });
 
+  test("a retry after an unreadable session hands the pass back, it does not leave a guest cabinet", async () => {
+    let failing = true;
+    await signedIn.route("**/api/session", async (route) => {
+      if (failing) {
+        await route.fulfill({ status: 500, body: "{}" });
+        return;
+      }
+      await route.continue();
+    });
+    await signedIn.goto(GATEWAY);
+    await expect(signedIn.locator("[data-screen]")).toHaveText(
+      "SESSION UNREADABLE",
+    );
+    await expect(signedIn.locator("[data-cabinet-state]")).toHaveText(
+      "GUEST MODE",
+    );
+
+    failing = false;
+    await signedIn.locator("[data-key='GO']").click();
+
+    await expect(signedIn.locator("[data-cabinet-state]")).toHaveText(
+      "OWNER MODE",
+      { timeout: 20_000 },
+    );
+    await expect(signedIn.locator("[data-machine]")).toHaveAttribute(
+      "data-access",
+      "owner",
+    );
+    await expect(signedIn.locator("[data-cartridge='2']")).toHaveAttribute(
+      "aria-label",
+      "Select Pulse, bay 2, ready",
+    );
+
+    await signedIn.locator("[data-cartridge='2']").click();
+    await expect(
+      signedIn.locator("[data-tray]"),
+      "the reducer must hold the pass too, not just the model the lamps read",
+    ).toHaveAttribute("data-tray", "2", { timeout: 20_000 });
+
+    await signedIn.unroute("**/api/session");
+  });
+
   test("Pulse is public in the footer, signed in or not", async ({
     browser,
   }) => {

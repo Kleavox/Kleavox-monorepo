@@ -8,7 +8,7 @@ import {
   type WorkerApplication,
 } from "@kleavox/topology";
 
-export { INTERNAL_HOSTS, INTERNAL_URLS } from "@kleavox/topology";
+export { INTERNAL_HOSTS, INTERNAL_URLS, publicHost } from "@kleavox/topology";
 
 export const SESSION_COOKIE = "__Secure-kleavox_session";
 export const VERIFICATION_COOKIE = "__Secure-kleavox_verified";

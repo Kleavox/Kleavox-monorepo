@@ -255,6 +255,7 @@ async function retryEstate(): Promise<void> {
       dispatch({ type: "pass-removed" });
       return;
     }
+    dispatch({ type: "pass-issued", access: model.access });
     if (model.screen.includes("UNREADABLE")) {
       fault("ESTATE STILL UNREADABLE");
       return;

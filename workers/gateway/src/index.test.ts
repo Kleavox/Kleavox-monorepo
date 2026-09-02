@@ -1,3 +1,4 @@
+import { publicHost } from "@kleavox/topology";
 import { describe, expect, it, vi } from "vitest";
 
 import { app } from "./index";
@@ -132,6 +133,9 @@ describe("Gateway estate endpoint", () => {
       if (url.includes("/api/drops")) {
         return Response.json({ drops: [] });
       }
+      if (url.includes("/api/admin/file-reports")) {
+        return Response.json({ reports: [] });
+      }
       if (url.includes("/api/admin/reports")) {
         return Response.json({ reports: [] });
       }
@@ -231,6 +235,9 @@ describe("Gateway estate endpoint", () => {
             },
           ],
         });
+      }
+      if (url.includes("/api/admin/file-reports")) {
+        return Response.json({ reports: [] });
       }
       if (url.includes("/api/admin/reports")) {
         return Response.json({
@@ -385,6 +392,52 @@ describe("Gateway estate endpoint", () => {
     ).toBe(true);
   });
 
+  it("does not hand an admin a calm payload when the abuse report endpoints failed", async () => {
+    const passFetch = vi.fn(async (url: string) => {
+      if (url.includes("/internal/session")) {
+        return Response.json({ identity: { id: "u1", role: "ADMIN" } });
+      }
+      return Response.json({ sessions: [{ id: "s1" }] });
+    });
+    const linkFetch = vi.fn(async (url: string) => {
+      if (url.includes("/api/links")) {
+        return Response.json({
+          data: [],
+          meta: { page: 1, limit: 1, total: 5, totalPages: 5 },
+        });
+      }
+      if (url.includes("/api/drops")) {
+        return Response.json({ drops: [] });
+      }
+      return new Response(null, { status: 500 });
+    });
+    const pulseFetch = vi.fn(async () =>
+      Response.json({ nodes: [], checks: [], incidents: [] }),
+    );
+
+    const response = await app.request(
+      "https://product.test/api/estate",
+      { headers: { cookie: "__Secure-kleavox_session=tok" } },
+      {
+        PASS: { fetch: passFetch },
+        LINK: { fetch: linkFetch },
+        PULSE: { fetch: pulseFetch },
+        ASSETS: { fetch: vi.fn() },
+        PUBLIC_ORIGIN: "https://product.test",
+      } as unknown as Env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      link: unknown;
+      pulse: unknown;
+      attention: unknown[];
+    };
+    expect(body.link).toBeNull();
+    expect(body.pulse).toBeNull();
+    expect(body.attention).toEqual([]);
+  });
+
   it("204s the OPTIONS preflight", async () => {
     const response = await app.request(
       "https://product.test/api/estate",
@@ -473,10 +526,11 @@ describe("Gateway auth proxy", () => {
       env,
     );
 
+    const rootDomain = "kleavox.xyz";
     expect(response.status).toBe(200);
-    expect(seen[0]!.host).toBe("pass.kleavox.xyz");
-    expect(seen[0]!.origin).toBe("https://pass.kleavox.xyz");
-    expect(seen[0]!.host.endsWith(".kleavox.xyz")).toBe(true);
+    expect(seen[0]!.host).toBe(publicHost(rootDomain, "pass"));
+    expect(seen[0]!.origin).toBe(`https://${publicHost(rootDomain, "pass")}`);
+    expect(seen[0]!.host.endsWith(`.${rootDomain}`)).toBe(true);
   });
 
   it("keeps the request's own hostname when it is not under the root domain, so a local session is not scoped to a domain the browser would refuse", async () => {

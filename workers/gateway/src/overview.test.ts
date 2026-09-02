@@ -39,6 +39,7 @@ const full: OverviewParts = {
       since: "2026-08-25T09:40:33Z",
     },
   ],
+  reportsRead: true,
 };
 
 describe("buildOverview", () => {
@@ -73,6 +74,7 @@ describe("buildOverview", () => {
           ],
         },
         reports: [],
+        reportsRead: true,
       },
       "ADMIN",
       ORIGINS,
@@ -114,6 +116,7 @@ describe("buildOverview", () => {
             since: new Date(now - 5 * 60 * 1000).toISOString(),
           },
         ],
+        reportsRead: true,
       },
       "ADMIN",
       ORIGINS,
@@ -145,7 +148,7 @@ describe("buildOverview", () => {
 
   it("degrades to null when an upstream failed, rather than rejecting or reporting zero", () => {
     const overview = buildOverview(
-      { pass: null, link: null, pulse: null, reports: [] },
+      { pass: null, link: null, pulse: null, reports: [], reportsRead: true },
       "ADMIN",
       ORIGINS,
     );
@@ -452,16 +455,48 @@ describe("toOverviewParts", () => {
     expect(parts.link).toBeNull();
   });
 
-  it("a null reports and file-reports response empties the report list without touching the pulse fleet", () => {
+  it("marks the reports unread when neither report endpoint answered, rather than reporting none open", () => {
     const parts = toOverviewParts({
       ...rawFull,
       reports: null,
       fileReports: null,
     });
-    expect(parts.link?.reported).toBe(0);
+    expect(parts.reportsRead).toBe(false);
     expect(parts.reports).toEqual([]);
     expect(parts.pulse?.nodes).toBe(2);
     expect(parts.pulse?.down.map((node) => node.name)).toEqual(["node-b"]);
+  });
+
+  it("marks the reports unread when only one of the two report endpoints answered", () => {
+    expect(toOverviewParts({ ...rawFull, fileReports: null }).reportsRead).toBe(
+      false,
+    );
+    expect(toOverviewParts({ ...rawFull, reports: null }).reportsRead).toBe(
+      false,
+    );
+    expect(toOverviewParts(rawFull).reportsRead).toBe(true);
+  });
+
+  it("silences both blocks for an admin whose abuse reports could not be read, so the screen cannot call it all clear", () => {
+    const parts = toOverviewParts({
+      ...rawFull,
+      reports: null,
+      fileReports: null,
+    });
+    const overview = buildOverview(parts, "ADMIN", ORIGINS);
+    expect(overview.link).toBeNull();
+    expect(overview.pulse).toBeNull();
+  });
+
+  it("leaves a visitor's blocks alone, because the admin report endpoints were never theirs to read", () => {
+    const parts = toOverviewParts({
+      ...rawFull,
+      reports: null,
+      fileReports: null,
+    });
+    const overview = buildOverview(parts, "USER", ORIGINS);
+    expect(overview.link?.active).toBe(47);
+    expect(overview.pulse?.nodes).toBe(2);
   });
 
   it("nulls the pulse block when Pulse itself failed, even though Link's report endpoints answered", () => {
@@ -496,6 +531,7 @@ describe("toOverviewParts", () => {
       link: null,
       pulse: null,
       reports: [],
+      reportsRead: false,
     });
   });
 
