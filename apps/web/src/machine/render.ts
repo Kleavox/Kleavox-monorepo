@@ -3,13 +3,18 @@ import type { AccessRole, BayCode, MachineState } from "./state";
 import type { MachineModel } from "../estate-adapter";
 
 const BAYS: readonly BayCode[] = ["1", "2", "3"];
-const ROLES: readonly AccessRole[] = ["guest", "visitor", "owner"];
 const OTP_LENGTH = 6;
 
 const PRODUCT: Record<BayCode, string> = {
   "1": "LINK",
   "2": "PULSE",
   "3": "PORT",
+};
+
+const TITLE: Record<BayCode, string> = {
+  "1": "Link",
+  "2": "Pulse",
+  "3": "Portfolio",
 };
 
 const CABINET_WORD: Record<AccessRole, string> = {
@@ -26,18 +31,22 @@ const PASS_WORD: Record<AccessRole, string> = {
 
 type ScreenCopy = { main: string; sub: string };
 
-function requiredRole(bay: BayCode): AccessRole {
-  return ROLES.find((role) => permits(role, bay)) ?? "owner";
+function passWord(bay: BayCode): string {
+  return permits("visitor", bay) ? "visitor" : "owner";
 }
 
 function denialReason(bay: BayCode): string {
-  const role = requiredRole(bay);
-  if (role === "guest") return "BAY UNAVAILABLE";
-  return `${role.toUpperCase()} PASS REQUIRED`;
+  return `${passWord(bay).toUpperCase()} PASS REQUIRED`;
+}
+
+function cartridgeName(bay: BayCode, access: AccessRole): string {
+  const state = permits(access, bay)
+    ? "ready"
+    : `${passWord(bay)} pass required`;
+  return `Select ${TITLE[bay]}, bay ${bay}, ${state}`;
 }
 
 function triesLeft(left: number): string {
-  if (left === 0) return "NO TRIES LEFT";
   return left === 1 ? "1 TRY LEFT" : `${left} TRIES LEFT`;
 }
 
@@ -96,7 +105,12 @@ function screenCopy(state: MachineState, model: MachineModel): ScreenCopy {
   if (state.status === "granted") {
     return { main: "PASS ACCEPTED", sub: "SELECT A BAY" };
   }
-  return { main: model.screen, sub: "SELECT A BAY" };
+  return {
+    main: model.screen,
+    sub: model.screen.includes("UNREADABLE")
+      ? "PRESS GO TO RETRY"
+      : "SELECT A BAY",
+  };
 }
 
 function write(root: ParentNode, selector: string, value: string): void {
@@ -179,8 +193,12 @@ export function render(
     const backlight = root.querySelector<HTMLElement>(
       `[data-bay="${bay}"] [data-backlight]`,
     );
-    if (backlight === null) continue;
-    backlight.dataset.lit = String(lit.get(bay) === true);
+    if (backlight !== null) {
+      backlight.dataset.lit = String(lit.get(bay) === true);
+    }
+    root
+      .querySelector(`[data-cartridge="${bay}"]`)
+      ?.setAttribute("aria-label", cartridgeName(bay, state.access));
   }
 
   const copy = screenCopy(state, model);

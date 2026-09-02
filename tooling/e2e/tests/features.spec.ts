@@ -753,7 +753,7 @@ async function mintToken(
 async function mintOtp(email: string, code: string): Promise<void> {
   const key = `otp:${await hashOf(email.trim().toLowerCase())}`;
   const record = JSON.stringify({
-    codeHash: await hashOf(code),
+    codeHash: await hashOf(`${email.trim().toLowerCase()}:${code}`),
     attempts: 0,
   }).replaceAll('"', '\\"');
   execSync(
@@ -829,6 +829,13 @@ test("otp: an unknown email becomes an account that still needs setup", async ()
   });
 
   expect(response.status()).toBe(200);
+  const minted = response.headers()["set-cookie"] ?? "";
+  expect(minted).toContain("__Secure-kleavox_session=");
+  expect(
+    minted,
+    "locally every origin shares the host localhost and cookies ignore port, " +
+      "so host-only is correct here; a Domain would be one the browser refuses",
+  ).not.toContain("Domain=");
   expect(await response.json()).toMatchObject({
     authenticated: true,
     needsSetup: true,

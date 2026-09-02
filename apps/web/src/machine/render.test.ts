@@ -155,6 +155,42 @@ describe("render", () => {
     expect(main(element)).toBe("1 DENIED, VISITOR PASS REQUIRED");
   });
 
+  it("labels each cartridge for the person standing at the machine, not for a fixed role", () => {
+    const element = root();
+    render(element, initialState("guest"), model);
+    expect(attr(element, "[data-cartridge='2']", "aria-label")).toBe(
+      "Select Pulse, bay 2, owner pass required",
+    );
+    expect(attr(element, "[data-cartridge='1']", "aria-label")).toBe(
+      "Select Link, bay 1, visitor pass required",
+    );
+    expect(attr(element, "[data-cartridge='3']", "aria-label")).toBe(
+      "Select Portfolio, bay 3, ready",
+    );
+
+    render(element, initialState("owner"), ownerModel);
+    expect(attr(element, "[data-cartridge='2']", "aria-label")).toBe(
+      "Select Pulse, bay 2, ready",
+    );
+    expect(attr(element, "[data-cartridge='1']", "aria-label")).toBe(
+      "Select Link, bay 1, ready",
+    );
+  });
+
+  it("offers a way back when the estate could not be read", () => {
+    const element = root();
+    render(element, initialState("owner"), {
+      ...ownerModel,
+      screen: "ESTATE UNREADABLE",
+    });
+    expect(main(element)).toBe("ESTATE UNREADABLE");
+    expect(sub(element)).toBe("PRESS GO TO RETRY");
+
+    render(element, initialState("owner"), ownerModel);
+    expect(main(element)).toBe("2 NEED ATTENTION");
+    expect(sub(element)).toBe("SELECT A BAY");
+  });
+
   it("counts the email code out of the reducer's buffer", () => {
     const element = root();
     for (const digits of ["", "4", "48", "486", "4861", "48619", "486192"]) {

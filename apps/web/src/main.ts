@@ -1,4 +1,4 @@
-import { displayHandle } from "@kleavox/core";
+import { displayHandle, type Identity } from "@kleavox/core";
 import "@kleavox/ui/styles.css";
 import "./styles/global.css";
 import "./styles/machine.css";
@@ -34,8 +34,7 @@ import {
   type MachineState,
 } from "./machine/state";
 
-type Identified = { username?: string; email?: string; role?: string };
-type GatewaySession = { authenticated: boolean; identity?: Identified };
+type GatewaySession = { authenticated: boolean; identity?: Identity };
 
 const BAY_CODES: readonly BayCode[] = ["1", "2", "3"];
 const PRESSABLE = new Set([
@@ -61,6 +60,8 @@ let state: MachineState = initialState("guest");
 let otpEmail = "";
 let checking = false;
 let bridging: AbortController | null = null;
+let faultWords: string | null = null;
+let retrying = false;
 
 const keypad = createKeypad();
 
@@ -75,10 +76,15 @@ const terminalError = document.querySelector<HTMLElement>(
 );
 
 function paint(): void {
-  render(document, state, model);
+  render(
+    document,
+    state,
+    faultWords === null ? model : { ...model, screen: faultWords },
+  );
 }
 
 function dispatch(event: MachineEvent): MachineState {
+  faultWords = null;
   state = reduce(state, event);
   paint();
   return state;
@@ -87,8 +93,9 @@ function dispatch(event: MachineEvent): MachineState {
 const host: MachineHost = { read: () => state, dispatch };
 
 function fault(words: string): void {
-  model = { ...model, screen: words };
-  dispatch({ type: "reset" });
+  state = reduce(state, { type: "reset" });
+  faultWords = words;
+  paint();
 }
 
 function messageOf(error: unknown): string {
@@ -225,6 +232,39 @@ async function readEstate(): Promise<Overview | null> {
   }
 }
 
+function estateUnread(): boolean {
+  return (faultWords ?? model.screen).includes("UNREADABLE");
+}
+
+async function retryEstate(): Promise<void> {
+  if (retrying) return;
+  retrying = true;
+  try {
+    let session: GatewaySession;
+    try {
+      session = await readSession();
+    } catch {
+      fault("SESSION STILL UNREADABLE");
+      return;
+    }
+    const overview = session.authenticated ? await readEstate() : null;
+    model = toMachineModel(session, overview);
+    paintHeader(headerCounts(session, overview));
+    paintAccount(session);
+    if (model.access === "guest") {
+      dispatch({ type: "pass-removed" });
+      return;
+    }
+    if (model.screen.includes("UNREADABLE")) {
+      fault("ESTATE STILL UNREADABLE");
+      return;
+    }
+    dispatch({ type: "reset" });
+  } finally {
+    retrying = false;
+  }
+}
+
 async function dispense(bay: BayCode): Promise<void> {
   try {
     await runDispense(dispatch, bay);
@@ -266,7 +306,11 @@ function openMethods(): void {
   if (state.access !== "guest") return;
   if (state.authStep !== "closed" || state.status === "reading") return;
   const reading = dispatch({ type: "pass-tap" });
-  if (reading.status === "reading") dispatch({ type: "reader-scanned" });
+  if (reading.status !== "reading") return;
+  const chosen = dispatch({ type: "reader-scanned" });
+  if (chosen.authStep === "methods" && terminal && !terminal.open) {
+    terminal.showModal();
+  }
 }
 
 async function tapPass(): Promise<void> {
@@ -281,8 +325,8 @@ async function tapPass(): Promise<void> {
   }
 }
 
-async function adoptPass(role: string | undefined): Promise<void> {
-  const session: GatewaySession = { authenticated: true, identity: { role } };
+async function adoptPass(identity: Identity): Promise<void> {
+  const session: GatewaySession = { authenticated: true, identity };
   const overview = await readEstate();
   model = toMachineModel(session, overview);
   paintHeader(headerCounts(session, overview));
@@ -351,8 +395,16 @@ async function submitCode(code: string): Promise<void> {
   keypad.reset();
   keypad.setMode("selector");
   dispatch({ type: "verifying" });
+
+  if (verified.needsSetup) {
+    const welcome = new URL("/welcome", PASS_ORIGIN);
+    welcome.searchParams.set("returnTo", window.location.href);
+    window.location.assign(welcome.toString());
+    return;
+  }
+
   try {
-    await adoptPass(verified.user.role);
+    await adoptPass(verified.user);
   } catch {
     fault("PASS ACCEPTED, MACHINE DID NOT WAKE");
   }
@@ -383,6 +435,10 @@ async function pressKey(key: string): Promise<void> {
 
   if (otp && key === "GO" && keypad.digits().length === OTP_LENGTH) {
     await submitCode(keypad.digits());
+    return;
+  }
+  if (!otp && key === "GO" && result.kind === "ignored" && estateUnread()) {
+    await retryEstate();
     return;
   }
   if (result.kind === "selected") {
@@ -480,7 +536,7 @@ async function boot(): Promise<void> {
   const overview = session.authenticated ? await readEstate() : null;
   model = toMachineModel(session, overview);
   if (unread) model = { ...model, screen: "SESSION UNREADABLE" };
-  paintHeader(headerCounts(session, overview));
+  paintHeader(unread ? UNREADABLE_COUNTS : headerCounts(session, overview));
   paintAccount(session);
 
   const remembered = takeRememberedRequest();

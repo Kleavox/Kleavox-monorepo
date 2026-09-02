@@ -71,14 +71,6 @@ export function mountTerminal(root: ParentNode): void {
   const terminal = root.querySelector<HTMLDialogElement>("[data-terminal]");
   if (!terminal) return;
 
-  for (const opener of root.querySelectorAll<HTMLButtonElement>(
-    "[data-terminal-open]",
-  )) {
-    opener.addEventListener("click", () => {
-      if (!terminal.open) terminal.showModal();
-    });
-  }
-
   for (const closer of root.querySelectorAll<HTMLButtonElement>(
     "[data-terminal-close]",
   )) {

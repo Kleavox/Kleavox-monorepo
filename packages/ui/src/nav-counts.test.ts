@@ -258,8 +258,8 @@ describe("a header that cannot read the estate", () => {
       expect(displayFor(unreadable)).not.toBe(displayFor(notLoaded));
 
       expect(severityFor(unreadable)).toBe("warn");
-      expect(padClass(severityFor(unreadable))).toContain("kvx-pad-warn");
-      expect(padClass(severityFor(notLoaded))).toBe("");
+      expect(padClass("warn")).toContain("kvx-pad-warn");
+      expect(severityFor(notLoaded)).toBeNull();
 
       expect(nameFor(tool, "items", unreadable)).toBe(`${tool}, unknown`);
       expect(nameFor(tool, "items", unreadable)).not.toBe(

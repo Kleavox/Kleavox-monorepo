@@ -31,14 +31,14 @@ const full: OverviewParts = {
     checksFailing: 0,
     down: [{ name: "probe-node-814361", lastSignal: "2026-08-25T16:22:00Z" }],
     openIncidents: 0,
-    openReports: [
-      {
-        slug: "probereport814361",
-        reason: "malware",
-        since: "2026-08-25T09:40:33Z",
-      },
-    ],
   },
+  reports: [
+    {
+      slug: "probereport814361",
+      reason: "malware",
+      since: "2026-08-25T09:40:33Z",
+    },
+  ],
 };
 
 describe("buildOverview", () => {
@@ -67,12 +67,12 @@ describe("buildOverview", () => {
           nodes: 2,
           checksFailing: 0,
           openIncidents: 0,
-          openReports: [],
           down: [
             { name: "newer", lastSignal: "2026-08-25T17:00:00Z" },
             { name: "older", lastSignal: "2026-08-25T09:00:00Z" },
           ],
         },
+        reports: [],
       },
       "ADMIN",
       ORIGINS,
@@ -106,14 +106,14 @@ describe("buildOverview", () => {
           checksFailing: 0,
           openIncidents: 0,
           down: [],
-          openReports: [
-            {
-              slug: "just-opened",
-              reason: "SPAM",
-              since: new Date(now - 5 * 60 * 1000).toISOString(),
-            },
-          ],
         },
+        reports: [
+          {
+            slug: "just-opened",
+            reason: "SPAM",
+            since: new Date(now - 5 * 60 * 1000).toISOString(),
+          },
+        ],
       },
       "ADMIN",
       ORIGINS,
@@ -145,7 +145,7 @@ describe("buildOverview", () => {
 
   it("degrades to null when an upstream failed, rather than rejecting or reporting zero", () => {
     const overview = buildOverview(
-      { pass: null, link: null, pulse: null },
+      { pass: null, link: null, pulse: null, reports: [] },
       "ADMIN",
       ORIGINS,
     );
@@ -155,13 +155,17 @@ describe("buildOverview", () => {
     expect(overview.attention).toEqual([]);
   });
 
-  it("still reports the tools that answered when one upstream failed", () => {
+  it("still reports the tools that answered when one upstream failed, and keeps the abuse reports Pulse would have shown", () => {
     const overview = buildOverview({ ...full, pulse: null }, "ADMIN", ORIGINS);
     expect(overview.link?.active).toBe(12);
     expect(overview.pulse).toBeNull();
-    expect(
-      overview.attention.every((item) => item.kind === "link-expiring"),
-    ).toBe(true);
+    expect(overview.attention.map((item) => item.kind).sort()).toEqual([
+      "abuse-report",
+      "link-expiring",
+    ]);
+    expect(overview.attention.every((item) => item.kind !== "node-down")).toBe(
+      true,
+    );
   });
 
   it("builds hrefs from the origins it was given, never from upstream strings", () => {
@@ -285,10 +289,10 @@ describe("toOverviewParts", () => {
     expect(slugs).toEqual(["f_soonExpiring"]);
   });
 
-  it("counts only open link reports and open file reports as reported, and surfaces both under pulse", () => {
+  it("counts only open link reports and open file reports as reported, and lists both", () => {
     const parts = toOverviewParts(rawFull);
     expect(parts.link?.reported).toBe(2);
-    expect(parts.pulse?.openReports).toEqual([
+    expect(parts.reports).toEqual([
       {
         slug: "bad-link",
         reason: "MALWARE",
@@ -305,13 +309,13 @@ describe("toOverviewParts", () => {
   it("a null file-reports response still surfaces open link reports", () => {
     const parts = toOverviewParts({ ...rawFull, fileReports: null });
     expect(parts.link?.reported).toBe(1);
-    expect(parts.pulse?.openReports.map((r) => r.slug)).toEqual(["bad-link"]);
+    expect(parts.reports.map((r) => r.slug)).toEqual(["bad-link"]);
   });
 
   it("a null link-reports response still surfaces open file reports", () => {
     const parts = toOverviewParts({ ...rawFull, reports: null });
     expect(parts.link?.reported).toBe(1);
-    expect(parts.pulse?.openReports.map((r) => r.slug)).toEqual(["f_bad_file"]);
+    expect(parts.reports.map((r) => r.slug)).toEqual(["f_bad_file"]);
   });
 
   it("treats an enrolled node with no last signal as down", () => {
@@ -434,37 +438,51 @@ describe("toOverviewParts", () => {
     expect(overview.attention).toEqual([]);
   });
 
-  it("a null links response zeroes only the routes count, not files or reports", () => {
+  it("nulls the whole link block when the routes page failed, rather than reporting zero routes", () => {
     const parts = toOverviewParts({ ...rawFull, links: null });
-    expect(parts.link?.active).toBe(0);
-    expect(parts.link?.files).toBe(3);
-    expect(parts.link?.reported).toBe(2);
+    expect(parts.link).toBeNull();
+    expect(parts.reports.map((r) => r.slug)).toEqual([
+      "bad-link",
+      "f_bad_file",
+    ]);
   });
 
-  it("a null reports and file-reports response zeroes only the reports fields, not the pulse node data", () => {
+  it("nulls the whole link block when the drops list failed, rather than reporting zero files", () => {
+    const parts = toOverviewParts({ ...rawFull, drops: null });
+    expect(parts.link).toBeNull();
+  });
+
+  it("a null reports and file-reports response empties the report list without touching the pulse fleet", () => {
     const parts = toOverviewParts({
       ...rawFull,
       reports: null,
       fileReports: null,
     });
     expect(parts.link?.reported).toBe(0);
-    expect(parts.pulse?.openReports).toEqual([]);
+    expect(parts.reports).toEqual([]);
     expect(parts.pulse?.nodes).toBe(2);
     expect(parts.pulse?.down.map((node) => node.name)).toEqual(["node-b"]);
   });
 
-  it("a null pulseRows response zeroes only the fleet fields, keeping reports flowing", () => {
+  it("nulls the pulse block when Pulse itself failed, even though Link's report endpoints answered", () => {
     const parts = toOverviewParts({ ...rawFull, pulseRows: null });
-    expect(parts.pulse?.nodes).toBe(0);
-    expect(parts.pulse?.down).toEqual([]);
-    expect(parts.pulse?.checksFailing).toBe(0);
-    expect(parts.pulse?.openReports.map((r) => r.slug)).toEqual([
+    expect(parts.pulse).toBeNull();
+    expect(parts.reports.map((r) => r.slug)).toEqual([
       "bad-link",
       "f_bad_file",
     ]);
   });
 
-  it("degrades every field to null or zero when all six upstreams failed", () => {
+  it("keeps the abuse reports in the payload's attention list when the pulse block is null", () => {
+    const parts = toOverviewParts({ ...rawFull, pulseRows: null });
+    const overview = buildOverview(parts, "ADMIN", ORIGINS);
+    expect(overview.pulse).toBeNull();
+    expect(
+      overview.attention.filter((item) => item.kind === "abuse-report").length,
+    ).toBe(2);
+  });
+
+  it("degrades every field to null or empty when all six upstreams failed", () => {
     const parts = toOverviewParts({
       sessions: null,
       links: null,
@@ -473,7 +491,12 @@ describe("toOverviewParts", () => {
       fileReports: null,
       pulseRows: null,
     });
-    expect(parts).toEqual({ pass: null, link: null, pulse: null });
+    expect(parts).toEqual({
+      pass: null,
+      link: null,
+      pulse: null,
+      reports: [],
+    });
   });
 
   it("normalizes a SQLite-format last_seen_at to ISO-8601 UTC, not local time", () => {
@@ -547,7 +570,7 @@ describe("toOverviewParts", () => {
       fileReports: null,
       pulseRows: null,
     });
-    expect(parts.pulse?.openReports).toEqual([
+    expect(parts.reports).toEqual([
       {
         slug: "sqlite-report",
         reason: "SPAM",

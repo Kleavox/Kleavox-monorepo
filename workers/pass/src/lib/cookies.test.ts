@@ -31,6 +31,26 @@ describe("session cookies", () => {
     expect(cookie).not.toContain("Domain=");
   });
 
+  it("emits no domain at all when it is handed an internal hostname", () => {
+    const cookie = makeSessionCookie(
+      new Request("http://pass.internal/api/auth/otp/verify"),
+      env,
+      "secret",
+    );
+
+    expect(cookie).not.toContain("Domain=");
+  });
+
+  it("scopes a session minted on the proxied auth path to every Kleavox origin", () => {
+    const cookie = makeSessionCookie(
+      new Request("https://pass.product.test/api/auth/otp/verify"),
+      env,
+      "secret",
+    );
+
+    expect(cookie).toContain("Domain=.product.test");
+  });
+
   it("clears the same cookie", () => {
     expect(
       clearSessionCookie(

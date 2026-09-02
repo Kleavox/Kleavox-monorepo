@@ -17,8 +17,14 @@ describe("machine model", () => {
       {
         role: "ADMIN",
         pass: { devices: 1 },
-        link: null,
-        pulse: null,
+        link: { active: 3, files: 0, reported: 1, expiringSoon: 0 },
+        pulse: {
+          nodes: 2,
+          down: 1,
+          checksFailing: 0,
+          openIncidents: 0,
+          openReports: 1,
+        },
         attention: [{ kind: "node-down" }, { kind: "abuse-report" }],
       } as never,
     );
@@ -118,6 +124,56 @@ describe("a partially unreadable estate is never mistaken for a quiet one", () =
       } as never,
     );
     expect(model.screen).toBe("NOTHING NEEDS YOU");
+  });
+});
+
+describe("a definite count is never printed over an estate that is only partly read", () => {
+  it("hedges the count when a permitted block could not be read", () => {
+    const model = toMachineModel(
+      { authenticated: true, identity: { role: "ADMIN" } },
+      {
+        role: "ADMIN",
+        pass: { devices: 1 },
+        link: { active: 0, files: 0, reported: 0, expiringSoon: 0 },
+        pulse: null,
+        attention: [{ kind: "abuse-report" }, { kind: "link-expiring" }],
+      } as never,
+    );
+    expect(model.screen).toBe("AT LEAST 2 NEED ATTENTION");
+  });
+
+  it("states the count plainly when every permitted block was read", () => {
+    const model = toMachineModel(
+      { authenticated: true, identity: { role: "ADMIN" } },
+      {
+        role: "ADMIN",
+        pass: { devices: 1 },
+        link: { active: 0, files: 0, reported: 0, expiringSoon: 0 },
+        pulse: {
+          nodes: 1,
+          down: 0,
+          checksFailing: 0,
+          openIncidents: 0,
+          openReports: 0,
+        },
+        attention: [{ kind: "abuse-report" }, { kind: "link-expiring" }],
+      } as never,
+    );
+    expect(model.screen).toBe("2 NEED ATTENTION");
+  });
+
+  it("does not hedge for a visitor whose only silent block is one they may not see", () => {
+    const model = toMachineModel(
+      { authenticated: true, identity: { role: "USER" } },
+      {
+        role: "USER",
+        pass: { devices: 1 },
+        link: { active: 0, files: 0, reported: 0, expiringSoon: 0 },
+        pulse: null,
+        attention: [{ kind: "link-expiring" }],
+      } as never,
+    );
+    expect(model.screen).toBe("1 NEED ATTENTION");
   });
 });
 

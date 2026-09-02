@@ -41,12 +41,13 @@ function screenFor(
 ): string {
   if (access === "guest") return "INSERT PASS";
   if (overview === null || counts === null) return "ESTATE UNREADABLE";
+  const full = estateFullyRead(counts.indicators);
   if (overview.attention.length > 0) {
-    return `${overview.attention.length} NEED ATTENTION`;
+    return full
+      ? `${overview.attention.length} NEED ATTENTION`
+      : `AT LEAST ${overview.attention.length} NEED ATTENTION`;
   }
-  return estateFullyRead(counts.indicators)
-    ? "NOTHING NEEDS YOU"
-    : "ESTATE UNREADABLE";
+  return full ? "NOTHING NEEDS YOU" : "ESTATE UNREADABLE";
 }
 
 export function toMachineModel(

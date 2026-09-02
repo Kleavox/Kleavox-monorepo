@@ -1,9 +1,9 @@
 import type { Indicator, Severity } from "./nav-counts";
 
-export function padClass(severity: Severity | null): string {
-  if (severity === "danger") return "kvx-pad kvx-pad-danger";
-  if (severity === "warn") return "kvx-pad kvx-pad-warn";
-  return "";
+export function padClass(severity: Severity): string {
+  return severity === "danger"
+    ? "kvx-pad kvx-pad-danger"
+    : "kvx-pad kvx-pad-warn";
 }
 
 export function displayFor(indicator: Indicator | undefined): string | null {

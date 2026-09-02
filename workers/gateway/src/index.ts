@@ -4,6 +4,7 @@ import { isFileSlug, isReservedSlug, renderErrorPage } from "@kleavox/core";
 import {
   INTERNAL_HOSTS,
   localWorkerOrigin,
+  publicHost,
   publicOrigin,
 } from "@kleavox/topology";
 import { Hono } from "hono";
@@ -319,7 +320,21 @@ app.all("/link-assets/*", (context) => {
   return context.env.LINK.fetch(new Request(url, context.req.raw));
 });
 
-app.all("/api/auth/*", async (context) => {
+const PASS_AUTH_ROUTES = ["/api/auth/otp/start", "/api/auth/otp/verify"];
+
+function passCookieUrl(requestUrl: string, publicOriginUrl: string): URL {
+  const url = new URL(requestUrl);
+  const rootDomain = new URL(publicOriginUrl).hostname.toLowerCase();
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === rootDomain || hostname.endsWith(`.${rootDomain}`)) {
+    url.protocol = "https:";
+    url.hostname = publicHost(rootDomain, "pass");
+    url.port = "";
+  }
+  return url;
+}
+
+app.on("POST", PASS_AUTH_ROUTES, async (context) => {
   const origin = context.req.header("origin");
   const requestOrigin = new URL(context.req.url).origin;
   const trustedOrigins = new Set([context.env.PUBLIC_ORIGIN, requestOrigin]);
@@ -327,9 +342,7 @@ app.all("/api/auth/*", async (context) => {
     return context.json({ code: "INVALID_ORIGIN" }, 403);
   }
 
-  const url = new URL(context.req.url);
-  url.protocol = "http:";
-  url.hostname = INTERNAL_HOSTS.PASS;
+  const url = passCookieUrl(context.req.url, context.env.PUBLIC_ORIGIN);
   const headers = new Headers(context.req.raw.headers);
   headers.set("origin", url.origin);
   headers.delete("referer");
@@ -338,9 +351,7 @@ app.all("/api/auth/*", async (context) => {
     new Request(url, {
       method: context.req.method,
       headers,
-      body: ["GET", "HEAD"].includes(context.req.method)
-        ? undefined
-        : context.req.raw.body,
+      body: context.req.raw.body,
       duplex: "half",
     } as RequestInit & { duplex: "half" }),
   );

@@ -76,7 +76,7 @@
                       type="button"
                       data-cartridge="1"
                       data-href="{{LINK_HREF}}"
-                      aria-label="Select Link, bay 1, visitor pass required"
+                      aria-label="Select Link, bay 1"
                     >
                       <span class="cartridge__detail"></span>
                       <span class="cartridge__name">LINK</span>
@@ -97,7 +97,7 @@
                       type="button"
                       data-cartridge="2"
                       data-href="{{PULSE_HREF}}"
-                      aria-label="Select Pulse, bay 2, owner pass required"
+                      aria-label="Select Pulse, bay 2"
                     >
                       <span class="cartridge__detail"></span>
                       <span class="cartridge__name">PULSE</span>
@@ -118,7 +118,7 @@
                       type="button"
                       data-cartridge="3"
                       data-href="{{PORT_HREF}}"
-                      aria-label="Select Portfolio, bay 3, open to everyone"
+                      aria-label="Select Portfolio, bay 3"
                     >
                       <span class="cartridge__detail"></span>
                       <span class="cartridge__name">PORT</span>
@@ -213,7 +213,7 @@
                     <small data-tray-name></small>
                   </span>
                   <button class="tray-action" type="button" data-tray-action>
-                    TAKE <span data-tray-target>DELIVERY</span>
+                    TAKE DELIVERY
                   </button>
                 </div>
               </div>
@@ -237,14 +237,7 @@
             </span>
           </button>
 
-          <button
-            class="console-scrim"
-            type="button"
-            data-scrim
-            tabindex="-1"
-            aria-hidden="true"
-            aria-label="Close the control panel"
-          ></button>
+          <div class="console-scrim" data-scrim aria-hidden="true"></div>
 
           <aside
             class="control-column"
@@ -369,9 +362,9 @@
       <span class="screen-transfer__grid" aria-hidden="true"></span>
       <div class="screen-transfer__cartridge">
         <div class="screen-transfer__copy">
-          <span data-transfer-kicker>ROUTE ESTABLISHED</span>
+          <span>ROUTE ESTABLISHED</span>
           <strong data-transfer-name>KLEAVOX</strong>
-          <small data-transfer-status>DECODING INTERFACE, KVX-GW-01</small>
+          <small>DECODING INTERFACE, KVX-GW-01</small>
         </div>
         <span class="screen-transfer__rail" aria-hidden="true"
           ><i></i><i></i><i></i
@@ -403,9 +396,7 @@
         <section class="terminal__summary" aria-label="Access request">
           <span class="terminal__kicker">ACCESS REQUEST</span>
           <h2 id="terminal-title">CABINET ACCESS</h2>
-          <p data-terminal-copy>
-            A Kleavox Pass unlocks the bays your role can take.
-          </p>
+          <p>A Kleavox Pass unlocks the bays your role can take.</p>
           <dl>
             <dt>TERMINAL</dt>
             <dd>KVX-GW-01</dd>

@@ -205,7 +205,7 @@ describe("Gateway estate endpoint", () => {
     expect(response.headers.get("vary")).toBe("Origin");
   });
 
-  it("degrades only the malformed part when an upstream answers 200 with a wrong-shaped body", async () => {
+  it("silences the whole link block when one of its own upstreams answers 200 with a wrong-shaped body, and keeps the other tools", async () => {
     const passFetch = vi.fn(async (url: string) => {
       if (url.includes("/internal/session")) {
         return Response.json({ identity: { id: "u1", role: "ADMIN" } });
@@ -267,10 +267,18 @@ describe("Gateway estate endpoint", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      pass: { devices: 1 },
-      link: { active: 0, files: 1, reported: 1 },
-    });
+    const degraded = (await response.json()) as {
+      pass: unknown;
+      link: unknown;
+      pulse: { openReports: number } | null;
+      attention: Array<{ kind: string }>;
+    };
+    expect(degraded.pass).toEqual({ devices: 1 });
+    expect(degraded.link).toBeNull();
+    expect(degraded.pulse?.openReports).toBe(1);
+    expect(degraded.attention.map((item) => item.kind)).toContain(
+      "abuse-report",
+    );
   });
 
   it("reports a fully failed upstream as null, never as an all-zero block", async () => {
@@ -436,7 +444,7 @@ describe("Gateway auth proxy", () => {
     PUBLIC_ORIGIN: "https://kleavox.xyz",
   };
 
-  it("hands /api/auth/* to Pass on the internal host", async () => {
+  it("hands Pass a hostname under the root domain, so the session it mints is scoped to every Kleavox origin", async () => {
     const seen: { host: string; origin: string | null }[] = [];
     const env = {
       ...baseEnv,
@@ -453,7 +461,7 @@ describe("Gateway auth proxy", () => {
     } as unknown as Env;
 
     const response = await app.request(
-      "https://kleavox.xyz/api/auth/otp/start",
+      "https://kleavox.xyz/api/auth/otp/verify",
       {
         method: "POST",
         headers: {
@@ -466,8 +474,43 @@ describe("Gateway auth proxy", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(seen[0]!.host).toBe("pass.internal");
-    expect(seen[0]!.origin).toBe("http://pass.internal");
+    expect(seen[0]!.host).toBe("pass.kleavox.xyz");
+    expect(seen[0]!.origin).toBe("https://pass.kleavox.xyz");
+    expect(seen[0]!.host.endsWith(".kleavox.xyz")).toBe(true);
+  });
+
+  it("keeps the request's own hostname when it is not under the root domain, so a local session is not scoped to a domain the browser would refuse", async () => {
+    const seen: { host: string; origin: string | null }[] = [];
+    const env = {
+      ...baseEnv,
+      PUBLIC_ORIGIN: "https://example.test",
+      PASS: {
+        fetch: async (input: Request) => {
+          seen.push({
+            host: new URL(input.url).host,
+            origin: input.headers.get("origin"),
+          });
+          return new Response("{}", { status: 200 });
+        },
+      },
+    } as unknown as Env;
+
+    const response = await app.request(
+      "http://localhost:8786/api/auth/otp/verify",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:8786",
+        },
+        body: "{}",
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(seen[0]!.host).toBe("localhost:8786");
+    expect(seen[0]!.origin).toBe("http://localhost:8786");
   });
 
   it("forwards a request whose Origin matches the request URL's own origin, even when PUBLIC_ORIGIN is different", async () => {
@@ -500,7 +543,7 @@ describe("Gateway auth proxy", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(seen[0]!.host).toBe("pass.internal");
+    expect(seen[0]!.host).toBe("kleavox.xyz");
   });
 
   it("forwards a request whose Origin matches PUBLIC_ORIGIN, even when the request URL's own host is different", async () => {
@@ -533,7 +576,54 @@ describe("Gateway auth proxy", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(seen[0]!.host).toBe("pass.internal");
+    expect(seen[0]!.host).toBe("staging-gateway.example");
+  });
+
+  it("does not hand Pass a path it has no route for", async () => {
+    const passFetch = vi.fn(
+      async () => new Response("<html>pass-single-page-app</html>"),
+    );
+    const assetsFetch = vi.fn(
+      async () => new Response("nope", { status: 404 }),
+    );
+    const env = {
+      ...baseEnv,
+      PUBLIC_ORIGIN: "https://kleavox.xyz",
+      PASS: { fetch: passFetch },
+      ASSETS: { fetch: assetsFetch },
+    } as unknown as Env;
+
+    const response = await app.request(
+      "https://kleavox.xyz/api/auth/anything",
+      { headers: { accept: "text/html" } },
+      env,
+    );
+
+    expect(passFetch).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toContain("pass-single-page-app");
+  });
+
+  it("does not hand Pass a GET to an auth route that only answers POST", async () => {
+    const passFetch = vi.fn(
+      async () => new Response("<html>pass-single-page-app</html>"),
+    );
+    const env = {
+      ...baseEnv,
+      PUBLIC_ORIGIN: "https://kleavox.xyz",
+      PASS: { fetch: passFetch },
+      ASSETS: {
+        fetch: vi.fn(async () => new Response("nope", { status: 404 })),
+      },
+    } as unknown as Env;
+
+    await app.request(
+      "https://kleavox.xyz/api/auth/otp/start",
+      { headers: { origin: "https://kleavox.xyz", accept: "text/html" } },
+      env,
+    );
+
+    expect(passFetch).not.toHaveBeenCalled();
   });
 
   it("refuses to launder a cross-site origin into Pass", async () => {
@@ -643,7 +733,7 @@ describe("Gateway auth proxy", () => {
     expect(seen[0]).toBe("/api/auth/otp/verify?flow=vending");
   });
 
-  it("forwards the method and body unchanged for a same-origin PUT", async () => {
+  it("forwards the method and body unchanged", async () => {
     const seen: { method: string; body: string }[] = [];
     const env = {
       ...baseEnv,
@@ -659,7 +749,7 @@ describe("Gateway auth proxy", () => {
     await app.request(
       "https://kleavox.xyz/api/auth/otp/verify",
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           "content-type": "application/json",
           origin: "https://kleavox.xyz",
@@ -669,59 +759,7 @@ describe("Gateway auth proxy", () => {
       env,
     );
 
-    expect(seen[0]!.method).toBe("PUT");
+    expect(seen[0]!.method).toBe("POST");
     expect(seen[0]!.body).toBe('{"code":"123456"}');
-  });
-
-  it("forwards a same-origin GET request with its method intact and no body", async () => {
-    const seen: { method: string; body: string }[] = [];
-    const env = {
-      ...baseEnv,
-      PUBLIC_ORIGIN: "https://kleavox.xyz",
-      PASS: {
-        fetch: async (input: Request) => {
-          seen.push({ method: input.method, body: await input.text() });
-          return new Response("{}", { status: 200 });
-        },
-      },
-    } as unknown as Env;
-
-    await app.request(
-      "https://kleavox.xyz/api/auth/otp/status",
-      {
-        method: "GET",
-        headers: { origin: "https://kleavox.xyz" },
-      },
-      env,
-    );
-
-    expect(seen[0]!.method).toBe("GET");
-    expect(seen[0]!.body).toBe("");
-  });
-
-  it("forwards a same-origin HEAD request with its method intact and no body", async () => {
-    const seen: { method: string; body: string }[] = [];
-    const env = {
-      ...baseEnv,
-      PUBLIC_ORIGIN: "https://kleavox.xyz",
-      PASS: {
-        fetch: async (input: Request) => {
-          seen.push({ method: input.method, body: await input.text() });
-          return new Response("{}", { status: 200 });
-        },
-      },
-    } as unknown as Env;
-
-    await app.request(
-      "https://kleavox.xyz/api/auth/otp/status",
-      {
-        method: "HEAD",
-        headers: { origin: "https://kleavox.xyz" },
-      },
-      env,
-    );
-
-    expect(seen[0]!.method).toBe("HEAD");
-    expect(seen[0]!.body).toBe("");
   });
 });

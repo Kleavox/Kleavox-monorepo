@@ -62,8 +62,20 @@ export function registerOtpRoutes(app: PassApp): void {
     }
 
     const ip = clientIp(context.req.raw);
-    const limit = await rateLimit(context.env, "otp-verify-ip", ip, 20, 900);
-    if (!limit.allowed) return rateLimitError(context, limit.retryAfter);
+    const ipLimit = await rateLimit(context.env, "otp-verify-ip", ip, 20, 900);
+    const emailLimit = await rateLimit(
+      context.env,
+      "otp-verify-email",
+      body.data.email,
+      10,
+      900,
+    );
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      return rateLimitError(
+        context,
+        Math.max(ipLimit.retryAfter, emailLimit.retryAfter),
+      );
+    }
 
     const result = await verifyOtp(
       context.env,
@@ -139,6 +151,13 @@ export function registerOtpRoutes(app: PassApp): void {
       user.auth_version,
       sessionClient(context.req.raw),
     );
+    await context.env.DB.prepare(
+      `UPDATE users
+       SET last_login_at = datetime('now'), updated_at = datetime('now')
+       WHERE id = ?`,
+    )
+      .bind(user.id)
+      .run();
     await safeAudit(context.env, {
       userId: user.id,
       type: "otp_login_succeeded",

@@ -82,10 +82,6 @@ describe("severityFor", () => {
 });
 
 describe("padClass", () => {
-  it("draws no pad for a quiet or absent severity", () => {
-    expect(padClass(null)).toBe("");
-  });
-
   it("draws the warn pad", () => {
     expect(padClass("warn")).toBe("kvx-pad kvx-pad-warn");
   });

@@ -502,6 +502,131 @@ describe("POST /api/auth/otp/verify", () => {
     ).toBe(false);
   });
 
+  it("records the sign-in as a login, the way password and OAuth sign-ins both do", async () => {
+    const store = kvStore();
+    const email = "logged@example.com";
+    const db = dbStub({
+      id: "user-3",
+      email,
+      username: "someone",
+      role: "USER",
+      email_verified_at: "2020-01-01T00:00:00.000Z",
+      auth_version: 1,
+      disabled_at: null,
+      identity_id: null,
+      password_hash: null,
+    });
+    const env = { ...baseEnv, SESSIONS: store, DB: db } as unknown as Env;
+    const code = await issueOtp(env, email);
+
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit(email, code),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      db.prepare.mock.calls.some((call) =>
+        /last_login_at\s*=/i.test(call[0] as string),
+      ),
+    ).toBe(true);
+  });
+
+  it("scopes the session cookie to the whole root domain when the gateway proxies the call on a public Pass hostname", async () => {
+    const store = kvStore();
+    const email = "proxied@example.com";
+    const db = dbStub({
+      id: "user-4",
+      email,
+      username: "someone",
+      role: "USER",
+      email_verified_at: "2020-01-01T00:00:00.000Z",
+      auth_version: 1,
+      disabled_at: null,
+      identity_id: null,
+      password_hash: null,
+    });
+    const env = { ...baseEnv, SESSIONS: store, DB: db } as unknown as Env;
+    const code = await issueOtp(env, email);
+
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit(email, code),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Set-Cookie")).toContain(
+      "Domain=.product.test",
+    );
+  });
+
+  it("cannot scope the session cookie at all when it is handed an internal hostname", async () => {
+    const store = kvStore();
+    const email = "internal@example.com";
+    const db = dbStub({
+      id: "user-5",
+      email,
+      username: "someone",
+      role: "USER",
+      email_verified_at: "2020-01-01T00:00:00.000Z",
+      auth_version: 1,
+      disabled_at: null,
+      identity_id: null,
+      password_hash: null,
+    });
+    const env = { ...baseEnv, SESSIONS: store, DB: db } as unknown as Env;
+    const code = await issueOtp(env, email);
+
+    const response = await app.request(
+      "http://pass.internal/api/auth/otp/verify",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://pass.internal",
+        },
+        body: JSON.stringify({ email, code }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Set-Cookie")).not.toContain("Domain=");
+  });
+
+  it("rate limits verification per email, not only per IP", async () => {
+    const store = new Map<string, string>();
+    const email = "hammered@example.com";
+    const windowSeconds = 900;
+    const bucket = Math.floor(Date.now() / (windowSeconds * 1000));
+    store.set(
+      `rate:otp-verify-email:${await hashToken(email)}:${bucket}`,
+      "10",
+    );
+    const env = {
+      ...baseEnv,
+      DB: { prepare: vi.fn() },
+      SESSIONS: {
+        get: async (k: string) => store.get(k) ?? null,
+        put: async (k: string, v: string) => void store.set(k, v),
+        delete: async (k: string) => void store.delete(k),
+      },
+    } as unknown as Env;
+
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/verify",
+      otpVerifyInit(email, "000000"),
+      env,
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "rate_limited",
+    });
+  });
+
   it("fills email_verified_at for an existing but unverified user, and reports setup is needed", async () => {
     const store = kvStore();
     const email = "unverified@example.com";

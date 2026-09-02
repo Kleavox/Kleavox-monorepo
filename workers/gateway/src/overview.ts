@@ -36,13 +36,19 @@ interface PulseSummary {
   checksFailing: number;
   openIncidents: number;
   down: Array<{ name: string; lastSignal: string }>;
-  openReports: Array<{ slug: string; reason: string; since: string }>;
+}
+
+interface OpenReport {
+  slug: string;
+  reason: string;
+  since: string;
 }
 
 export interface OverviewParts {
   pass: PassSummary | null;
   link: LinkSummary | null;
   pulse: PulseSummary | null;
+  reports: OpenReport[];
 }
 
 type ViewerRole = "ADMIN" | "USER";
@@ -102,7 +108,7 @@ export function buildOverview(
     });
   }
 
-  for (const report of parts.pulse?.openReports ?? []) {
+  for (const report of parts.reports) {
     attention.push({
       kind: "abuse-report",
       severity: "warn",
@@ -150,7 +156,7 @@ export function buildOverview(
           down: parts.pulse.down.length,
           checksFailing: parts.pulse.checksFailing,
           openIncidents: parts.pulse.openIncidents,
-          openReports: parts.pulse.openReports.length,
+          openReports: parts.reports.length,
         }
       : null,
     attention,
@@ -280,73 +286,61 @@ export function toOverviewParts(raw: RawOverviewParts): OverviewParts {
   const openFileReports = (raw.fileReports?.reports ?? []).filter(
     (report) => report.status === "OPEN",
   );
-  const reportsKnown = raw.reports !== null || raw.fileReports !== null;
-  const reportedCount = openLinkReports.length + openFileReports.length;
+  const reports: OpenReport[] = [
+    ...openLinkReports.map((report) => ({
+      slug: report.slug ?? report.id,
+      reason: report.reason,
+      since: toIso(report.created_at),
+    })),
+    ...openFileReports.map((report) => ({
+      slug: report.public_token ?? report.id,
+      reason: report.reason,
+      since: toIso(report.created_at),
+    })),
+  ];
 
   const link: LinkSummary | null =
-    raw.links || raw.drops || reportsKnown
+    raw.links && raw.drops
       ? {
-          active: raw.links?.meta.total ?? 0,
-          files: raw.drops?.drops.length ?? 0,
-          reported: reportsKnown ? reportedCount : 0,
-          expiring: raw.drops
-            ? raw.drops.drops
-                .filter(
-                  (drop) =>
-                    drop.status === "ACTIVE" && isExpiringSoon(drop.expiresAt),
-                )
-                .map((drop) => ({
-                  slug: drop.publicToken,
-                  filename: drop.name,
-                  downloads: drop.downloadCount,
-                  expiresAt: drop.expiresAt,
-                }))
-            : [],
+          active: raw.links.meta.total,
+          files: raw.drops.drops.length,
+          reported: reports.length,
+          expiring: raw.drops.drops
+            .filter(
+              (drop) =>
+                drop.status === "ACTIVE" && isExpiringSoon(drop.expiresAt),
+            )
+            .map((drop) => ({
+              slug: drop.publicToken,
+              filename: drop.name,
+              downloads: drop.downloadCount,
+              expiresAt: drop.expiresAt,
+            })),
         }
       : null;
 
-  const pulse: PulseSummary | null =
-    raw.pulseRows || reportsKnown
-      ? {
-          nodes: raw.pulseRows?.nodes.length ?? 0,
-          checksFailing: raw.pulseRows
-            ? raw.pulseRows.checks.filter(
-                (check) => Boolean(check.enabled) && check.status === "DOWN",
-              ).length
-            : 0,
-          openIncidents: raw.pulseRows
-            ? raw.pulseRows.incidents.filter(
-                (incident) => incident.status === "OPEN",
-              ).length
-            : 0,
-          down: raw.pulseRows
-            ? raw.pulseRows.nodes
-                .filter((node) => nodeState(node) === "offline")
-                .map((node) => ({
-                  name: node.name,
-                  lastSignal: toIso(node.last_seen_at ?? node.enrolled_at),
-                }))
-            : [],
-          openReports: reportsKnown
-            ? [
-                ...openLinkReports.map((report) => ({
-                  slug: report.slug ?? report.id,
-                  reason: report.reason,
-                  since: toIso(report.created_at),
-                })),
-                ...openFileReports.map((report) => ({
-                  slug: report.public_token ?? report.id,
-                  reason: report.reason,
-                  since: toIso(report.created_at),
-                })),
-              ]
-            : [],
-        }
-      : null;
+  const pulse: PulseSummary | null = raw.pulseRows
+    ? {
+        nodes: raw.pulseRows.nodes.length,
+        checksFailing: raw.pulseRows.checks.filter(
+          (check) => Boolean(check.enabled) && check.status === "DOWN",
+        ).length,
+        openIncidents: raw.pulseRows.incidents.filter(
+          (incident) => incident.status === "OPEN",
+        ).length,
+        down: raw.pulseRows.nodes
+          .filter((node) => nodeState(node) === "offline")
+          .map((node) => ({
+            name: node.name,
+            lastSignal: toIso(node.last_seen_at ?? node.enrolled_at),
+          })),
+      }
+    : null;
 
   return {
     pass: raw.sessions ? { devices: raw.sessions.sessions.length } : null,
     link,
     pulse,
+    reports,
   };
 }

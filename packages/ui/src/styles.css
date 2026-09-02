@@ -91,6 +91,7 @@
 
   /* Motion is punctuation, not atmosphere. Nothing animates forever. */
   --kvx-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --kvx-t0: 40ms;
   --kvx-t1: 120ms;
   --kvx-t2: 180ms;
   --kvx-t3: 320ms;

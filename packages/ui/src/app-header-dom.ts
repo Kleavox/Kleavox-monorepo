@@ -63,8 +63,7 @@ export function renderAppHeader(
 
     if (!active && severity !== null) {
       const pad = document.createElement("span");
-      const className = padClass(severity);
-      if (className) pad.className = className;
+      pad.className = padClass(severity);
       pad.setAttribute("aria-hidden", "true");
       link.append(pad);
     }

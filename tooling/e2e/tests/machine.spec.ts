@@ -36,12 +36,18 @@ test("the cabinet holds exactly nine bays, three of them filled", async ({
   await expect(page.locator("[data-cartridge]")).toHaveCount(3);
 });
 
-test("each filled bay offers a named button", async ({ page }) => {
+test("each filled bay offers a button named for the person standing there", async ({
+  page,
+}) => {
   await page.goto("/");
+  await expect(
+    page.locator("[data-cartridge='1']"),
+    "the static markup names the bay without a role claim, so this can only pass after render",
+  ).toHaveAttribute("aria-label", "Select Link, bay 1, visitor pass required");
   for (const name of [
     "Select Link, bay 1, visitor pass required",
     "Select Pulse, bay 2, owner pass required",
-    "Select Portfolio, bay 3, open to everyone",
+    "Select Portfolio, bay 3, ready",
   ]) {
     await expect(page.getByRole("button", { name, exact: true })).toHaveCount(
       1,
@@ -994,6 +1000,10 @@ test.describe("with a real pass in the machine", () => {
     const guestContext = await browser.newContext();
     const guest = await guestContext.newPage();
     await guest.goto(GATEWAY);
+    await expect(
+      guest.locator("[data-cartridge='2']"),
+      "the guest half must read a painted label, not the static markup",
+    ).toHaveAttribute("aria-label", "Select Pulse, bay 2, owner pass required");
     await expect(guest.locator("[data-cabinet-state]")).toHaveText(
       "GUEST MODE",
     );
@@ -1016,6 +1026,13 @@ test.describe("with a real pass in the machine", () => {
       "data-access",
       "owner",
     );
+    await expect(
+      signedIn.getByRole("button", {
+        name: "Select Pulse, bay 2, ready",
+        exact: true,
+      }),
+      "an owner must not be told they need an owner pass",
+    ).toHaveCount(1);
     const ownerLamp = await lampColour(signedIn);
     const ownerBays = await signedIn.evaluate(() =>
       ["1", "2", "3"].map(
@@ -1042,6 +1059,54 @@ test.describe("with a real pass in the machine", () => {
       "1",
     );
     await expect(signedIn.locator("[data-screen]")).toContainText("LINK");
+  });
+
+  test("the pass terminal cannot walk a signed-in owner back into the sign-in chooser", async () => {
+    await signedIn.goto(GATEWAY);
+    await expect(signedIn.locator("[data-cabinet-state]")).toHaveText(
+      "OWNER MODE",
+    );
+    await expect(signedIn.locator("[data-terminal-state]")).toHaveText(
+      "SIGNED IN",
+    );
+
+    await signedIn.locator("[data-terminal-open]").click();
+    await expect(signedIn.locator("[data-terminal]")).toBeHidden();
+    await expect(
+      signedIn.locator("[data-terminal-provider='google']"),
+    ).toBeHidden();
+    await expect(signedIn.locator("[data-cabinet-state]")).toHaveText(
+      "OWNER MODE",
+    );
+  });
+
+  test("GO retries a failed estate read, says so when it fails again, and clears once it succeeds", async () => {
+    let failing = true;
+    await signedIn.route("**/api/estate", async (route) => {
+      if (failing) {
+        await route.fulfill({ status: 500, body: "{}" });
+        return;
+      }
+      await route.continue();
+    });
+    await signedIn.goto(GATEWAY);
+
+    const screen = signedIn.locator("[data-screen]");
+    await expect(screen).toHaveText("ESTATE UNREADABLE");
+    await expect(signedIn.locator("[data-screen-sub]")).toHaveText(
+      "PRESS GO TO RETRY",
+    );
+
+    await signedIn.locator("[data-key='GO']").click();
+    await expect(screen).toHaveText("ESTATE STILL UNREADABLE");
+
+    failing = false;
+    await signedIn.locator("[data-key='GO']").click();
+    await expect(screen).not.toContainText("UNREADABLE", { timeout: 20_000 });
+    await expect(signedIn.locator("[data-screen-sub]")).toHaveText(
+      "SELECT A BAY",
+    );
+    await signedIn.unroute("**/api/estate");
   });
 
   test("Pulse is public in the footer, signed in or not", async ({
@@ -1072,6 +1137,14 @@ test("a broken session endpoint is a fault, not a calm guest", async ({
   const screen = page.locator("[data-screen]");
   await expect(screen).toContainText("UNREADABLE");
   await expect(screen).toBeVisible();
+
+  const counts = page.locator(".kvx-nav-count");
+  await expect(
+    counts,
+    "an unreadable session must not render the header of a calm guest",
+  ).toHaveCount(3);
+  await expect(counts).toHaveText(["--", "--", "--"]);
+  await expect(page.locator(".kvx-nav-tool .kvx-pad-warn")).toHaveCount(3);
 });
 
 async function reachOtpMode(page: Page): Promise<void> {
@@ -1179,6 +1252,67 @@ test.describe("codes typed on the machine keypad", () => {
     expect(verifies).toBe(1);
   });
 
+  test("the machine greets a code sign-in by name, not as a generic account", async ({
+    browser,
+  }) => {
+    const fresh = await browser.newContext();
+    const page = await fresh.newPage();
+    await page.route("**/api/auth/otp/verify", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          authenticated: true,
+          user: {
+            id: "probe",
+            email: "namedprobe@example.com",
+            username: "namedprobe",
+            role: "USER",
+          },
+          needsSetup: false,
+        }),
+      }),
+    );
+    await page.goto(GATEWAY);
+    await reachOtpMode(page);
+    await typeCode(page, "123456");
+
+    await expect(page.locator("[data-cabinet-state]")).toHaveText(
+      "VISITOR MODE",
+    );
+    await expect(page.locator("[data-account-name]")).toHaveText("namedprobe");
+    await fresh.close();
+  });
+
+  test("a code sign-in with no username lands on the Pass welcome step", async ({
+    browser,
+  }) => {
+    const fresh = await browser.newContext();
+    const page = await fresh.newPage();
+    await page.route("**/api/auth/otp/verify", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          authenticated: true,
+          user: {
+            id: "probe",
+            email: "setupprobe@example.com",
+            username: null,
+            role: "USER",
+          },
+          needsSetup: true,
+        }),
+      }),
+    );
+    await page.goto(GATEWAY);
+    await reachOtpMode(page);
+    await typeCode(page, "123456");
+
+    await expect(page).toHaveURL(/\/welcome\?returnTo=/, { timeout: 20_000 });
+    await fresh.close();
+  });
+
   test("a second code cannot race the first one being checked", async ({
     page,
   }) => {
@@ -1210,6 +1344,37 @@ test.describe("codes typed on the machine keypad", () => {
   });
 });
 
+test("a fault holds the screen until the next touch, then the estate line comes back", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(GATEWAY);
+  await expect(page.locator("[data-dock-screen]")).toHaveText("INSERT PASS");
+
+  await page.evaluate(() => {
+    document.querySelector<HTMLElement>("[data-cartridge='3']")!.dataset.href =
+      "http://";
+  });
+  await page.locator("[data-cartridge='3']").click();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+  await page.locator("[data-tray-action]").click();
+
+  await expect(page.locator("[data-dock-screen]")).toHaveText(
+    "BRIDGE FAILED, TRY AGAIN",
+    { timeout: 15_000 },
+  );
+  await expect(page.locator("[data-transfer]")).toHaveAttribute(
+    "data-transfer",
+    "none",
+  );
+
+  await page.locator("[data-dock]").click();
+  await expect(
+    page.locator("[data-dock-screen]"),
+    "a fault must not overwrite the estate line for the life of the page",
+  ).toHaveText("INSERT PASS");
+});
+
 test("cancel still leaves the bridge after the transfer has resolved", async ({
   page,
 }) => {
@@ -1230,4 +1395,90 @@ test("cancel still leaves the bridge after the transfer has resolved", async ({
   await page.locator("[data-transfer-cancel]").click();
   await expect(bridge).toHaveAttribute("data-transfer", "none");
   await expect(page.locator("[data-tray-action]")).toBeFocused();
+});
+
+test.describe("with a visitor pass in the machine", () => {
+  test.describe.configure({ mode: "serial" });
+
+  let context: BrowserContext;
+  let visitor: Page;
+
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(180_000);
+    context = await browser.newContext();
+    visitor = await context.newPage();
+    await signedInAs(visitor, "probevisitor", "USER");
+  });
+
+  test.afterAll(async () => {
+    await context?.close();
+  });
+
+  test("a visitor choosing PULSE is refused in words, and the cartridge stays in its bay", async () => {
+    await visitor.goto(GATEWAY);
+    await expect(visitor.locator("[data-cabinet-state]")).toHaveText(
+      "VISITOR MODE",
+    );
+    await expect(visitor.locator("[data-machine]")).toHaveAttribute(
+      "data-access",
+      "visitor",
+    );
+
+    await visitor.locator("[data-cartridge='2']").click();
+    await expect(visitor.locator("[data-screen]")).toHaveText(
+      "2 DENIED, OWNER PASS REQUIRED",
+    );
+    await expect(visitor.locator("[data-tray]")).toHaveAttribute(
+      "data-tray",
+      "none",
+    );
+    await expect(visitor.locator("[data-machine]")).toHaveAttribute(
+      "data-status",
+      "denied",
+    );
+  });
+
+  test("a visitor's bays and cartridge names follow the pass they hold", async () => {
+    await visitor.goto(GATEWAY);
+    await expect(visitor.locator("[data-cartridge='1']")).toHaveAttribute(
+      "aria-label",
+      "Select Link, bay 1, ready",
+    );
+    const bays = await visitor.evaluate(() =>
+      ["1", "2", "3"].map(
+        (bay) =>
+          document.querySelector<HTMLElement>(
+            `[data-bay="${bay}"] [data-backlight]`,
+          )!.dataset.lit,
+      ),
+    );
+    expect(bays).toEqual(["true", "false", "true"]);
+    await expect(
+      visitor.getByRole("button", {
+        name: "Select Pulse, bay 2, owner pass required",
+        exact: true,
+      }),
+    ).toHaveCount(1);
+  });
+
+  test("a visitor's header keeps Pulse dark rather than raising a permanent alarm", async () => {
+    await visitor.goto(GATEWAY);
+    const pulseTool = visitor.locator('.kvx-nav-tool[aria-label^="pulse,"]');
+    await expect(pulseTool).toHaveAttribute("aria-label", "pulse, locked");
+    await expect(pulseTool.locator(".kvx-nav-count")).toHaveCount(0);
+    await expect(pulseTool.locator(".kvx-pad-warn")).toHaveCount(0);
+    await expect(
+      visitor.locator('.kvx-nav-tool[aria-label^="link,"] .kvx-nav-count'),
+    ).toHaveCount(1);
+  });
+
+  test("a visitor can still take the bay their pass opens", async () => {
+    await visitor.goto(GATEWAY);
+    await visitor.locator("[data-cartridge='1']").click();
+    await expect(visitor.locator("[data-tray]")).toHaveAttribute(
+      "data-tray",
+      "1",
+    );
+    await expect(visitor.locator("[data-screen]")).toContainText("LINK");
+  });
 });

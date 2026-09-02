@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { hashToken } from "./crypto";
 import { issueOtp, verifyOtp } from "./otp";
 
 import type { Env } from "../env";
@@ -90,6 +91,28 @@ describe("otp", () => {
     const { env, store } = fakeEnv();
     await issueOtp(env, "a@example.com");
     expect(JSON.stringify([...store.keys()])).not.toContain("a@example.com");
+  });
+
+  it("does not store a hash of the bare code, so one table cannot cover every account", async () => {
+    const { env, store } = fakeEnv();
+    const code = await issueOtp(env, "a@example.com");
+    const stored = JSON.parse([...store.values()][0]!) as { codeHash: string };
+
+    expect(stored.codeHash).not.toBe(await hashToken(code));
+    expect(stored.codeHash).toBe(await hashToken(`a@example.com:${code}`));
+  });
+
+  it("refuses a record lifted from one email's key onto another's, even with the right code", async () => {
+    const { env, store } = fakeEnv();
+    const code = await issueOtp(env, "a@example.com");
+    const [aKey, aRecord] = [...store.entries()][0]!;
+    await issueOtp(env, "b@example.com");
+    const bKey = [...store.keys()].find((key) => key !== aKey)!;
+    store.set(bKey, aRecord);
+
+    expect(await verifyOtp(env, "b@example.com", code)).toMatchObject({
+      status: "wrong",
+    });
   });
 
   it("burns the code once it is accepted", async () => {
