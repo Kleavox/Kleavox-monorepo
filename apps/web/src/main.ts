@@ -301,7 +301,7 @@ async function takeDelivery(): Promise<void> {
       controller.signal,
     );
   } catch {
-    fault("BRIDGE FAILED, TRY AGAIN");
+    fault("BRIDGE FAILED, RELEASE IT AGAIN");
   } finally {
     if (bridging === controller) bridging = null;
   }

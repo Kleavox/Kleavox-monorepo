@@ -244,14 +244,25 @@ describe("busy", () => {
   });
 });
 
-describe("a dispense that fails", () => {
+describe("a machine put back after a fault", () => {
   it("returns the machine to idle instead of hanging on busy", () => {
     const owner = initialState("owner");
     const dispensing = reduce(owner, { type: "select", bay: "1" });
-    const failed = reduce(dispensing, { type: "dispense-failed" });
+    const failed = reduce(dispensing, { type: "reset" });
     expect(failed.status).toBe("idle");
     expect(failed.busy).toBe(false);
     expect(failed.tray).toBeNull();
+  });
+
+  it("keeps the bay a guest was denied, so a later pass still opens it", () => {
+    const guest = initialState("guest");
+    const denied = reduce(guest, { type: "select", bay: "1" });
+    expect(denied.authRequest).toBe("1");
+    const recovered = reduce(denied, { type: "reset" });
+    expect(recovered.authRequest).toBe("1");
+    expect(
+      reduce(recovered, { type: "pass-issued", access: "visitor" }).status,
+    ).toBe("dispensing");
   });
 });
 

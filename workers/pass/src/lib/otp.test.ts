@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashToken } from "./crypto";
 import { issueOtp, verifyOtp } from "./otp";
 
@@ -6,15 +6,41 @@ import type { Env } from "../env";
 
 function fakeEnv(): { env: Env; store: Map<string, string> } {
   const store = new Map<string, string>();
+  const expiry = new Map<string, number>();
+  const live = (key: string): string | null => {
+    const at = expiry.get(key);
+    if (at !== undefined && Date.now() >= at) {
+      store.delete(key);
+      expiry.delete(key);
+      return null;
+    }
+    return store.get(key) ?? null;
+  };
   const env = {
     SESSIONS: {
-      get: async (key: string) => store.get(key) ?? null,
-      put: async (key: string, value: string) => void store.set(key, value),
-      delete: async (key: string) => void store.delete(key),
+      get: async (key: string) => live(key),
+      put: async (
+        key: string,
+        value: string,
+        options?: { expirationTtl?: number },
+      ) => {
+        store.set(key, value);
+        expiry.set(key, Date.now() + (options?.expirationTtl ?? 60) * 1000);
+      },
+      delete: async (key: string) => {
+        store.delete(key);
+        expiry.delete(key);
+      },
     },
   } as unknown as Env;
   return { env, store };
 }
+
+const MINUTE = 60_000;
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("otp", () => {
   it("issues a six digit code", async () => {
@@ -112,6 +138,63 @@ describe("otp", () => {
 
     expect(await verifyOtp(env, "b@example.com", code)).toMatchObject({
       status: "wrong",
+    });
+  });
+
+  it("accepts the code up to the deadline it was issued with", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T00:00:00Z"));
+    const { env } = fakeEnv();
+    const code = await issueOtp(env, "a@example.com");
+    vi.setSystemTime(new Date("2026-09-03T00:09:00Z"));
+    expect(await verifyOtp(env, "a@example.com", code)).toEqual({
+      status: "ok",
+    });
+  });
+
+  it("refuses the code once its ten minutes are up", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T00:00:00Z"));
+    const { env } = fakeEnv();
+    const code = await issueOtp(env, "a@example.com");
+    vi.setSystemTime(new Date("2026-09-03T00:10:01Z"));
+    expect(await verifyOtp(env, "a@example.com", code)).toEqual({
+      status: "expired",
+    });
+  });
+
+  it("keeps the first deadline when a wrong code is tried near it", async () => {
+    vi.useFakeTimers();
+    const issued = new Date("2026-09-03T00:00:00Z").getTime();
+    vi.setSystemTime(issued);
+    const { env } = fakeEnv();
+    const code = await issueOtp(env, "a@example.com");
+
+    vi.setSystemTime(issued + 9 * MINUTE);
+    expect(await verifyOtp(env, "a@example.com", "000000")).toEqual({
+      status: "wrong",
+      attemptsLeft: 4,
+    });
+
+    vi.setSystemTime(issued + 11 * MINUTE);
+    expect(
+      await verifyOtp(env, "a@example.com", code),
+      "a wrong guess must not buy the code another ten minutes",
+    ).toEqual({ status: "expired" });
+  });
+
+  it("gives a fresh deadline to a code issued after the first one lapsed", async () => {
+    vi.useFakeTimers();
+    const issued = new Date("2026-09-03T00:00:00Z").getTime();
+    vi.setSystemTime(issued);
+    const { env } = fakeEnv();
+    await issueOtp(env, "a@example.com");
+
+    vi.setSystemTime(issued + 11 * MINUTE);
+    const second = await issueOtp(env, "a@example.com");
+    vi.setSystemTime(issued + 20 * MINUTE);
+    expect(await verifyOtp(env, "a@example.com", second)).toEqual({
+      status: "ok",
     });
   });
 

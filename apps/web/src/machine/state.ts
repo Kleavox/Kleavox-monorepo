@@ -36,7 +36,6 @@ export type MachineEvent =
   | { type: "tray-ready" }
   | { type: "activate-tray" }
   | { type: "cancel" }
-  | { type: "dispense-failed" }
   | { type: "reset" };
 
 export type MachineHost = {
@@ -208,16 +207,6 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
       };
     }
 
-    case "dispense-failed": {
-      return {
-        ...state,
-        status: "idle",
-        busy: false,
-        tray: null,
-        selection: null,
-      };
-    }
-
     case "reset": {
       return {
         ...state,
@@ -226,7 +215,6 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
         tray: null,
         busy: false,
         authStep: "closed",
-        authRequest: null,
         screenTransfer: null,
         authDigits: "",
         authAttemptsLeft: null,
