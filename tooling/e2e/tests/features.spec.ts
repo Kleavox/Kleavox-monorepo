@@ -3,6 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { localWorkerOrigin } from "@kleavox/topology";
+import {
+  clearRateLimits,
+  freshAccount,
+  passSql,
+  PROBE_PASSWORD,
+} from "./pass-account";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -16,85 +22,20 @@ const LINK = localWorkerOrigin("link", "localhost");
 const PULSE = localWorkerOrigin("pulse", "localhost");
 const GATEWAY = localWorkerOrigin("gateway", "localhost");
 
-const password = "probe-password-1";
 const run = Date.now().toString().slice(-6);
 const admin = { user: "probeops", email: "probeops@example.com" };
 
 let context: BrowserContext;
 let page: Page;
 let problems: string[] = [];
+let expectFailure = false;
 
 const passDir = path.join(repoRoot, "workers", "pass");
-
-function passSql(command: string): void {
-  execSync(
-    `pnpm exec wrangler d1 execute local-pass --local --command "${command}"`,
-    { cwd: passDir, stdio: "pipe" },
-  );
-}
-
-function clearRateLimits(): void {
-  let listed = "";
-  try {
-    listed = execSync(
-      "pnpm exec wrangler kv key list --binding SESSIONS --local",
-      { cwd: passDir, stdio: "pipe" },
-    ).toString();
-  } catch {
-    return;
-  }
-  const start = listed.indexOf("[");
-  if (start < 0) return;
-  let keys: Array<{ name: string }> = [];
-  try {
-    keys = JSON.parse(listed.slice(start)) as Array<{ name: string }>;
-  } catch {
-    return;
-  }
-  for (const key of keys) {
-    if (!key.name.startsWith("rate:")) continue;
-    try {
-      execSync(
-        `pnpm exec wrangler kv key delete --binding SESSIONS --local "${key.name}"`,
-        { cwd: passDir, stdio: "pipe" },
-      );
-    } catch {
-      // a key that expired between listing and deleting is not a problem
-    }
-  }
-}
-
-async function freshAccount(
-  target: Page,
-  label: string,
-): Promise<{ user: string; email: string }> {
-  clearRateLimits();
-  const account = {
-    user: `${label}${run}`.slice(0, 20),
-    email: `${label}-${run}@example.com`,
-  };
-  await target.goto(`${PASS}/`);
-  await target.getByRole("button", { name: "Create an account" }).click();
-  await target.locator('input[name="username"]').fill(account.user);
-  await target.locator('input[name="email"]').fill(account.email);
-  await target.locator('input[name="password"]').fill(password);
-  await target.locator('input[name="confirm-password"]').fill(password);
-  await target
-    .getByRole("button", { name: "Create account", exact: true })
-    .click();
-  await expect(target.getByText("Check your email")).toBeVisible({
-    timeout: 20000,
-  });
-  passSql(
-    `UPDATE users SET email_verified_at = datetime('now') WHERE email = '${account.email}'`,
-  );
-  return account;
-}
 
 async function attempt(): Promise<string | null> {
   await page.goto(`${PASS}/`);
   await page.locator('input[name="email"]').fill(admin.email);
-  await page.locator('input[name="password"]').fill(password);
+  await page.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   const landed = page.getByRole("heading", { name: admin.user });
   const failed = page.locator(".pass-status-error");
@@ -110,10 +51,12 @@ test.beforeAll(async ({ browser }) => {
   page = await context.newPage();
   problems = [];
   page.on("console", (message) => {
+    if (expectFailure) return;
     if (message.type() === "error") problems.push("console: " + message.text());
   });
   page.on("pageerror", (error) => problems.push("pageerror: " + error.message));
   page.on("response", (response) => {
+    if (expectFailure) return;
     if (response.status() >= 400 && response.url().includes("/api/")) {
       problems.push(response.status() + " " + response.url());
     }
@@ -132,8 +75,8 @@ test.beforeAll(async ({ browser }) => {
   await page.getByRole("button", { name: "Create an account" }).click();
   await page.locator('input[name="username"]').fill(admin.user);
   await page.locator('input[name="email"]').fill(admin.email);
-  await page.locator('input[name="password"]').fill(password);
-  await page.locator('input[name="confirm-password"]').fill(password);
+  await page.locator('input[name="password"]').fill(PROBE_PASSWORD);
+  await page.locator('input[name="confirm-password"]').fill(PROBE_PASSWORD);
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
@@ -153,9 +96,7 @@ test.afterAll(async () => {
 
 test("pulse: enroll a node and manage its checks", async () => {
   await page.goto(`${PULSE}/`);
-  await expect(
-    page.getByRole("heading", { name: "See every host." }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^pulse:/ })).toBeVisible();
 
   await page.getByRole("button", { name: "Enroll node" }).click();
   await page.getByLabel("Node label").fill(`probe-node-${run}`);
@@ -221,32 +162,37 @@ test("link: short link lifecycle and edit", async () => {
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
 
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
   await expect(
-    page.locator(".link-row").first(),
+    page.locator(".link-activity-row").first(),
     "a link created a second ago belongs at the top of the activity list",
   ).toContainText(slug);
 
+  await row.hover();
   await row.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(
     row.getByRole("button", { name: "Resume", exact: true }),
   ).toBeVisible();
+  await row.hover();
   await row.getByRole("button", { name: "Resume", exact: true }).click();
   await expect(
     row.getByRole("button", { name: "Pause", exact: true }),
   ).toBeVisible();
 
+  await row.hover();
   await row.getByRole("button", { name: "Stats", exact: true }).click();
   await expect(page.locator(".link-stats")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".link-stats")).toHaveCount(0);
 
+  await row.hover();
   await row.getByRole("button", { name: "QR", exact: true }).click();
   await expect(page.locator(".link-qr")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".link-qr")).toHaveCount(0);
 
+  await row.hover();
   await row.getByRole("button", { name: "Edit", exact: true }).click();
   const editor = page.locator(".link-edit");
   await expect(editor).toBeVisible();
@@ -256,11 +202,14 @@ test("link: short link lifecycle and edit", async () => {
   await editor.getByRole("button", { name: "Save" }).click();
   await expect(editor).toHaveCount(0, { timeout: 20000 });
   await expect(
-    page.locator(".link-row", { hasText: "example.com/moved-here" }),
+    page.locator(".link-activity-row", { hasText: "example.com/moved-here" }),
   ).toBeVisible();
 
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -273,14 +222,14 @@ test("link: an abuse report reaches the Pulse inbox", async () => {
     .fill("https://example.com/reported");
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toBeVisible({
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toBeVisible({
     timeout: 20000,
   });
 
   await page.goto(`${LINK}/report`);
-  await expect(
-    page.getByRole("heading", { name: "Report a link" }),
-  ).toBeVisible();
+  await expect(page.getByText("Report a link")).toBeVisible();
 
   const form = page.locator("form");
   await form.locator("input").first().fill(slug);
@@ -318,12 +267,11 @@ async function ringless(selectors: string[]): Promise<string[]> {
 test("every form control shows where the keyboard is", async () => {
   await page.goto(`${LINK}/`);
   expect(
-    await ringless([
-      ".drop-options select",
-      ".drop-options input",
-      ".link-field input",
-      ".link-prefix-input input",
-    ]),
+    await ringless([".link-field input", ".link-prefix-input input"]),
+  ).toEqual([]);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
+  expect(
+    await ringless([".drop-options select", ".drop-options input"]),
   ).toEqual([]);
 
   await page.goto(`${PULSE}/`);
@@ -349,7 +297,7 @@ test("a modal opened from a hovered row still covers the page", async () => {
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
 
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
   await row.hover();
   await row.getByRole("button", { name: "Stats", exact: true }).click();
@@ -367,8 +315,11 @@ test("a modal opened from a hovered row still covers the page", async () => {
   expect(covers).toBe(true);
 
   await page.keyboard.press("Escape");
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -454,7 +405,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
     .fill("https://example.com/dialog");
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toBeVisible({
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toBeVisible({
     timeout: 20000,
   });
 
@@ -463,8 +416,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
       "Stats",
       async () => {
         await page.goto(`${LINK}/`);
-        await page
-          .locator(".link-row", { hasText: slug })
+        const openerRow = page.locator(".link-activity-row", { hasText: slug });
+        await openerRow.hover();
+        await openerRow
           .getByRole("button", { name: "Stats", exact: true })
           .click();
       },
@@ -473,8 +427,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
       "QR",
       async () => {
         await page.goto(`${LINK}/`);
-        await page
-          .locator(".link-row", { hasText: slug })
+        const openerRow = page.locator(".link-activity-row", { hasText: slug });
+        await openerRow.hover();
+        await openerRow
           .getByRole("button", { name: "QR", exact: true })
           .click();
       },
@@ -483,8 +438,9 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
       "Edit",
       async () => {
         await page.goto(`${LINK}/`);
-        await page
-          .locator(".link-row", { hasText: slug })
+        const openerRow = page.locator(".link-activity-row", { hasText: slug });
+        await openerRow.hover();
+        await openerRow
           .getByRole("button", { name: "Edit", exact: true })
           .click();
       },
@@ -550,11 +506,12 @@ test("a modal names itself, keeps the keyboard, and freezes the page behind", as
   expect(problemsFound).toEqual([]);
 
   await page.goto(`${LINK}/`);
-  await page
-    .locator(".link-row", { hasText: slug })
-    .getByRole("button", { name: "Delete", exact: true })
-    .click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  const finalRow = page.locator(".link-activity-row", { hasText: slug });
+  await finalRow.hover();
+  await finalRow.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -584,11 +541,11 @@ test("pass: the account page lists devices and can revoke one", async () => {
 
 test("pass: every session control says which device it acts on", async () => {
   await page.goto(`${PASS}/`);
-  await expect(page.locator(".pass-device").first()).toBeVisible({
+  await expect(page.locator(".pass-row-device").first()).toBeVisible({
     timeout: 20000,
   });
   const names = await page
-    .locator(".pass-device button")
+    .locator(".pass-row-device button")
     .evaluateAll((nodes) =>
       nodes.map(
         (node) => node.getAttribute("aria-label") || node.textContent || "",
@@ -600,6 +557,7 @@ test("pass: every session control says which device it acts on", async () => {
 
 test("link: a drop can be created, opened by its link, and deleted", async () => {
   await page.goto(`${LINK}/`);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
   await page.locator('.drop-zone input[type="file"]').setInputFiles({
     name: `probe-${run}.txt`,
     mimeType: "text/plain",
@@ -625,10 +583,13 @@ test("link: a drop can be created, opened by its link, and deleted", async () =>
   await viewer.close();
 
   await page.goto(`${LINK}/`);
-  const dropRow = page.locator(".link-row", { hasText: `probe-${run}.txt` });
+  const dropRow = page.locator(".link-activity-row", {
+    hasText: `probe-${run}.txt`,
+  });
   await expect(dropRow).toBeVisible({ timeout: 20000 });
+  await dropRow.hover();
   await dropRow.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(dropRow.locator(".link-tags")).toContainText("Deleted", {
+  await expect(dropRow.locator(".kvx-row-state")).toContainText("Deleted", {
     timeout: 20000,
   });
   await expect(dropRow.getByRole("button", { name: "Delete" })).toHaveCount(0);
@@ -643,7 +604,7 @@ test("gateway: resolves a live slug, refuses a paused one, 404s an unknown one",
     .fill("https://example.com/gateway-target");
   await page.locator('input[placeholder="optional"]').fill(slug);
   await page.getByRole("button", { name: "Create link" }).click();
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
 
   const hop = await page.request.get(`${GATEWAY}/${slug}`, { maxRedirects: 0 });
@@ -656,6 +617,7 @@ test("gateway: resolves a live slug, refuses a paused one, 404s an unknown one",
   });
   expect(missing.status()).toBe(404);
 
+  await row.hover();
   await row.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(
     row.getByRole("button", { name: "Resume", exact: true }),
@@ -665,8 +627,11 @@ test("gateway: resolves a live slug, refuses a paused one, 404s an unknown one",
   });
   expect(blocked.status()).toBeGreaterThanOrEqual(400);
 
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
@@ -683,9 +648,9 @@ test("link: a password-protected short link asks before it resolves", async () =
     .fill("probe-passphrase");
   await page.getByRole("button", { name: "Create link" }).click();
 
-  const row = page.locator(".link-row", { hasText: slug });
+  const row = page.locator(".link-activity-row", { hasText: slug });
   await expect(row).toBeVisible({ timeout: 20000 });
-  await expect(row.locator(".link-tags")).toContainText("Protected");
+  await expect(row.locator(".kvx-row-detail")).toContainText("Protected");
 
   const guarded = await page.request.get(`${GATEWAY}/${slug}`, {
     maxRedirects: 0,
@@ -695,14 +660,18 @@ test("link: a password-protected short link asks before it resolves", async () =
     "a protected link must not hand out its destination",
   ).not.toBe("https://example.com/locked");
 
+  await row.hover();
   await row.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.locator(".link-row", { hasText: slug })).toHaveCount(0, {
+  await expect(
+    page.locator(".link-activity-row", { hasText: slug }),
+  ).toHaveCount(0, {
     timeout: 20000,
   });
 });
 
 test("link: a drop stops at its download limit", async () => {
   await page.goto(`${LINK}/`);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
   await page.locator('.drop-zone input[type="file"]').setInputFiles({
     name: `limit-${run}.txt`,
     mimeType: "text/plain",
@@ -748,29 +717,29 @@ test("pass: the username can be changed and changed back", async () => {
   });
 });
 
+function base64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
+}
+
+async function hashOf(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return base64Url(new Uint8Array(digest));
+}
+
 async function mintToken(
   email: string,
   purpose: "EMAIL" | "PASSWORD_RESET",
 ): Promise<string> {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  let raw = "";
-  for (const byte of bytes) raw += String.fromCharCode(byte);
-  const token = btoa(raw)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
-
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(token),
-  );
-  let binary = "";
-  for (const byte of new Uint8Array(digest))
-    binary += String.fromCharCode(byte);
-  const hash = btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
+  const token = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+  const hash = await hashOf(token);
 
   passSql(
     `INSERT INTO verification_tokens (id, user_id, purpose, token_hash, expires_at) ` +
@@ -779,6 +748,18 @@ async function mintToken(
       `FROM users WHERE email = '${email}'`,
   );
   return token;
+}
+
+async function mintOtp(email: string, code: string): Promise<void> {
+  const normalized = email.trim().toLowerCase();
+  const key = `otp:${await hashOf(normalized)}`;
+  const codeHash = await hashOf(`${normalized}:${code}`);
+  passSql(
+    `INSERT INTO otp_codes (key, code_hash, attempts, expires_at) ` +
+      `VALUES ('${key}', '${codeHash}', 0, ${Date.now() + 600_000}) ` +
+      `ON CONFLICT(key) DO UPDATE SET code_hash = excluded.code_hash, ` +
+      `attempts = 0, expires_at = excluded.expires_at`,
+  );
 }
 
 test("pass: an emailed verification token activates the account", async () => {
@@ -796,7 +777,7 @@ test("pass: an emailed verification token activates the account", async () => {
 
   await worker.goto(`${PASS}/`);
   await worker.locator('input[name="email"]').fill(account.email);
-  await worker.locator('input[name="password"]').fill(password);
+  await worker.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await worker.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(worker.getByRole("heading", { name: account.user })).toBeVisible(
     { timeout: 20000 },
@@ -829,6 +810,104 @@ test("pass: a password reset token sets a new password", async () => {
   await expect(worker.getByRole("heading", { name: account.user })).toBeVisible(
     { timeout: 20000 },
   );
+  await fresh.close();
+});
+
+test("otp: an unknown email becomes an account that still needs setup", async () => {
+  test.setTimeout(180_000);
+  clearRateLimits();
+  const email = `otp-new-${run}@example.com`;
+  const fresh = await context.browser()!.newContext();
+  const worker = await fresh.newPage();
+
+  await worker.goto(GATEWAY);
+  await mintOtp(email, "246810");
+
+  const response = await worker.request.post(`${GATEWAY}/api/auth/otp/verify`, {
+    headers: { origin: GATEWAY },
+    data: { email, code: "246810" },
+  });
+
+  expect(response.status()).toBe(200);
+  const minted = response.headers()["set-cookie"] ?? "";
+  expect(minted).toContain("__Secure-kleavox_session=");
+  expect(
+    minted,
+    "locally every origin shares the host localhost and cookies ignore port, " +
+      "so host-only is correct here; a Domain would be one the browser refuses",
+  ).not.toContain("Domain=");
+  expect(await response.json()).toMatchObject({
+    authenticated: true,
+    needsSetup: true,
+  });
+
+  passSql(`DELETE FROM users WHERE email = '${email}'`);
+  await fresh.close();
+});
+
+test("otp: wrong codes sent together each cost their own attempt", async () => {
+  test.setTimeout(180_000);
+  clearRateLimits();
+  const email = `otp-burst-${run}@example.com`;
+  const fresh = await context.browser()!.newContext();
+  const worker = await fresh.newPage();
+
+  await worker.goto(GATEWAY);
+  await mintOtp(email, "135790");
+
+  const answers = await Promise.all(
+    Array.from({ length: 9 }, () =>
+      worker.request.post(`${GATEWAY}/api/auth/otp/verify`, {
+        headers: { origin: GATEWAY },
+        data: { email, code: "000000" },
+      }),
+    ),
+  );
+  const bodies = (await Promise.all(
+    answers.map((answer) => answer.json()),
+  )) as Array<{ attemptsLeft?: number }>;
+  const counted = bodies
+    .map((body) => body.attemptsLeft)
+    .filter((left): left is number => typeof left === "number")
+    .sort();
+
+  expect(
+    counted,
+    "a counter read before the write would tell every caller the same number",
+  ).toEqual([1, 2, 3, 4]);
+
+  const afterwards = await worker.request.post(
+    `${GATEWAY}/api/auth/otp/verify`,
+    { headers: { origin: GATEWAY }, data: { email, code: "135790" } },
+  );
+  expect(afterwards.status()).toBe(401);
+  await expect(afterwards.json()).resolves.toMatchObject({
+    code: "too_many_attempts",
+  });
+
+  await fresh.close();
+});
+
+test("otp: a disabled account is refused after the code is accepted", async () => {
+  test.setTimeout(180_000);
+  clearRateLimits();
+  const fresh = await context.browser()!.newContext();
+  const worker = await fresh.newPage();
+  const account = await freshAccount(worker, "otpoff");
+
+  passSql(
+    `UPDATE users SET disabled_at = datetime('now') WHERE email = '${account.email}'`,
+  );
+  await mintOtp(account.email, "135791");
+
+  const response = await worker.request.post(`${GATEWAY}/api/auth/otp/verify`, {
+    headers: { origin: GATEWAY },
+    data: { email: account.email, code: "135791" },
+  });
+
+  expect(response.status()).toBe(403);
+  expect(JSON.stringify(await response.json())).toMatch(/disabled/i);
+
   await fresh.close();
 });
 
@@ -884,7 +963,7 @@ test("pass: an account can delete itself", async () => {
   clearRateLimits();
   await worker.goto(`${PASS}/`);
   await worker.locator('input[name="email"]').fill(account.email);
-  await worker.locator('input[name="password"]').fill(password);
+  await worker.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await worker.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(worker.getByRole("heading", { name: account.user })).toBeVisible(
     { timeout: 20000 },
@@ -905,12 +984,126 @@ test("pass: an account can delete itself", async () => {
   clearRateLimits();
   await worker.goto(`${PASS}/`);
   await worker.locator('input[name="email"]').fill(account.email);
-  await worker.locator('input[name="password"]').fill(password);
+  await worker.locator('input[name="password"]').fill(PROBE_PASSWORD);
   await worker.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(worker.locator(".pass-status-error")).toBeVisible({
     timeout: 20000,
   });
   await fresh.close();
+});
+
+test("the header appears on every origin and marks the right tool", async () => {
+  for (const [origin, tool] of [
+    [PASS, "pass"],
+    [LINK, "link"],
+    [PULSE, "pulse"],
+  ] as const) {
+    await page.goto(origin);
+    const current = page.locator('[aria-current="page"]');
+    await expect(current).toHaveCount(1);
+    await expect(current).toContainText(tool);
+  }
+});
+
+test("the machine counts what needs attention and marks the tool it sits in", async () => {
+  const slug = `probeexpiring${run}`;
+  await page.goto(`${LINK}/`);
+  await page.getByRole("tab", { name: "Send a file", exact: true }).click();
+  await page.locator('.drop-zone input[type="file"]').setInputFiles({
+    name: `${slug}.txt`,
+    mimeType: "text/plain",
+    buffer: Buffer.from(`expiring payload ${run}`),
+  });
+  await expect(page.getByText(`${slug}.txt`)).toBeVisible({ timeout: 20000 });
+  await page.locator(".drop-options select").selectOption("3600");
+  await page.getByRole("button", { name: "Create transfer" }).click();
+  await expect(page.getByLabel("Share URL")).toBeVisible({ timeout: 40000 });
+
+  const estate = await page.request.get(`${GATEWAY}/api/estate`);
+  expect(estate.status()).toBe(200);
+  const overview = (await estate.json()) as {
+    attention: { kind: string }[];
+    link: { expiringSoon: number };
+  };
+  expect(overview.link.expiringSoon).toBeGreaterThan(0);
+  expect(overview.attention.map((item) => item.kind)).toContain(
+    "link-expiring",
+  );
+
+  await page.goto(GATEWAY);
+  const screen = page.locator("[data-screen]");
+  await expect(screen).toBeVisible();
+  await expect(screen).toHaveText(
+    `${overview.attention.length} NEED ATTENTION`,
+  );
+
+  const linkTool = page.locator('.kvx-nav-tool[aria-label^="link,"]');
+  await expect(linkTool).toHaveCount(1);
+  await expect(linkTool.locator(".kvx-pad-warn")).toBeVisible();
+
+  await page.goto(`${LINK}/`);
+  const expiringRow = page.locator(".link-activity-row", {
+    hasText: `${slug}.txt`,
+  });
+  await expiringRow.hover();
+  await expiringRow
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await expect(expiringRow.locator(".kvx-row-state")).toContainText("Deleted", {
+    timeout: 20000,
+  });
+});
+
+test("the machine says a failed estate call out loud instead of an all-clear", async () => {
+  await page.route("**/api/estate", (route) => route.fulfill({ status: 500 }));
+  expectFailure = true;
+  await page.goto(GATEWAY);
+
+  const screen = page.locator("[data-screen]");
+  await expect(page.locator("[data-cabinet-state]")).toHaveText("OWNER MODE");
+  await expect(screen).toBeVisible();
+  await expect(screen).toHaveText("ESTATE UNREADABLE");
+
+  const read = await screen.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    const onTop = document.elementFromPoint(
+      box.left + box.width / 2,
+      box.top + box.height / 2,
+    );
+    return {
+      words: (node.textContent ?? "").trim(),
+      covered: onTop === null || !node.contains(onTop),
+      inert: node.closest("[inert]") !== null,
+      muted: node.closest('[aria-hidden="true"]') !== null,
+    };
+  });
+  expect(read).toEqual({
+    words: "ESTATE UNREADABLE",
+    covered: false,
+    inert: false,
+    muted: false,
+  });
+
+  const navCounts = page.locator(".kvx-nav-count");
+  await expect(navCounts).toHaveCount(3);
+  await expect(
+    navCounts,
+    "an unmeasured count is written --, never nothing",
+  ).toHaveText(["--", "--", "--"]);
+  for (const index of [0, 1, 2]) {
+    await expect(navCounts.nth(index)).toBeVisible();
+  }
+  expect(
+    await navCounts.allTextContents(),
+    "an unmeasured count is written --, never 0",
+  ).not.toContain("0");
+  await expect(
+    page.locator(".kvx-nav-tool .kvx-pad-warn"),
+    "a tool whose count could not be read carries the alarm, not silence",
+  ).toHaveCount(3);
+
+  await page.unroute("**/api/estate");
+  expectFailure = false;
 });
 
 test("pass: signing out actually signs you out", async () => {

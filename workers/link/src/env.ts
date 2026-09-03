@@ -6,6 +6,7 @@ export interface Env {
   FILES: R2Bucket;
   PASS: Fetcher;
   PULSE: Fetcher;
+  GATEWAY: Fetcher;
   PUBLIC_CREATE_RATE_LIMIT: RateLimit;
   REPORT_RATE_LIMIT: RateLimit;
   CREATE_RATE_LIMIT: RateLimit;

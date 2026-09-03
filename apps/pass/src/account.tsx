@@ -1,6 +1,7 @@
 import { ApiError, apiFetch, errorMessage } from "@kleavox/core";
 import type { Identity } from "@kleavox/core";
 import { createAccountCredential } from "@kleavox/crypto";
+import { StatusLine, formatAge } from "@kleavox/ui";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { api, deviceLabel, redirectToFreshChallenge } from "./helpers";
@@ -181,7 +182,26 @@ export function Account({
         </form>
       ) : (
         <div className="pass-name-row">
-          <h2>{identity.username || identity.email}</h2>
+          <StatusLine
+            model={{
+              tool: "pass",
+              fields: [
+                { value: identity.username || identity.email, label: "" },
+                { value: identity.role.toLowerCase(), label: "" },
+                {
+                  value: devices ? String(devices.length) : "--",
+                  label: "devices",
+                },
+                {
+                  value:
+                    providers && providers.length > 0
+                      ? providers.join(" ")
+                      : "--",
+                  label: "",
+                },
+              ],
+            }}
+          />
           <button
             className="pass-text-action"
             type="button"
@@ -278,33 +298,40 @@ export function Account({
       {devices && devices.length > 0 && (
         <div className="pass-devices">
           <p className="pass-section-label">Devices</p>
-          {devices.map((device, index) => (
-            <div key={device.id} className="pass-device">
-              <div>
-                <strong>
-                  {deviceLabel(device.userAgent)}
-                  {device.current && <i> · this device</i>}
-                </strong>
-                <span>
-                  Signed in {new Date(device.createdAt).toLocaleString()}
-                  {device.ip ? ` · ${device.ip}` : ""}
-                </span>
-              </div>
-              <button
-                className="pass-text-action"
-                type="button"
-                aria-label={
-                  device.current
-                    ? "Sign out of this device"
-                    : `Revoke session ${index + 1}: ${deviceLabel(device.userAgent)}, signed in ${new Date(device.createdAt).toLocaleString()}`
-                }
-                disabled={state.status === "loading"}
-                onClick={() => void revokeDevice(device)}
-              >
-                {device.current ? "Sign out" : "Revoke"}
-              </button>
-            </div>
-          ))}
+          <ul className="kvx-rows">
+            {devices.map((device, index) => (
+              <li key={device.id}>
+                <div className="kvx-row pass-row-device">
+                  <span className="kvx-row-state">
+                    {device.current ? "current" : ""}
+                  </span>
+                  <span className="kvx-row-title">
+                    {deviceLabel(device.userAgent)}
+                    <small className="kvx-row-detail">
+                      Signed in {new Date(device.createdAt).toLocaleString()}
+                      {device.ip ? ` · ${device.ip}` : ""}
+                    </small>
+                  </span>
+                  <span className="kvx-row-age">
+                    {formatAge(device.createdAt)}
+                  </span>
+                  <button
+                    className="kvx-row-tool"
+                    type="button"
+                    aria-label={
+                      device.current
+                        ? "Sign out of this device"
+                        : `Revoke session ${index + 1}: ${deviceLabel(device.userAgent)}, signed in ${new Date(device.createdAt).toLocaleString()}`
+                    }
+                    disabled={state.status === "loading"}
+                    onClick={() => void revokeDevice(device)}
+                  >
+                    {device.current ? "Sign out" : "Revoke"}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       <div className="pass-account-actions">

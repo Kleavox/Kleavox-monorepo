@@ -1,3 +1,4 @@
+import { INTERNAL_HOSTS } from "@kleavox/config";
 import { securityHeaders } from "@kleavox/worker";
 import { Hono } from "hono";
 
@@ -5,6 +6,7 @@ import { registerAccountRoutes } from "./routes/account";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerInternalRoutes } from "./routes/internal";
 import { registerOAuthRoutes } from "./routes/oauth";
+import { registerOtpRoutes } from "./routes/otp";
 import { apiError, type AppEnv } from "./routes/shared";
 
 const app = new Hono<AppEnv>();
@@ -96,9 +98,16 @@ app.get("/ready", async (context) => {
   );
 });
 
+app.get("/api/estate", (context) =>
+  context.env.GATEWAY.fetch(
+    new Request(`http://${INTERNAL_HOSTS.GATEWAY}/api/estate`, context.req.raw),
+  ),
+);
+
 registerOAuthRoutes(app);
 registerAccountRoutes(app);
 registerAuthRoutes(app);
+registerOtpRoutes(app);
 registerInternalRoutes(app);
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));

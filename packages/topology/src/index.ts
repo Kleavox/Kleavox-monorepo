@@ -31,6 +31,7 @@ export const INTERNAL_HOSTS = {
   PASS: "pass.internal",
   LINK: "link.internal",
   PULSE: "pulse.internal",
+  GATEWAY: "gateway.internal",
 } as const;
 
 export const INTERNAL_URLS = {

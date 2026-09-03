@@ -64,4 +64,31 @@ describe("apiFetch", () => {
       ApiError,
     );
   });
+
+  it("carries any extra fields the server sent alongside the error", async () => {
+    capture(401, {
+      code: "invalid_code",
+      message: "That code is incorrect.",
+      attemptsLeft: 3,
+    });
+    await expect(apiFetch("/api/thing")).rejects.toMatchObject({
+      details: {
+        code: "invalid_code",
+        message: "That code is incorrect.",
+        attemptsLeft: 3,
+      },
+    });
+  });
+
+  it("carries exactly the payload the server sent, inventing no extra keys", async () => {
+    capture(500, { code: "internal_error", message: "Something broke." });
+    const error = await apiFetch("/api/thing").catch(
+      (thrown: unknown) => thrown,
+    );
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).details).toEqual({
+      code: "internal_error",
+      message: "Something broke.",
+    });
+  });
 });

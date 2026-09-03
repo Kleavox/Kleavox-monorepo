@@ -1,9 +1,26 @@
 import { readCookie, verifySession } from "@kleavox/auth";
-import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
+import { INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
 import { isFileSlug, isReservedSlug, renderErrorPage } from "@kleavox/core";
+import {
+  INTERNAL_HOSTS,
+  localWorkerOrigin,
+  publicHost,
+  publicOrigin,
+} from "@kleavox/topology";
 import { Hono } from "hono";
 
 import { hostRedirect } from "./hosts";
+import {
+  buildOverview,
+  toOverviewParts,
+  type DropList,
+  type FileReportList,
+  type LinkPage,
+  type OverviewOrigins,
+  type PassSessions,
+  type PulseRows,
+  type ReportList,
+} from "./overview";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -54,6 +71,222 @@ app.get("/api/session", async (context) => {
     : context.json({ authenticated: false });
 });
 
+async function part<T>(
+  fetcher: Fetcher,
+  url: string,
+  original: Request,
+  isValid?: (value: unknown) => value is T,
+): Promise<T | null> {
+  try {
+    const response = await fetcher.fetch(url, {
+      headers: { cookie: original.headers.get("cookie") ?? "" },
+    });
+    if (!response.ok) return null;
+    const body: unknown = await response.json();
+    if (isValid && !isValid(body)) return null;
+    return body as T;
+  } catch {
+    return null;
+  }
+}
+
+function isPassSessions(value: unknown): value is PassSessions {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { sessions?: unknown }).sessions)
+  );
+}
+
+function isLinkPage(value: unknown): value is LinkPage {
+  if (typeof value !== "object" || value === null) return false;
+  const meta = (value as { meta?: unknown }).meta;
+  return (
+    typeof meta === "object" &&
+    meta !== null &&
+    typeof (meta as { total?: unknown }).total === "number"
+  );
+}
+
+function isDropList(value: unknown): value is DropList {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { drops?: unknown }).drops)
+  );
+}
+
+function isReportList(value: unknown): value is ReportList {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { reports?: unknown }).reports)
+  );
+}
+
+function isFileReportList(value: unknown): value is FileReportList {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { reports?: unknown }).reports)
+  );
+}
+
+function isPulseRows(value: unknown): value is PulseRows {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as {
+    nodes?: unknown;
+    checks?: unknown;
+    incidents?: unknown;
+  };
+  return (
+    Array.isArray(candidate.nodes) &&
+    Array.isArray(candidate.checks) &&
+    Array.isArray(candidate.incidents)
+  );
+}
+
+function originsForHost(hostname: string): OverviewOrigins {
+  if (hostname === "127.0.0.1" || hostname === "localhost") {
+    return {
+      link: localWorkerOrigin("link", hostname),
+      pulse: localWorkerOrigin("pulse", hostname),
+    };
+  }
+  return {
+    link: publicOrigin(hostname, "link"),
+    pulse: publicOrigin(hostname, "pulse"),
+  };
+}
+
+function originsFor(
+  request: Request,
+  publicOriginUrl: string,
+): {
+  allowed: Set<string>;
+  targets: OverviewOrigins;
+} {
+  const publicHostname = new URL(publicOriginUrl).hostname;
+  const { link, pulse } = originsForHost(publicHostname);
+  const allowed =
+    publicHostname === "127.0.0.1" || publicHostname === "localhost"
+      ? new Set([
+          link,
+          pulse,
+          localWorkerOrigin("pass", publicHostname),
+          localWorkerOrigin("gateway", publicHostname),
+        ])
+      : new Set([
+          link,
+          pulse,
+          publicOrigin(publicHostname, "pass"),
+          publicOrigin(publicHostname, "gateway"),
+        ]);
+
+  const requestHostname = new URL(request.url).hostname;
+  const targets = originsForHost(requestHostname);
+
+  return { allowed, targets };
+}
+
+function corsHeaders(
+  request: Request,
+  allowed: Set<string>,
+): Record<string, string> {
+  const origin = request.headers.get("Origin");
+  if (origin === null || !allowed.has(origin)) return { Vary: "Origin" };
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Credentials": "true",
+    Vary: "Origin",
+  };
+}
+
+app.options("/api/estate", (context) => {
+  const { allowed } = originsFor(context.req.raw, context.env.PUBLIC_ORIGIN);
+  return context.body(null, 204, {
+    ...corsHeaders(context.req.raw, allowed),
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  });
+});
+
+app.get("/api/estate", async (context) => {
+  const { allowed, targets } = originsFor(
+    context.req.raw,
+    context.env.PUBLIC_ORIGIN,
+  );
+  const cors = corsHeaders(context.req.raw, allowed);
+
+  const session = await verifySession(context.req.raw, context.env.PASS);
+  if (!session) {
+    return context.json({ code: "UNAUTHENTICATED" }, 401, cors);
+  }
+
+  const raw = context.req.raw;
+  const PASS_BASE = `http://${INTERNAL_HOSTS.PASS}`;
+  const LINK_BASE = `http://${INTERNAL_HOSTS.LINK}`;
+  const PULSE_BASE = `http://${INTERNAL_HOSTS.PULSE}`;
+
+  const [sessions, links, drops, reports, fileReports, pulseRows] =
+    await Promise.all([
+      part<PassSessions>(
+        context.env.PASS,
+        `${PASS_BASE}/api/sessions`,
+        raw,
+        isPassSessions,
+      ),
+      part<LinkPage>(
+        context.env.LINK,
+        `${LINK_BASE}/api/links?limit=1`,
+        raw,
+        isLinkPage,
+      ),
+      part<DropList>(
+        context.env.LINK,
+        `${LINK_BASE}/api/drops`,
+        raw,
+        isDropList,
+      ),
+      part<ReportList>(
+        context.env.LINK,
+        `${LINK_BASE}/api/admin/reports`,
+        raw,
+        isReportList,
+      ),
+      part<FileReportList>(
+        context.env.LINK,
+        `${LINK_BASE}/api/admin/file-reports`,
+        raw,
+        isFileReportList,
+      ),
+      part<PulseRows>(
+        context.env.PULSE,
+        `${PULSE_BASE}/api/overview`,
+        raw,
+        isPulseRows,
+      ),
+    ]);
+
+  const parts = toOverviewParts({
+    sessions,
+    links,
+    drops,
+    reports,
+    fileReports,
+    pulseRows,
+  });
+
+  return context.json(
+    buildOverview(parts, session.identity.role, targets),
+    200,
+    {
+      ...cors,
+      "Cache-Control": "private, no-store",
+    },
+  );
+});
+
 app.post("/api/logout", async (context) => {
   const token = readCookie(context.req.raw, SESSION_COOKIE);
   if (token) {
@@ -85,6 +318,43 @@ app.all("/link-assets/*", (context) => {
   const url = new URL(context.req.url);
   url.hostname = INTERNAL_HOSTS.LINK;
   return context.env.LINK.fetch(new Request(url, context.req.raw));
+});
+
+const PASS_AUTH_ROUTES = ["/api/auth/otp/start", "/api/auth/otp/verify"];
+
+function passCookieUrl(requestUrl: string, publicOriginUrl: string): URL {
+  const url = new URL(requestUrl);
+  const rootDomain = new URL(publicOriginUrl).hostname.toLowerCase();
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === rootDomain || hostname.endsWith(`.${rootDomain}`)) {
+    url.protocol = "https:";
+    url.hostname = publicHost(rootDomain, "pass");
+    url.port = "";
+  }
+  return url;
+}
+
+app.on("POST", PASS_AUTH_ROUTES, async (context) => {
+  const origin = context.req.header("origin");
+  const requestOrigin = new URL(context.req.url).origin;
+  const trustedOrigins = new Set([context.env.PUBLIC_ORIGIN, requestOrigin]);
+  if (!origin || !trustedOrigins.has(origin)) {
+    return context.json({ code: "INVALID_ORIGIN" }, 403);
+  }
+
+  const url = passCookieUrl(context.req.url, context.env.PUBLIC_ORIGIN);
+  const headers = new Headers(context.req.raw.headers);
+  headers.set("origin", url.origin);
+  headers.delete("referer");
+
+  return context.env.PASS.fetch(
+    new Request(url, {
+      method: context.req.method,
+      headers,
+      body: context.req.raw.body,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" }),
+  );
 });
 
 app.all("*", async (context) => {

@@ -6,8 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -p tsconfig.json --noEmit --checkers 1"
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit --checkers 1 && tsc -p tsconfig.test.json --noEmit --checkers 1"
   },
   "dependencies": {
     "@kleavox/config": "workspace:*",
@@ -17,6 +17,7 @@
   "devDependencies": {
     "@kleavox/typescript": "workspace:*",
     "@kleavox/vite-config": "workspace:*",
+    "jsdom": "^30.0.1",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

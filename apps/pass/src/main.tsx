@@ -2,7 +2,8 @@ import { createRoot } from "react-dom/client";
 import { StrictMode, useEffect, useMemo, useState } from "react";
 
 import "@kleavox/ui/styles.css";
-import { ROOT_ORIGIN } from "@kleavox/ui";
+import { AppHeader, ROOT_ORIGIN, loadNavCounts } from "@kleavox/ui";
+import type { NavCounts } from "@kleavox/ui";
 import "./pass.css";
 import { Account } from "./account";
 import { ForgotPassword, Login, Register } from "./auth-forms";
@@ -19,7 +20,12 @@ function App() {
     google: false,
     github: false,
   });
+  const [counts, setCounts] = useState<NavCounts | null>(null);
   const route = window.location.pathname;
+
+  useEffect(() => {
+    void loadNavCounts().then(setCounts);
+  }, []);
 
   useEffect(() => {
     if (route === "/verify" || route === "/reset" || route === "/challenge")
@@ -93,43 +99,24 @@ function App() {
   }, [mode, providers, route, session]);
 
   return (
-    <main className="kvx-shell-wide pass-layout">
-      <section className="pass-intro" aria-labelledby="pass-title">
-        <a className="pass-wordmark" href={ROOT_ORIGIN}>
-          Kleav<b>ox</b> <span>/ Pass</span>
-        </a>
-        <div className="pass-intro-copy">
-          <p className="kvx-kicker">IDENTITY / SHARED SESSION</p>
-          <h1 id="pass-title" className="kvx-title">
-            One signal.
-            <br />
-            Every tool.
-          </h1>
-          <p className="kvx-lede">
-            Sign in once to unlock Link, file drops, and Pulse. All under the
-            same identity.
-          </p>
+    <div className="pass-app">
+      <AppHeader product="pass" rootOrigin={ROOT_ORIGIN} counts={counts} />
+      <main className="kvx-main pass-layout">
+        <div className="pass-panel-wrap">
+          <section className="pass-panel">
+            <div className="pass-panel-head">
+              <span>KLEAVOX / PASS</span>
+              <b>AUTH / v2.1</b>
+            </div>
+            <div className="pass-panel-inner">{content}</div>
+            <div className="pass-panel-foot">
+              <span>Secure · Edge-native</span>
+              <span>pass.kleavox.xyz</span>
+            </div>
+          </section>
         </div>
-        <div className="pass-orbit" aria-hidden="true">
-          <i></i>
-          <i></i>
-          <i></i>
-        </div>
-      </section>
-      <div className="pass-panel-wrap">
-        <section className="pass-panel">
-          <div className="pass-panel-head">
-            <span>KLEAVOX / PASS</span>
-            <b>AUTH / v2.1</b>
-          </div>
-          <div className="pass-panel-inner">{content}</div>
-          <div className="pass-panel-foot">
-            <span>Secure · Edge-native</span>
-            <span>pass.kleavox.xyz</span>
-          </div>
-        </section>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
