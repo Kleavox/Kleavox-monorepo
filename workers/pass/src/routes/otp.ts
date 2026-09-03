@@ -50,6 +50,12 @@ export function registerOtpRoutes(app: PassApp): void {
       });
     } catch (cause) {
       console.error("[pass otp email]", cause);
+      return apiError(
+        context,
+        503,
+        "email_delivery_failed",
+        "The code could not be emailed. Try again in a moment.",
+      );
     }
 
     return context.json({ ok: true });

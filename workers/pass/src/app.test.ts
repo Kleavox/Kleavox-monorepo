@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import app from "./app";
 import type { Env } from "./env";
 import { hashToken } from "./lib/crypto";
+import { fakeOtpDb } from "./lib/otp-db.testkit";
 import { issueOtp } from "./lib/otp";
 
 const baseEnv = {
@@ -18,6 +19,11 @@ const baseEnv = {
     delete: () => Promise.resolve(),
   },
 } as unknown as Env;
+
+function otpDb(fallback: (sql: string) => unknown) {
+  const made = fakeOtpDb(fallback);
+  return { prepare: vi.fn(made.DB.prepare) };
+}
 
 function kvStore() {
   const store = new Map<string, string>();
@@ -51,14 +57,14 @@ function otpVerifyInit(email: string, code: string): RequestInit {
 }
 
 function dbStub(rows: Record<string, unknown>) {
-  return {
-    prepare: vi.fn((sql: string) => ({
+  return otpDb(
+    vi.fn((sql: string) => ({
       bind: (..._args: unknown[]) => ({
         first: async () => (/select/i.test(sql) ? rows : null),
         run: async () => undefined,
       }),
     })),
-  };
+  );
 }
 
 describe("Pass HTTP boundary", () => {
@@ -67,7 +73,7 @@ describe("Pass HTTP boundary", () => {
     const prepare = vi.fn((_sql: string) => ({ first }));
     const response = await app.request("https://pass.product.test/ready", {}, {
       ...baseEnv,
-      DB: { prepare },
+      DB: otpDb(prepare),
     } as unknown as Env);
 
     expect(response.status).toBe(200);
@@ -161,7 +167,7 @@ describe("POST /api/auth/otp/start", () => {
       ...baseEnv,
       ENVIRONMENT: "development",
       SESSIONS: kvStore(),
-      DB: { prepare },
+      DB: otpDb(prepare),
     } as unknown as Env;
 
     const knownResponse = await app.request(
@@ -182,13 +188,13 @@ describe("POST /api/auth/otp/start", () => {
     expect(unknownText).toBe(knownText);
   });
 
-  it("never touches the database", async () => {
+  it("never looks the account up", async () => {
     const prepare = vi.fn();
     const env = {
       ...baseEnv,
       ENVIRONMENT: "development",
       SESSIONS: kvStore(),
-      DB: { prepare },
+      DB: otpDb(prepare),
     } as unknown as Env;
 
     const response = await app.request(
@@ -198,7 +204,37 @@ describe("POST /api/auth/otp/start", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(prepare).not.toHaveBeenCalled();
+    expect(
+      prepare.mock.calls.map(([sql]) => sql),
+      "the code is stored under a hash of the email; nothing else may be read",
+    ).toEqual([]);
+  });
+
+  it("says the code could not be sent instead of reporting success", async () => {
+    const prepare = vi.fn();
+    const env = {
+      ...baseEnv,
+      ENVIRONMENT: "development",
+      RESEND_API_KEY: "test-key",
+      SESSIONS: kvStore(),
+      DB: otpDb(prepare),
+    } as unknown as Env;
+    const posted = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("no", { status: 500 }));
+
+    const response = await app.request(
+      "https://pass.product.test/api/auth/otp/start",
+      otpStartInit("undeliverable@example.com"),
+      env,
+    );
+
+    expect(posted).toHaveBeenCalled();
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "email_delivery_failed",
+    });
+    posted.mockRestore();
   });
 
   it("tells a rate-limited caller how long to wait instead of dropping the request", async () => {
@@ -231,23 +267,38 @@ describe("POST /api/auth/otp/start", () => {
     });
   });
 
-  it("keeps the uniform answer when the email fails to send, and logs the failure", async () => {
+  it("answers a failed send the same way for a known and an unknown email, and logs it", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const prepare = vi.fn((_sql: string) => ({
+      bind: (...args: unknown[]) => ({
+        first: async () =>
+          args[0] === "known@example.com" ? { id: "user-1" } : null,
+        run: async () => ({ meta: { changes: 1 } }),
+      }),
+    }));
     const env = {
       ...baseEnv,
       ENVIRONMENT: "production",
       RESEND_API_KEY: undefined,
       SESSIONS: kvStore(),
+      DB: otpDb(prepare),
     } as unknown as Env;
 
-    const response = await app.request(
+    const known = await app.request(
       "https://pass.product.test/api/auth/otp/start",
-      otpStartInit("someone@example.com"),
+      otpStartInit("known@example.com"),
+      env,
+    );
+    const knownText = await known.text();
+    const unknown = await app.request(
+      "https://pass.product.test/api/auth/otp/start",
+      otpStartInit("unknown@example.com"),
       env,
     );
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(known.status).toBe(503);
+    expect(unknown.status).toBe(known.status);
+    expect(await unknown.text()).toBe(knownText);
     expect(errorSpy).toHaveBeenCalledWith(
       "[pass otp email]",
       expect.any(Error),
@@ -297,7 +348,7 @@ describe("POST /api/auth/otp/verify", () => {
     const response = await app.request(
       "https://pass.product.test/api/auth/otp/verify",
       otpVerifyInit("person@example.com", "000000"),
-      { ...baseEnv, DB: { prepare } } as unknown as Env,
+      { ...baseEnv, DB: otpDb(prepare) } as unknown as Env,
     );
 
     expect(response.status).toBe(401);
@@ -309,7 +360,7 @@ describe("POST /api/auth/otp/verify", () => {
     await app.request(
       "https://pass.product.test/api/auth/otp/verify",
       otpVerifyInit("disabled@example.com", "000000"),
-      { ...baseEnv, DB: { prepare } } as unknown as Env,
+      { ...baseEnv, DB: otpDb(prepare) } as unknown as Env,
     );
 
     expect(prepare).not.toHaveBeenCalled();
@@ -348,7 +399,7 @@ describe("POST /api/auth/otp/verify", () => {
     const env = {
       ...baseEnv,
       SESSIONS: store,
-      DB: { prepare: vi.fn() },
+      DB: otpDb(vi.fn()),
     } as unknown as Env;
     const issued = await issueOtp(env, email);
     const wrongCode = issued === "111111" ? "222222" : "111111";
@@ -368,9 +419,13 @@ describe("POST /api/auth/otp/verify", () => {
     const expiredBody = await expiredResponse.json();
 
     expect(response.status).toBe(401);
+    const statements = (
+      env.DB as unknown as { prepare: ReturnType<typeof vi.fn> }
+    ).prepare.mock.calls.map(([sql]) => String(sql));
     expect(
-      (env.DB as unknown as { prepare: ReturnType<typeof vi.fn> }).prepare,
-    ).not.toHaveBeenCalled();
+      statements.filter((sql) => !sql.includes("otp_codes")),
+      "a wrong code must be refused without a single word about the account",
+    ).toEqual([]);
     expect(body).not.toEqual(expiredBody);
     expect(body).toMatchObject({ code: "invalid_code", attemptsLeft: 4 });
     expect(expiredBody).not.toHaveProperty("attemptsLeft");
@@ -387,7 +442,7 @@ describe("POST /api/auth/otp/verify", () => {
     const env = {
       ...baseEnv,
       SESSIONS: store,
-      DB: { prepare },
+      DB: otpDb(prepare),
     } as unknown as Env;
 
     const knownIssued = await issueOtp(env, "known@example.com");
@@ -419,7 +474,7 @@ describe("POST /api/auth/otp/verify", () => {
     const env = {
       ...baseEnv,
       SESSIONS: store,
-      DB: { prepare: vi.fn() },
+      DB: otpDb(vi.fn()),
     } as unknown as Env;
     const issued = await issueOtp(env, email);
     const wrongCode = issued === "111111" ? "222222" : "111111";
@@ -607,7 +662,7 @@ describe("POST /api/auth/otp/verify", () => {
     );
     const env = {
       ...baseEnv,
-      DB: { prepare: vi.fn() },
+      DB: otpDb(vi.fn()),
       SESSIONS: {
         get: async (k: string) => store.get(k) ?? null,
         put: async (k: string, v: string) => void store.set(k, v),

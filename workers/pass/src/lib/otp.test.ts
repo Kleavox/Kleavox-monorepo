@@ -1,39 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashToken } from "./crypto";
+import { fakeOtpDb } from "./otp-db.testkit";
 import { issueOtp, verifyOtp } from "./otp";
 
 import type { Env } from "../env";
 
-function fakeEnv(): { env: Env; store: Map<string, string> } {
-  const store = new Map<string, string>();
-  const expiry = new Map<string, number>();
-  const live = (key: string): string | null => {
-    const at = expiry.get(key);
-    if (at !== undefined && Date.now() >= at) {
-      store.delete(key);
-      expiry.delete(key);
-      return null;
-    }
-    return store.get(key) ?? null;
-  };
-  const env = {
-    SESSIONS: {
-      get: async (key: string) => live(key),
-      put: async (
-        key: string,
-        value: string,
-        options?: { expirationTtl?: number },
-      ) => {
-        store.set(key, value);
-        expiry.set(key, Date.now() + (options?.expirationTtl ?? 60) * 1000);
-      },
-      delete: async (key: string) => {
-        store.delete(key);
-        expiry.delete(key);
-      },
-    },
-  } as unknown as Env;
-  return { env, store };
+function fakeEnv(): ReturnType<typeof fakeOtpDb> & { env: Env } {
+  const made = fakeOtpDb();
+  return { ...made, env: { DB: made.DB } as unknown as Env };
 }
 
 const MINUTE = 60_000;
@@ -108,33 +82,35 @@ describe("otp", () => {
   });
 
   it("does not store the code in readable form", async () => {
-    const { env, store } = fakeEnv();
+    const { env, rows } = fakeEnv();
     const code = await issueOtp(env, "a@example.com");
-    expect(JSON.stringify([...store.values()])).not.toContain(code);
+    expect(JSON.stringify([...rows.values()])).not.toContain(code);
   });
 
   it("does not store the email in readable form", async () => {
-    const { env, store } = fakeEnv();
+    const { env, rows } = fakeEnv();
     await issueOtp(env, "a@example.com");
-    expect(JSON.stringify([...store.keys()])).not.toContain("a@example.com");
+    expect(JSON.stringify([...rows.keys()])).not.toContain("a@example.com");
   });
 
   it("does not store a hash of the bare code, so one table cannot cover every account", async () => {
-    const { env, store } = fakeEnv();
+    const { env, rows } = fakeEnv();
     const code = await issueOtp(env, "a@example.com");
-    const stored = JSON.parse([...store.values()][0]!) as { codeHash: string };
+    const stored = [...rows.values()][0]!;
 
-    expect(stored.codeHash).not.toBe(await hashToken(code));
-    expect(stored.codeHash).toBe(await hashToken(`a@example.com:${code}`));
+    expect(stored.code_hash).not.toBe(await hashToken(code));
+    expect(stored.code_hash).toBe(await hashToken(`a@example.com:${code}`));
   });
 
   it("refuses a record lifted from one email's key onto another's, even with the right code", async () => {
-    const { env, store } = fakeEnv();
+    const { env, rows } = fakeEnv();
     const code = await issueOtp(env, "a@example.com");
-    const [aKey, aRecord] = [...store.entries()][0]!;
+    const lifted = [...rows.values()][0]!.code_hash;
     await issueOtp(env, "b@example.com");
-    const bKey = [...store.keys()].find((key) => key !== aKey)!;
-    store.set(bKey, aRecord);
+    const bKey = [...rows.keys()].find(
+      (key) => rows.get(key)!.code_hash !== lifted,
+    )!;
+    rows.get(bKey)!.code_hash = lifted;
 
     expect(await verifyOtp(env, "b@example.com", code)).toMatchObject({
       status: "wrong",
@@ -196,6 +172,41 @@ describe("otp", () => {
     expect(await verifyOtp(env, "a@example.com", second)).toEqual({
       status: "ok",
     });
+  });
+
+  it("counts exactly five wrong guesses even when they arrive together", async () => {
+    const { env } = fakeEnv();
+    const code = await issueOtp(env, "a@example.com");
+    const together = await Promise.all(
+      Array.from({ length: 9 }, () =>
+        verifyOtp(env, "a@example.com", "000000"),
+      ),
+    );
+
+    const counted = together
+      .filter((one) => one.status === "wrong")
+      .map((one) => one.attemptsLeft)
+      .sort();
+
+    expect(
+      counted,
+      "a shared read would report the same remaining count to every caller",
+    ).toEqual([1, 2, 3, 4]);
+    expect(await verifyOtp(env, "a@example.com", code)).toEqual({
+      status: "exhausted",
+    });
+  });
+
+  it("lets exactly one of two simultaneous correct submissions through", async () => {
+    const { env } = fakeEnv();
+    const code = await issueOtp(env, "a@example.com");
+    const both = await Promise.all([
+      verifyOtp(env, "a@example.com", code),
+      verifyOtp(env, "a@example.com", code),
+    ]);
+
+    expect(both.filter((one) => one.status === "ok")).toHaveLength(1);
+    expect(both.filter((one) => one.status === "expired")).toHaveLength(1);
   });
 
   it("burns the code once it is accepted", async () => {

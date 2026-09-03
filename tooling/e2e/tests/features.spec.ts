@@ -751,15 +751,14 @@ async function mintToken(
 }
 
 async function mintOtp(email: string, code: string): Promise<void> {
-  const key = `otp:${await hashOf(email.trim().toLowerCase())}`;
-  const record = JSON.stringify({
-    codeHash: await hashOf(`${email.trim().toLowerCase()}:${code}`),
-    attempts: 0,
-    expiresAt: Date.now() + 600_000,
-  }).replaceAll('"', '\\"');
-  execSync(
-    `pnpm exec wrangler kv key put --binding SESSIONS --local "${key}" "${record}"`,
-    { cwd: passDir, stdio: "pipe" },
+  const normalized = email.trim().toLowerCase();
+  const key = `otp:${await hashOf(normalized)}`;
+  const codeHash = await hashOf(`${normalized}:${code}`);
+  passSql(
+    `INSERT INTO otp_codes (key, code_hash, attempts, expires_at) ` +
+      `VALUES ('${key}', '${codeHash}', 0, ${Date.now() + 600_000}) ` +
+      `ON CONFLICT(key) DO UPDATE SET code_hash = excluded.code_hash, ` +
+      `attempts = 0, expires_at = excluded.expires_at`,
   );
 }
 
@@ -843,6 +842,49 @@ test("otp: an unknown email becomes an account that still needs setup", async ()
   });
 
   passSql(`DELETE FROM users WHERE email = '${email}'`);
+  await fresh.close();
+});
+
+test("otp: wrong codes sent together each cost their own attempt", async () => {
+  test.setTimeout(180_000);
+  clearRateLimits();
+  const email = `otp-burst-${run}@example.com`;
+  const fresh = await context.browser()!.newContext();
+  const worker = await fresh.newPage();
+
+  await worker.goto(GATEWAY);
+  await mintOtp(email, "135790");
+
+  const answers = await Promise.all(
+    Array.from({ length: 9 }, () =>
+      worker.request.post(`${GATEWAY}/api/auth/otp/verify`, {
+        headers: { origin: GATEWAY },
+        data: { email, code: "000000" },
+      }),
+    ),
+  );
+  const bodies = (await Promise.all(
+    answers.map((answer) => answer.json()),
+  )) as Array<{ attemptsLeft?: number }>;
+  const counted = bodies
+    .map((body) => body.attemptsLeft)
+    .filter((left): left is number => typeof left === "number")
+    .sort();
+
+  expect(
+    counted,
+    "a counter read before the write would tell every caller the same number",
+  ).toEqual([1, 2, 3, 4]);
+
+  const afterwards = await worker.request.post(
+    `${GATEWAY}/api/auth/otp/verify`,
+    { headers: { origin: GATEWAY }, data: { email, code: "135790" } },
+  );
+  expect(afterwards.status()).toBe(401);
+  await expect(afterwards.json()).resolves.toMatchObject({
+    code: "too_many_attempts",
+  });
+
   await fresh.close();
 });
 
