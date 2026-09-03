@@ -39,6 +39,11 @@ export type MachineEvent =
   | { type: "dispense-failed" }
   | { type: "reset" };
 
+export type MachineHost = {
+  read: () => MachineState;
+  dispatch: (event: MachineEvent) => MachineState;
+};
+
 export const POLICY: Record<BayCode, AccessRole[]> = {
   "1": ["visitor", "owner"],
   "2": ["owner"],
@@ -188,7 +193,7 @@ export function reduce(state: MachineState, event: MachineEvent): MachineState {
     }
 
     case "activate-tray": {
-      if (!state.tray) return state;
+      if (!state.tray || state.busy) return state;
       return { ...state, screenTransfer: state.tray, busy: true };
     }
 

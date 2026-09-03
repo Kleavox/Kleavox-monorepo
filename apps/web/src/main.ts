@@ -12,17 +12,14 @@ import {
 } from "@kleavox/ui";
 import { OtpVerifyError, startOtp, verifyOtpCode } from "./auth-client";
 import { toMachineModel, type MachineModel } from "./estate-adapter";
-import {
-  mountConsole,
-  mountTerminal,
-  type MachineHost,
-} from "./machine/console";
+import { mountConsole, mountTerminal } from "./machine/console";
 import { createKeypad } from "./machine/keypad";
 import { render } from "./machine/render";
 import {
   rememberRequest,
   runDispense,
   runReaderScan,
+  runRelease,
   runScreenTransfer,
   takeRememberedRequest,
 } from "./machine/sequence";
@@ -31,6 +28,7 @@ import {
   reduce,
   type BayCode,
   type MachineEvent,
+  type MachineHost,
   type MachineState,
 } from "./machine/state";
 
@@ -268,14 +266,22 @@ async function retryEstate(): Promise<void> {
 
 async function dispense(bay: BayCode): Promise<void> {
   try {
-    await runDispense(dispatch, bay);
+    await runDispense(host, bay);
+  } catch {
+    fault("RELEASE FAILED, TRY AGAIN");
+  }
+}
+
+async function release(): Promise<void> {
+  try {
+    await runRelease(host);
   } catch {
     fault("RELEASE FAILED, TRY AGAIN");
   }
 }
 
 async function takeDelivery(): Promise<void> {
-  bridging?.abort();
+  if (bridging !== null) return;
   const controller = new AbortController();
   bridging = controller;
   try {
@@ -334,7 +340,7 @@ async function adoptPass(identity: Identity): Promise<void> {
   paintAccount(session);
   const issued = dispatch({ type: "pass-issued", access: model.access });
   if (issued.status === "dispensing" && issued.selection !== null) {
-    await dispense(issued.selection);
+    await release();
     return;
   }
   dispatch({ type: "reset" });
@@ -461,7 +467,7 @@ async function pressKey(key: string): Promise<void> {
 
 paintHeader(null);
 mountConsole(document, host);
-mountTerminal(document);
+mountTerminal(document, host);
 
 for (const cartridge of document.querySelectorAll<HTMLButtonElement>(
   "[data-cartridge]",

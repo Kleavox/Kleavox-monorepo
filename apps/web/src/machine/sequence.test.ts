@@ -5,6 +5,7 @@ import {
   rememberRequest,
   runDispense,
   runReaderScan,
+  runRelease,
   runScreenTransfer,
   takeRememberedRequest,
   type Dispatch,
@@ -129,108 +130,150 @@ describe("remembering a locked request across a redirect", () => {
 describe("the release sequence", () => {
   it("selects the bay, waits, then lands it in the tray", async () => {
     reduceMotion(true);
-    const { dispatch, seen, read } = machine("owner");
-    await runDispense(dispatch, "2");
-    expect(seen).toEqual(["select", "tray-ready"]);
-    expect(read().tray).toBe("2");
-    expect(read().busy).toBe(false);
+    const m = machine("owner");
+    await runDispense(m, "2");
+    expect(m.seen).toEqual(["select", "tray-ready"]);
+    expect(m.read().tray).toBe("2");
+    expect(m.read().busy).toBe(false);
   });
 
   it("never lands a locked bay in the tray", async () => {
     reduceMotion(true);
-    const { dispatch, seen, read } = machine("guest");
-    await runDispense(dispatch, "1");
-    expect(seen).toEqual(["select"]);
-    expect(read().tray).toBeNull();
-    expect(read().status).toBe("denied");
+    const m = machine("guest");
+    await runDispense(m, "1");
+    expect(m.seen).toEqual(["select"]);
+    expect(m.read().tray).toBeNull();
+    expect(m.read().status).toBe("denied");
   });
 
   it("shortens under reduced motion without dropping a state change", async () => {
     reduceMotion(true);
-    const { dispatch, seen, read } = machine("visitor");
+    const m = machine("visitor");
     const started = Date.now();
-    await runDispense(dispatch, "1");
+    await runDispense(m, "1");
     expect(Date.now() - started).toBeLessThan(RELEASE_SEQUENCE_MS);
-    expect(seen).toEqual(["select", "tray-ready"]);
-    expect(read().tray).toBe("1");
+    expect(m.seen).toEqual(["select", "tray-ready"]);
+    expect(m.read().tray).toBe("1");
+  });
+
+  it("leaves the product in the tray when the bay is pressed twice", async () => {
+    reduceMotion(true);
+    const m = machine("owner");
+    await Promise.all([runDispense(m, "2"), runDispense(m, "2")]);
+    expect(m.read().tray).toBe("2");
+  });
+
+  it("completes one release for two presses of the same bay", async () => {
+    reduceMotion(true);
+    const m = machine("owner");
+    await Promise.all([runDispense(m, "2"), runDispense(m, "2")]);
+    expect(m.seen.filter((type) => type === "tray-ready")).toHaveLength(1);
+  });
+
+  it("keeps the first bay when a second bay is pressed mid release", async () => {
+    reduceMotion(true);
+    const m = machine("owner");
+    await Promise.all([runDispense(m, "2"), runDispense(m, "3")]);
+    expect(m.read().tray).toBe("2");
+  });
+});
+
+describe("finishing a release the reducer already began", () => {
+  it("lands the requested bay after the pass is accepted", async () => {
+    reduceMotion(true);
+    const m = machine("guest");
+    m.dispatch({ type: "select", bay: "1" });
+    m.dispatch({ type: "pass-issued", access: "visitor" });
+    expect(m.read().status).toBe("dispensing");
+    await runRelease(m);
+    expect(m.read().tray).toBe("1");
+    expect(m.read().busy).toBe(false);
+  });
+
+  it("does nothing when no release is running", async () => {
+    reduceMotion(true);
+    const m = machine("owner");
+    await runRelease(m);
+    expect(m.seen).toEqual([]);
+    expect(m.read().tray).toBeNull();
   });
 });
 
 describe("the reader scan", () => {
   it("holds the machine in reading, then opens the terminal", async () => {
     reduceMotion(true);
-    const { dispatch, seen, read } = machine("guest");
-    const scanning = runReaderScan(dispatch);
-    expect(read().status).toBe("reading");
+    const m = machine("guest");
+    const scanning = runReaderScan(m.dispatch);
+    expect(m.read().status).toBe("reading");
     await scanning;
-    expect(seen).toEqual(["pass-tap", "reader-scanned"]);
-    expect(read().authStep).toBe("methods");
+    expect(m.seen).toEqual(["pass-tap", "reader-scanned"]);
+    expect(m.read().authStep).toBe("methods");
   });
 
   it("does nothing for a machine that already holds a pass", async () => {
     reduceMotion(true);
-    const { dispatch, seen, read } = machine("owner");
-    await runReaderScan(dispatch);
-    expect(seen).toEqual(["pass-tap"]);
-    expect(read().status).toBe("idle");
+    const m = machine("owner");
+    await runReaderScan(m.dispatch);
+    expect(m.seen).toEqual(["pass-tap"]);
+    expect(m.read().status).toBe("idle");
   });
 });
 
 describe("the cartridge to screen bridge", () => {
   it("opens the bridge and then leaves for the application", async () => {
     reduceMotion(true);
-    const { dispatch, seen, read } = machine("owner");
-    await runDispense(dispatch, "2");
+    const m = machine("owner");
+    await runDispense(m, "2");
     const left: BayCode[] = [];
-    await runScreenTransfer(dispatch, (bay) => left.push(bay));
-    expect(seen).toEqual(["select", "tray-ready", "activate-tray"]);
+    await runScreenTransfer(m.dispatch, (bay) => left.push(bay));
+    expect(m.seen).toEqual(["select", "tray-ready", "activate-tray"]);
     expect(left).toEqual(["2"]);
-    expect(read().screenTransfer).toBe("2");
+    expect(m.read().screenTransfer).toBe("2");
   });
 
   it("cancelling mid bridge leaves the machine where it was", async () => {
     reduceMotion(false);
-    const { dispatch, read } = machine("owner");
-    await runDispense(dispatch, "2");
+    const m = machine("owner");
+    await runDispense(m, "2");
     const left: BayCode[] = [];
     const controller = new AbortController();
     const bridging = runScreenTransfer(
-      dispatch,
+      m.dispatch,
       (bay) => left.push(bay),
       controller.signal,
     );
-    expect(read().screenTransfer).toBe("2");
+    expect(m.read().screenTransfer).toBe("2");
     controller.abort();
     await bridging;
     expect(left).toEqual([]);
-    expect(read().screenTransfer).toBeNull();
-    expect(read().busy).toBe(false);
+    expect(m.read().screenTransfer).toBeNull();
+    expect(m.read().busy).toBe(false);
   });
 
   it("cancels the same way when motion is reduced", async () => {
     reduceMotion(true);
-    const { dispatch, read } = machine("owner");
-    await runDispense(dispatch, "2");
+    const m = machine("owner");
+    await runDispense(m, "2");
     const left: BayCode[] = [];
     const controller = new AbortController();
     const bridging = runScreenTransfer(
-      dispatch,
+      m.dispatch,
       (bay) => left.push(bay),
       controller.signal,
     );
     controller.abort();
     await bridging;
     expect(left).toEqual([]);
-    expect(read().screenTransfer).toBeNull();
+    expect(m.read().screenTransfer).toBeNull();
   });
 
   it("does not open a bridge from an empty tray", async () => {
     reduceMotion(true);
-    const { dispatch, seen, read } = machine("owner");
+    const m = machine("owner");
     const left: BayCode[] = [];
-    await runScreenTransfer(dispatch, (bay) => left.push(bay));
-    expect(seen).toEqual(["activate-tray"]);
+    await runScreenTransfer(m.dispatch, (bay) => left.push(bay));
+    expect(m.seen).toEqual(["activate-tray"]);
     expect(left).toEqual([]);
-    expect(read().screenTransfer).toBeNull();
+    expect(m.read().screenTransfer).toBeNull();
   });
 });

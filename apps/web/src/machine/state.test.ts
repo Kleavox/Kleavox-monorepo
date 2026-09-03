@@ -214,6 +214,17 @@ describe("cancelling the bridge", () => {
   });
 });
 
+describe("opening the bridge", () => {
+  it("refuses a second bridge while one is already open", () => {
+    const owner = initialState("owner");
+    const dispensing = reduce(owner, { type: "select", bay: "2" });
+    const ready = reduce(dispensing, { type: "tray-ready" });
+    const bridging = reduce(ready, { type: "activate-tray" });
+    const again = reduce(bridging, { type: "activate-tray" });
+    expect(again).toBe(bridging);
+  });
+});
+
 describe("tapping out", () => {
   it("returns a visitor to guest and clears the tray", () => {
     const visitor = initialState("visitor");

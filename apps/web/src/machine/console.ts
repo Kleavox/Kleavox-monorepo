@@ -1,11 +1,6 @@
-import type { MachineEvent, MachineState } from "./state";
+import type { MachineHost } from "./state";
 
 const SHEET_QUERY = "(max-width: 760px)";
-
-export type MachineHost = {
-  read: () => MachineState;
-  dispatch: (event: MachineEvent) => MachineState;
-};
 
 export function mountConsole(root: ParentNode, machine: MachineHost): void {
   const sheet = window.matchMedia(SHEET_QUERY);
@@ -67,7 +62,7 @@ export function mountConsole(root: ParentNode, machine: MachineHost): void {
   syncLayout();
 }
 
-export function mountTerminal(root: ParentNode): void {
+export function mountTerminal(root: ParentNode, machine: MachineHost): void {
   const terminal = root.querySelector<HTMLDialogElement>("[data-terminal]");
   if (!terminal) return;
 
@@ -76,4 +71,9 @@ export function mountTerminal(root: ParentNode): void {
   )) {
     closer.addEventListener("click", () => terminal.close());
   }
+
+  terminal.addEventListener("close", () => {
+    if (machine.read().authStep !== "methods") return;
+    machine.dispatch({ type: "cancel" });
+  });
 }

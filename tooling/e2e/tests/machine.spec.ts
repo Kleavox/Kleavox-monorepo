@@ -360,6 +360,38 @@ test("escape inside the terminal closes it without closing the console", async (
   await expect(page.locator("[data-terminal-open]")).toBeFocused();
 });
 
+test("closing the terminal hands the machine back", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openBooted(page);
+  await page.locator("[data-terminal-open]").click();
+  await expect(page.locator("[data-screen]")).toContainText("CHOOSE A METHOD");
+  await page.locator("[data-terminal-close]").click();
+  await expect(page.locator("[data-terminal]")).toBeHidden();
+  await expect(page.locator("[data-screen]")).not.toContainText(
+    "THE TERMINAL IS OPEN",
+  );
+
+  await page.locator("[data-cartridge='3']").click();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+
+  await page.locator("[data-terminal-open]").click();
+  await expect(page.locator("[data-terminal]")).toBeVisible();
+});
+
+test("pressing a bay twice still leaves the product in the tray", async ({
+  page,
+}) => {
+  await openBooted(page);
+  await page.locator("[data-cartridge='3']").dblclick();
+  await expect(page.locator("[data-tray]")).toHaveAttribute("data-tray", "3");
+  await page.waitForTimeout(1800);
+  await expect(
+    page.locator("[data-tray]"),
+    "a second release timer would have copied an empty selection over the tray",
+  ).toHaveAttribute("data-tray", "3");
+  await expect(page.locator("[data-screen]")).toContainText("DELIVERED");
+});
+
 test("the keypad says which mode it is in, not only what colour", async ({
   page,
 }) => {

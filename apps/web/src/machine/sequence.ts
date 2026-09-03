@@ -1,4 +1,4 @@
-import type { BayCode, MachineEvent, MachineState } from "./state";
+import type { BayCode, MachineEvent, MachineHost, MachineState } from "./state";
 
 export type Dispatch = (event: MachineEvent) => MachineState;
 
@@ -65,13 +65,19 @@ export async function runReaderScan(dispatch: Dispatch): Promise<void> {
 }
 
 export async function runDispense(
-  dispatch: Dispatch,
+  machine: MachineHost,
   bay: BayCode,
 ): Promise<void> {
-  const releasing = dispatch({ type: "select", bay });
+  if (machine.read().busy) return;
+  const releasing = machine.dispatch({ type: "select", bay });
   if (releasing.status !== "dispensing") return;
+  await runRelease(machine);
+}
+
+export async function runRelease(machine: MachineHost): Promise<void> {
+  if (machine.read().status !== "dispensing") return;
   await motionDelay(RELEASE_SEQUENCE_MS);
-  dispatch({ type: "tray-ready" });
+  machine.dispatch({ type: "tray-ready" });
 }
 
 export async function runScreenTransfer(
