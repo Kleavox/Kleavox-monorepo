@@ -16,12 +16,13 @@ import { mountConsole, mountTerminal } from "./machine/console";
 import { createKeypad } from "./machine/keypad";
 import { render } from "./machine/render";
 import {
+  forgetRequest,
+  readRememberedRequest,
   rememberRequest,
   runDispense,
   runReaderScan,
   runRelease,
   runScreenTransfer,
-  takeRememberedRequest,
 } from "./machine/sequence";
 import {
   initialState,
@@ -250,6 +251,7 @@ async function retryEstate(): Promise<void> {
     paintHeader(headerCounts(session, overview));
     paintAccount(session);
     if (model.access === "guest") {
+      forgetRequest();
       dispatch({ type: "pass-removed" });
       return;
     }
@@ -259,6 +261,7 @@ async function retryEstate(): Promise<void> {
       return;
     }
     dispatch({ type: "reset" });
+    await resumeRemembered();
   } finally {
     retrying = false;
   }
@@ -270,6 +273,13 @@ async function dispense(bay: BayCode): Promise<void> {
   } catch {
     fault("RELEASE FAILED, TRY AGAIN");
   }
+}
+
+async function resumeRemembered(): Promise<void> {
+  const bay = readRememberedRequest();
+  if (bay === null) return;
+  forgetRequest();
+  await dispense(bay);
 }
 
 async function release(): Promise<void> {
@@ -370,6 +380,33 @@ async function sendCode(): Promise<void> {
   terminal?.close();
 }
 
+async function reconcileVerify(): Promise<void> {
+  let session: GatewaySession | null = null;
+  try {
+    session = await readSession();
+  } catch {
+    session = null;
+  }
+  if (session?.authenticated !== true || !session.identity) {
+    showTerminalError(
+      "The machine could not tell whether your code went through. Close " +
+        "this and press GO to send the same code again, and ask for a new " +
+        "code if it is refused.",
+    );
+    if (terminal && !terminal.open) terminal.showModal();
+    return;
+  }
+  keypad.reset();
+  keypad.setMode("selector");
+  dispatch({ type: "verifying" });
+  if (session.identity.username === null) {
+    if (!keepRequest()) await hold(FAULT_HOLD_MS);
+    leaveFor(new URL("/welcome", PASS_ORIGIN));
+    return;
+  }
+  await adoptPass(session.identity);
+}
+
 async function submitCode(code: string): Promise<void> {
   if (checking) return;
   checking = true;
@@ -378,11 +415,7 @@ async function submitCode(code: string): Promise<void> {
     verified = await verifyOtpCode(otpEmail, code);
   } catch (error) {
     if (!(error instanceof OtpVerifyError)) {
-      showTerminalError(
-        `The machine could not reach the pass office (${messageOf(error)}). ` +
-          "Your code is still good, close this and press GO to send it again.",
-      );
-      if (terminal && !terminal.open) terminal.showModal();
+      await reconcileVerify();
       return;
     }
     const attemptsLeft = error.attemptsLeft;
@@ -404,9 +437,8 @@ async function submitCode(code: string): Promise<void> {
   dispatch({ type: "verifying" });
 
   if (verified.needsSetup) {
-    const welcome = new URL("/welcome", PASS_ORIGIN);
-    welcome.searchParams.set("returnTo", window.location.href);
-    window.location.assign(welcome.toString());
+    if (!keepRequest()) await hold(FAULT_HOLD_MS);
+    leaveFor(new URL("/welcome", PASS_ORIGIN));
     return;
   }
 
@@ -417,21 +449,29 @@ async function submitCode(code: string): Promise<void> {
   }
 }
 
-async function startProvider(provider: string): Promise<void> {
+function keepRequest(): boolean {
   const wanted = state.authRequest;
-  if (wanted !== null && !rememberRequest(wanted)) {
-    showTerminalError(
-      "This browser will not hold your bay request, so the machine cannot " +
-        "open it for you when you come back. Sign in, then pick the bay again.",
-    );
-    if (terminal && !terminal.open) terminal.showModal();
-    await hold(FAULT_HOLD_MS);
-  } else {
-    dispatch({ type: "oauth-started" });
-  }
-  const url = new URL(`/api/oauth/${provider}`, PASS_ORIGIN);
+  if (wanted === null || rememberRequest(wanted)) return true;
+  showTerminalError(
+    "This browser will not hold your bay request, so the machine cannot " +
+      "open it for you when you come back. Sign in, then pick the bay again.",
+  );
+  if (terminal && !terminal.open) terminal.showModal();
+  return false;
+}
+
+function leaveFor(url: URL): void {
   url.searchParams.set("returnTo", window.location.href);
   window.location.assign(url.toString());
+}
+
+async function startProvider(provider: string): Promise<void> {
+  if (keepRequest()) {
+    dispatch({ type: "oauth-started" });
+  } else {
+    await hold(FAULT_HOLD_MS);
+  }
+  leaveFor(new URL(`/api/oauth/${provider}`, PASS_ORIGIN));
 }
 
 async function pressKey(key: string): Promise<void> {
@@ -546,15 +586,15 @@ async function boot(): Promise<void> {
   paintHeader(unread ? UNREADABLE_COUNTS : headerCounts(session, overview));
   paintAccount(session);
 
-  const remembered = takeRememberedRequest();
   if (model.access === "guest") {
+    if (!unread) forgetRequest();
     paint();
     return;
   }
 
   dispatch({ type: "pass-issued", access: model.access });
   dispatch({ type: "reset" });
-  if (remembered !== null) await dispense(remembered);
+  await resumeRemembered();
 }
 
 boot().catch(() => fault("MACHINE DID NOT START"));

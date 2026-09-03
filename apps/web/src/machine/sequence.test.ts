@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   RELEASE_SEQUENCE_MS,
+  forgetRequest,
   motionDelay,
+  readRememberedRequest,
   rememberRequest,
   runDispense,
   runReaderScan,
   runRelease,
   runScreenTransfer,
-  takeRememberedRequest,
   type Dispatch,
 } from "./sequence";
 import {
@@ -83,27 +84,34 @@ describe("motionDelay", () => {
 });
 
 describe("remembering a locked request across a redirect", () => {
-  it("hands the bay back exactly once", () => {
+  it("reads the bay back without spending it", () => {
     rememberRequest("2");
-    expect(takeRememberedRequest()).toBe("2");
-    expect(takeRememberedRequest()).toBeNull();
+    expect(readRememberedRequest()).toBe("2");
+    expect(readRememberedRequest()).toBe("2");
+  });
+
+  it("hands the bay back no more once it has been forgotten", () => {
+    rememberRequest("2");
+    expect(readRememberedRequest()).toBe("2");
+    forgetRequest();
+    expect(readRememberedRequest()).toBeNull();
   });
 
   it("returns null when nothing was remembered", () => {
-    expect(takeRememberedRequest()).toBeNull();
+    expect(readRememberedRequest()).toBeNull();
   });
 
   it("survives a page load because it lives in sessionStorage", () => {
     rememberRequest("3");
     expect(sessionStorage.getItem(REQUEST_KEY)).toBe("3");
-    expect(takeRememberedRequest()).toBe("3");
+    expect(readRememberedRequest()).toBe("3");
+    forgetRequest();
     expect(sessionStorage.getItem(REQUEST_KEY)).toBeNull();
   });
 
-  it("refuses a stored value that is not a bay, and clears it", () => {
+  it("refuses a stored value that is not a bay", () => {
     sessionStorage.setItem(REQUEST_KEY, "9");
-    expect(takeRememberedRequest()).toBeNull();
-    expect(sessionStorage.getItem(REQUEST_KEY)).toBeNull();
+    expect(readRememberedRequest()).toBeNull();
   });
 
   it("says the request was kept when storage takes it", () => {
@@ -123,7 +131,8 @@ describe("remembering a locked request across a redirect", () => {
       },
     });
     expect(rememberRequest("1")).toBe(false);
-    expect(takeRememberedRequest()).toBeNull();
+    expect(readRememberedRequest()).toBeNull();
+    expect(() => forgetRequest()).not.toThrow();
   });
 });
 

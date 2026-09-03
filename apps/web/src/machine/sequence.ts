@@ -47,13 +47,20 @@ export function rememberRequest(bay: BayCode): boolean {
   }
 }
 
-export function takeRememberedRequest(): BayCode | null {
+export function readRememberedRequest(): BayCode | null {
   try {
     const stored = globalThis.sessionStorage.getItem(REQUEST_KEY);
-    globalThis.sessionStorage.removeItem(REQUEST_KEY);
     return BAY_CODES.find((code) => code === stored) ?? null;
   } catch {
     return null;
+  }
+}
+
+export function forgetRequest(): void {
+  try {
+    globalThis.sessionStorage.removeItem(REQUEST_KEY);
+  } catch {
+    return;
   }
 }
 

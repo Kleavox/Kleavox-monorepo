@@ -1026,6 +1026,39 @@ test.describe("with a real pass in the machine", () => {
     await signedIn.unroute("**/api/estate");
   });
 
+  test("a session that could not be read still owes the bay on retry", async () => {
+    await signedIn.goto(GATEWAY);
+    await signedIn.evaluate(() =>
+      sessionStorage.setItem("kvx:machine-request", "1"),
+    );
+    let sessions = 0;
+    await signedIn.route("**/api/session", async (route) => {
+      sessions += 1;
+      if (sessions === 1) {
+        await route.abort();
+        return;
+      }
+      await route.continue();
+    });
+    await signedIn.reload();
+    await expect(signedIn.locator("[data-screen]")).toContainText(
+      "SESSION UNREADABLE",
+    );
+
+    await signedIn.locator("[data-key='GO']").click();
+    await expect(signedIn.locator("[data-tray]")).toHaveAttribute(
+      "data-tray",
+      "1",
+      { timeout: 20_000 },
+    );
+    expect(
+      await signedIn.evaluate(() =>
+        sessionStorage.getItem("kvx:machine-request"),
+      ),
+    ).toBeNull();
+    await signedIn.unroute("**/api/session");
+  });
+
   test("a real pass drives the cabinet plate, not a hand-set attribute", async ({
     browser,
   }) => {
@@ -1306,7 +1339,11 @@ test.describe("codes typed on the machine keypad", () => {
 
     const error = page.locator("[data-terminal-error]");
     await expect(error).toBeVisible();
-    await expect(error).toContainText(/could not reach/i);
+    await expect(error).toContainText(/could not tell/i);
+    await expect(
+      error,
+      "the machine cannot know the code survived, so it must not promise it",
+    ).not.toContainText(/still good/i);
     await expect(page.locator("[data-machine]")).toHaveAttribute(
       "data-input",
       "otp",
@@ -1384,6 +1421,76 @@ test.describe("codes typed on the machine keypad", () => {
     await typeCode(page, "123456");
 
     await expect(page).toHaveURL(/\/welcome\?returnTo=/, { timeout: 20_000 });
+    await fresh.close();
+  });
+
+  test("a lost answer to a checked code is settled against the session", async ({
+    page,
+  }) => {
+    await page.goto(GATEWAY);
+    await reachOtpMode(page);
+    await page.route("**/api/auth/otp/verify", (route) => route.abort());
+    await page.route("**/api/session", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          authenticated: true,
+          identity: {
+            id: "probe",
+            email: "lostanswer@example.com",
+            username: "lostanswer",
+            role: "USER",
+          },
+        }),
+      }),
+    );
+    await typeCode(page, "123456");
+
+    await expect(page.locator("[data-cabinet-state]")).toHaveText(
+      "VISITOR MODE",
+    );
+    await expect(page.locator("[data-terminal]")).toBeHidden();
+    await page.unroute("**/api/session");
+    await page.unroute("**/api/auth/otp/verify");
+  });
+
+  test("a new account keeps the bay it asked for on the way to welcome", async ({
+    browser,
+  }) => {
+    const fresh = await browser.newContext();
+    const page = await fresh.newPage();
+    await page.route("**/api/auth/otp/verify", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          authenticated: true,
+          user: {
+            id: "probe",
+            email: "keptbay@example.com",
+            username: null,
+            role: "USER",
+          },
+          needsSetup: true,
+        }),
+      }),
+    );
+    await page.route("**/welcome*", (route) =>
+      route.fulfill({ status: 204, body: "" }),
+    );
+
+    await page.goto(GATEWAY);
+    await page.locator("[data-cartridge='1']").click();
+    await expect(page.locator("[data-screen]")).toContainText("PASS REQUIRED");
+    await reachOtpMode(page);
+    await typeCode(page, "123456");
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => sessionStorage.getItem("kvx:machine-request")),
+      )
+      .toBe("1");
     await fresh.close();
   });
 
