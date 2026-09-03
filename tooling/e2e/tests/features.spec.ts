@@ -755,6 +755,7 @@ async function mintOtp(email: string, code: string): Promise<void> {
   const record = JSON.stringify({
     codeHash: await hashOf(`${email.trim().toLowerCase()}:${code}`),
     attempts: 0,
+    expiresAt: Date.now() + 600_000,
   }).replaceAll('"', '\\"');
   execSync(
     `pnpm exec wrangler kv key put --binding SESSIONS --local "${key}" "${record}"`,

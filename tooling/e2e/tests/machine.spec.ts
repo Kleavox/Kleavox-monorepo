@@ -1028,6 +1028,9 @@ test.describe("with a real pass in the machine", () => {
 
   test("a session that could not be read still owes the bay on retry", async () => {
     await signedIn.goto(GATEWAY);
+    await expect(signedIn.locator("[data-cabinet-state]")).toHaveText(
+      "OWNER MODE",
+    );
     await signedIn.evaluate(() =>
       sessionStorage.setItem("kvx:machine-request", "1"),
     );
@@ -1541,7 +1544,7 @@ test("a fault holds the screen until the next touch, then the estate line comes 
   await page.locator("[data-tray-action]").click();
 
   await expect(page.locator("[data-dock-screen]")).toHaveText(
-    "BRIDGE FAILED, TRY AGAIN",
+    "BRIDGE FAILED, RELEASE IT AGAIN",
     { timeout: 15_000 },
   );
   await expect(page.locator("[data-transfer]")).toHaveAttribute(
