@@ -130,6 +130,8 @@ function createIncidentNotifier(env: Env): IncidentNotifier {
         .first<{ name: string; owner_user_id: string }>();
       if (!node) return;
 
+      if (!env.PASS) return;
+
       const lookup = new URL(INTERNAL_URLS.IDENTITY_LOOKUP);
       lookup.searchParams.set("id", node.owner_user_id);
       const response = await env.PASS.fetch(lookup);

@@ -1,5 +1,5 @@
 import { INTERNAL_HOSTS, INTERNAL_URLS } from "@kleavox/config";
-import { verifySession } from "@kleavox/auth";
+import { requirePassInProduction, verifySession } from "@kleavox/auth";
 import { requireRole, securityHeaders } from "@kleavox/worker";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -29,6 +29,11 @@ app.onError((error, context) => {
 
 app.use("*", securityHeaders({ referrerPolicy: "same-origin" }));
 
+app.use("*", async (context, next) => {
+  requirePassInProduction(context.env);
+  await next();
+});
+
 app.get("/health", (context) =>
   context.json({ service: "pulse", status: "ok" }),
 );
@@ -45,11 +50,14 @@ app.get("/api/session", async (context) => {
     : context.json({ authenticated: false });
 });
 
-app.get("/api/estate", (context) =>
-  context.env.GATEWAY.fetch(
+app.get("/api/estate", async (context) => {
+  if (!context.env.GATEWAY) {
+    return context.json({ code: "GATEWAY_UNAVAILABLE" }, 503);
+  }
+  return context.env.GATEWAY.fetch(
     new Request(`http://${INTERNAL_HOSTS.GATEWAY}/api/estate`, context.req.raw),
-  ),
-);
+  );
+});
 
 app.post("/internal/report-notify", async (context) => {
   if (new URL(context.req.url).hostname !== INTERNAL_HOSTS.PULSE) {
@@ -64,6 +72,8 @@ app.post("/internal/report-notify", async (context) => {
     })
     .safeParse(await readJson(context));
   if (!body.success) return invalidRequest(context);
+
+  if (!context.env.PASS) return context.json({ ok: true });
 
   try {
     const response = await context.env.PASS.fetch(INTERNAL_URLS.ADMINS_LOOKUP);
@@ -105,12 +115,15 @@ registerAgentRoutes(app);
 
 app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
 
-function proxyAdmin(
+async function proxyAdmin(
   context: PulseContext,
-  binding: Fetcher,
+  binding: Fetcher | undefined,
   hostname: string,
   pathname: string,
 ) {
+  if (!binding) {
+    return context.json({ code: "SERVICE_UNAVAILABLE" }, 503);
+  }
   const destination = new URL(context.req.url);
   destination.hostname = hostname;
   destination.pathname = pathname;

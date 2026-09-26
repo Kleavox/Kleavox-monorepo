@@ -650,9 +650,6 @@ importers:
       '@kleavox/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@kleavox/crypto':
-        specifier: workspace:*
-        version: link:../../packages/crypto
       '@kleavox/pulse-app':
         specifier: workspace:*
         version: link:../../apps/pulse

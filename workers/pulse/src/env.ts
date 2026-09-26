@@ -3,9 +3,9 @@ import type { DeployEnvironment } from "@kleavox/core";
 export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
-  PASS: Fetcher;
-  LINK: Fetcher;
-  GATEWAY: Fetcher;
+  PASS?: Fetcher;
+  LINK?: Fetcher;
+  GATEWAY?: Fetcher;
   ENVIRONMENT: DeployEnvironment;
   PUBLIC_ORIGIN: string;
   FROM_EMAIL: string;

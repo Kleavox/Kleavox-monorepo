@@ -2,6 +2,7 @@ import { INTERNAL_HOSTS, INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
 import {
   notifyReport,
   readCookie,
+  requirePassInProduction,
   verifyChallenge,
   verifySession,
 } from "@kleavox/auth";
@@ -71,6 +72,11 @@ app.use(
     csp: "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
   }),
 );
+
+app.use("*", async (context, next) => {
+  requirePassInProduction(context.env);
+  await next();
+});
 
 app.onError((error, context) => {
   console.error("[link]", error);
@@ -199,7 +205,7 @@ app.get("/api/estate", (context) =>
 
 app.post("/api/logout", async (context) => {
   const token = readCookie(context.req.raw, SESSION_COOKIE);
-  if (token) {
+  if (token && context.env.PASS) {
     const result = await context.env.PASS.fetch(INTERNAL_URLS.SESSION_LOGOUT, {
       method: "POST",
       headers: { "x-kleavox-session": token },

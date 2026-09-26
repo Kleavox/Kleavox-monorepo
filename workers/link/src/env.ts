@@ -4,7 +4,7 @@ export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
   FILES: R2Bucket;
-  PASS: Fetcher;
+  PASS?: Fetcher;
   PULSE: Fetcher;
   GATEWAY: Fetcher;
   PUBLIC_CREATE_RATE_LIMIT: RateLimit;

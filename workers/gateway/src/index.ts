@@ -1,6 +1,15 @@
-import { readCookie, verifySession } from "@kleavox/auth";
+import {
+  readCookie,
+  requirePassInProduction,
+  verifySession,
+} from "@kleavox/auth";
 import { INTERNAL_URLS, SESSION_COOKIE } from "@kleavox/config";
-import { isFileSlug, isReservedSlug, renderErrorPage } from "@kleavox/core";
+import {
+  isFileSlug,
+  isReservedSlug,
+  renderErrorPage,
+  type DeployEnvironment,
+} from "@kleavox/core";
 import {
   INTERNAL_HOSTS,
   localWorkerOrigin,
@@ -23,15 +32,21 @@ import {
 } from "./overview";
 
 export interface Env {
+  ENVIRONMENT: DeployEnvironment;
   ASSETS: Fetcher;
   LINK: Fetcher;
-  PASS: Fetcher;
+  PASS?: Fetcher;
   PULSE: Fetcher;
   PORTFOLIO: Fetcher;
   PUBLIC_ORIGIN: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.use("*", async (context, next) => {
+  requirePassInProduction(context.env);
+  await next();
+});
 
 app.onError((error, context) => {
   console.error("[gateway]", error);
@@ -72,11 +87,12 @@ app.get("/api/session", async (context) => {
 });
 
 async function part<T>(
-  fetcher: Fetcher,
+  fetcher: Fetcher | undefined,
   url: string,
   original: Request,
   isValid?: (value: unknown) => value is T,
 ): Promise<T | null> {
+  if (!fetcher) return null;
   try {
     const response = await fetcher.fetch(url, {
       headers: { cookie: original.headers.get("cookie") ?? "" },
@@ -289,7 +305,7 @@ app.get("/api/estate", async (context) => {
 
 app.post("/api/logout", async (context) => {
   const token = readCookie(context.req.raw, SESSION_COOKIE);
-  if (token) {
+  if (token && context.env.PASS) {
     const result = await context.env.PASS.fetch(INTERNAL_URLS.SESSION_LOGOUT, {
       method: "POST",
       headers: { "x-kleavox-session": token },
@@ -342,6 +358,16 @@ app.on("POST", PASS_AUTH_ROUTES, async (context) => {
     return context.json({ code: "INVALID_ORIGIN" }, 403);
   }
 
+  if (!context.env.PASS) {
+    return context.json(
+      {
+        code: "PASS_UNAVAILABLE",
+        message: "This deployment has no Kleavox Pass to sign you in with.",
+      },
+      503,
+    );
+  }
+
   const url = passCookieUrl(context.req.url, context.env.PUBLIC_ORIGIN);
   const headers = new Headers(context.req.raw.headers);
   headers.set("origin", url.origin);
@@ -365,7 +391,7 @@ app.all("*", async (context) => {
   if (hostname.endsWith(`.${rootOrigin.hostname}`)) {
     const subdomain = hostname.replace(`.${rootOrigin.hostname}`, "");
 
-    if (subdomain === "pass") {
+    if (subdomain === "pass" && context.env.PASS) {
       return context.env.PASS.fetch(context.req.raw);
     }
     if (subdomain === "pulse") {

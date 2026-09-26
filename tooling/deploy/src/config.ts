@@ -151,6 +151,7 @@ export function productionConfigs(
       name: names.gateway,
       main: "../../workers/gateway/src/index.ts",
       vars: {
+        ENVIRONMENT: "production",
         PUBLIC_ORIGIN: rootOrigin,
       },
       assets: {

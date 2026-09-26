@@ -264,6 +264,9 @@ func ensureServiceUser(configPath string) error {
 	if err != nil {
 		return err
 	}
+	if err := os.Chown(filepath.Dir(configPath), uid, gid); err != nil {
+		return fmt.Errorf("set config directory ownership: %w", err)
+	}
 	if err := os.Chown(configPath, uid, gid); err != nil {
 		return fmt.Errorf("set config ownership: %w", err)
 	}

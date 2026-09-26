@@ -40,7 +40,7 @@ export async function sendEmail(
 }
 
 type SessionEnv = {
-  Bindings: { PASS: PassBinding };
+  Bindings: { PASS?: PassBinding };
   Variables: { session: SessionIdentity };
 };
 

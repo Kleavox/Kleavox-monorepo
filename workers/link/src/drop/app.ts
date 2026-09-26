@@ -148,6 +148,9 @@ app.get("/api/drop/recipient-key", async (context) => {
       400,
     );
   }
+  if (!context.env.PASS) {
+    return context.json({ userId: null, publicKey: null });
+  }
   const response = await context.env.PASS.fetch(
     `http://${INTERNAL_HOSTS.PASS}/internal/public-key?username=${encodeURIComponent(username)}`,
   );
@@ -164,6 +167,9 @@ app.get("/api/drop/account-key", async (context) => {
       { code: "UNAUTHORIZED", message: "Sign in to open this transfer." },
       401,
     );
+  }
+  if (!context.env.PASS) {
+    return context.json({ salt: null, wrappedPrivateKey: null });
   }
   const response = await context.env.PASS.fetch(
     `http://${INTERNAL_HOSTS.PASS}/internal/account-key?userId=${encodeURIComponent(session.identity.id)}`,

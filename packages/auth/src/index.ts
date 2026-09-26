@@ -44,10 +44,34 @@ export function readCookie(request: Request, name: string): string | null {
   return null;
 }
 
+export const STANDALONE_SESSION: SessionIdentity = {
+  identity: {
+    id: "standalone",
+    email: "standalone@localhost",
+    username: "standalone",
+    role: "ADMIN",
+  },
+  sessionId: "standalone",
+  expiresAt: "9999-12-31T23:59:59.000Z",
+};
+
+export function requirePassInProduction(env: {
+  ENVIRONMENT?: string;
+  PASS?: PassBinding;
+}): void {
+  if (env.ENVIRONMENT === "production" && !env.PASS) {
+    throw new Error(
+      "PASS binding is missing in production, so every session check would fall open",
+    );
+  }
+}
+
 export async function verifySession(
   request: Request,
-  pass: PassBinding,
+  pass: PassBinding | undefined,
 ): Promise<SessionIdentity | null> {
+  if (!pass) return STANDALONE_SESSION;
+
   const sessionId = readCookie(request, SESSION_COOKIE);
   if (!sessionId) return null;
 
@@ -63,9 +87,11 @@ export async function verifySession(
 
 export async function verifyChallenge(
   request: Request,
-  pass: PassBinding,
+  pass: PassBinding | undefined,
   scope: VerificationScope,
 ): Promise<boolean> {
+  if (!pass) return false;
+
   const token = readCookie(request, VERIFICATION_COOKIE);
   if (!token) return false;
 

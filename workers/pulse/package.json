@@ -14,7 +14,6 @@
     "@kleavox/auth": "workspace:*",
     "@kleavox/config": "workspace:*",
     "@kleavox/core": "workspace:*",
-    "@kleavox/crypto": "workspace:*",
     "@kleavox/pulse-app": "workspace:*",
     "@kleavox/pulse-protocol": "workspace:*",
     "@kleavox/worker": "workspace:*",
